@@ -4,18 +4,31 @@ const { AUTH_KEY, verifyToken, extractBearer } = require('./_lib/auth');
 
 const ORDERS_KEY = 'synaptic_orders';
 const VALID_STATUSES = new Set(['pending', 'paid', 'shipped', 'completed', 'cancelled']);
+const PUBLIC_SOURCE = 'whatsapp_checkout';
 
 function makeId() {
   return `ord_${Date.now().toString(36)}_${crypto.randomBytes(4).toString('hex')}`;
 }
 
+function parseBody(req) {
+  let body = req.body;
+  if (typeof body === 'string') {
+    try { body = JSON.parse(body); } catch { body = {}; }
+  }
+  return body && typeof body === 'object' ? body : {};
+}
+
+function normalizePhone(raw) {
+  return String(raw || '').replace(/\D/g, '').slice(0, 20);
+}
+
 function normalizeOrder(input, existing) {
   const now = new Date().toISOString();
   const products = Array.isArray(input.products)
-    ? input.products.map((p) => ({
-        id: String(p.id || ''),
-        name: String(p.name || 'Producto').trim(),
-        quantity: Math.max(1, Number(p.quantity) || 1),
+    ? input.products.slice(0, 30).map((p) => ({
+        id: String(p.id || '').slice(0, 120),
+        name: String(p.name || 'Producto').trim().slice(0, 180),
+        quantity: Math.max(1, Math.min(999, Number(p.quantity) || 1)),
         unitPrice: Math.max(0, Number(p.unitPrice) || 0),
       }))
     : [];
@@ -25,12 +38,13 @@ function normalizeOrder(input, existing) {
 
   return {
     id: existing?.id || makeId(),
-    customerName: String(input.customerName || '').trim(),
-    phone: String(input.phone || '').trim(),
+    customerName: String(input.customerName || '').trim().slice(0, 120),
+    phone: normalizePhone(input.phone),
     products,
     total,
     status: VALID_STATUSES.has(input.status) ? input.status : (existing?.status || 'pending'),
-    notes: String(input.notes || '').trim(),
+    notes: String(input.notes || '').trim().slice(0, 1000),
+    source: String(input.source || 'admin').slice(0, 40),
     createdAt: existing?.createdAt || now,
     updatedAt: now,
   };
@@ -57,16 +71,30 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    const body = parseBody(req);
+    const hasBearer = Boolean(extractBearer(req));
+    const orders = (await kvGet(ORDERS_KEY)) || [];
+
+    if (req.method === 'POST' && !hasBearer) {
+      if (body.source !== PUBLIC_SOURCE) {
+        return res.status(401).json({ error: 'UNAUTHORIZED', message: 'Autenticación requerida.' });
+      }
+      const customerName = String(body.customerName || '').trim().slice(0, 120);
+      const phone = normalizePhone(body.phone);
+      if (!customerName || phone.length < 8) {
+        return res.status(400).json({ error: 'VALIDATION_ERROR', message: 'El nombre y un WhatsApp válido son obligatorios.' });
+      }
+      if (!Array.isArray(body.products) || body.products.length < 1) {
+        return res.status(400).json({ error: 'VALIDATION_ERROR', message: 'El pedido debe contener al menos un producto.' });
+      }
+      const order = normalizeOrder({ ...body, customerName, phone, status: 'pending', source: PUBLIC_SOURCE });
+      orders.push(order);
+      await kvSet(ORDERS_KEY, orders);
+      return res.status(201).json({ ok: true, order });
+    }
+
     const auth = await requireAdmin(req);
     if (!auth.ok) return res.status(auth.status).json({ error: auth.error, message: auth.message });
-
-    let body = req.body;
-    if (typeof body === 'string') {
-      try { body = JSON.parse(body); } catch { body = {}; }
-    }
-    body = body || {};
-
-    const orders = (await kvGet(ORDERS_KEY)) || [];
 
     if (req.method === 'GET') {
       const sorted = [...orders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -75,11 +103,11 @@ module.exports = async function handler(req, res) {
 
     if (req.method === 'POST') {
       const customerName = String(body.customerName || '').trim();
-      const phone = String(body.phone || '').trim();
-      if (!customerName || !phone) {
+      const phone = normalizePhone(body.phone);
+      if (!customerName || phone.length < 8) {
         return res.status(400).json({ error: 'VALIDATION_ERROR', message: 'El cliente y el teléfono son obligatorios.' });
       }
-      const order = normalizeOrder({ ...body, status: 'pending' });
+      const order = normalizeOrder({ ...body, status: body.status || 'pending', source: 'admin' });
       orders.push(order);
       await kvSet(ORDERS_KEY, orders);
       return res.status(201).json({ ok: true, order });
