@@ -4,5 +4,8 @@
     { "source": "/admin/orders/", "destination": "/orders.html" },
     { "source": "/admin", "destination": "/api/admin.js" },
     { "source": "/", "destination": "/api/storefront.js" }
+  ],
+  "headers": [
+    { "source": "/", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
   ]
 }
