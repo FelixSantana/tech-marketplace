@@ -13,12 +13,14 @@ module.exports = async function handler(req, res) {
   if(window.__synapticOrderCheckout) return;
   window.__synapticOrderCheckout = true;
 
+  const originalOpen = window.open.bind(window);
+
   const css = document.createElement('style');
   css.textContent = '.so-overlay{position:fixed;inset:0;background:rgba(6,7,11,.75);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px}.so-box{width:min(440px,100%);background:var(--bg-elev,#10131c);color:var(--text,#edeef3);border:1px solid var(--border,#262b3c);border-radius:18px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.45);font-family:Inter,system-ui,sans-serif}.so-box h3{margin:0 0 6px;font-size:20px}.so-box p{margin:0 0 18px;color:var(--text-muted,#8b90a8);font-size:13px;line-height:1.45}.so-field{margin-bottom:12px}.so-field label{display:block;font-size:12px;color:var(--text-muted,#8b90a8);margin-bottom:6px}.so-field input{width:100%;box-sizing:border-box;background:var(--surface,#161a26);border:1px solid var(--border,#262b3c);border-radius:9px;padding:11px 12px;color:var(--text,#edeef3);outline:none}.so-field input:focus{border-color:var(--accent,#7c5cff)}.so-summary{background:var(--surface,#161a26);border:1px solid var(--border,#262b3c);border-radius:10px;padding:10px 12px;margin:12px 0 16px;font-size:12px;line-height:1.5;max-height:130px;overflow:auto}.so-actions{display:flex;gap:8px;justify-content:flex-end}.so-btn{border:1px solid var(--border,#262b3c);background:var(--surface,#161a26);color:var(--text,#edeef3);padding:10px 14px;border-radius:9px;font-weight:700;cursor:pointer}.so-btn.primary{background:#25d366;border-color:#25d366;color:#06210f}.so-btn:disabled{opacity:.6;cursor:wait}.so-error{color:#ff5c7a;font-size:12px;margin:8px 0 0;display:none}';
   document.head.appendChild(css);
 
   function esc(s){
-    return String(s || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
+    return String(s || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('\\"','&quot;').replaceAll("'",'&#39;');
   }
 
   function digitsOnly(value){
@@ -62,7 +64,8 @@ module.exports = async function handler(req, res) {
           if(qtyMarker > 0){
             const name = left.slice(0,qtyMarker).trim();
             const quantity = Math.max(1, Number(left.slice(qtyMarker+2).trim()) || 1);
-            const unitPrice = quantity ? numberFromText(right) / quantity : 0;
+            const subtotal = numberFromText(right);
+            const unitPrice = quantity ? subtotal / quantity : 0;
             products.push({name, quantity, unitPrice});
             continue;
           }
@@ -116,7 +119,7 @@ module.exports = async function handler(req, res) {
         const data = await response.json().catch(()=>({}));
         if(!response.ok) throw new Error(data.message || 'No se pudo registrar el pedido.');
         close();
-        window.open(url,'_blank','noopener');
+        originalOpen(url,'_blank','noopener');
       }catch(err){
         console.error('WhatsApp order registration failed', err);
         send.disabled = false;
@@ -126,6 +129,15 @@ module.exports = async function handler(req, res) {
       }
     };
   }
+
+  window.open = function(url,target,features){
+    const href = String(url || '');
+    if(href.includes('wa.me/')){
+      openCheckout(href);
+      return null;
+    }
+    return originalOpen(url,target,features);
+  };
 
   document.addEventListener('click', function(e){
     const link = e.target.closest('a[href*="wa.me/"]');
