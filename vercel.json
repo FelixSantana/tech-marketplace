@@ -1,10 +1,8 @@
 {
-  "rewrites": [
-    { "source": "/admin/orders", "destination": "/orders.html" },
-    { "source": "/admin/orders/", "destination": "/orders.html" },
-    { "source": "/admin", "destination": "/api/admin.js" },
-    { "source": "/admin/", "destination": "/api/admin.js" },
-    { "source": "/", "destination": "/api/storefront.js" }
+  "routes": [
+    { "src": "^/admin/orders/?$", "dest": "/orders.html" },
+    { "src": "^/admin/?$", "dest": "/api/admin.js" },
+    { "src": "^/$", "dest": "/api/storefront.js" }
   ],
   "headers": [
     { "source": "/", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
