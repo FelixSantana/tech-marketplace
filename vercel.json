@@ -2,8 +2,8 @@
   "rewrites": [
     { "source": "/admin/orders", "destination": "/orders.html" },
     { "source": "/admin/orders/", "destination": "/orders.html" },
-    { "source": "/admin", "destination": "/index.html" },
-    { "source": "/admin/", "destination": "/index.html" }
+    { "source": "/admin", "destination": "/api/admin.js" },
+    { "source": "/admin/", "destination": "/api/admin.js" }
   ],
   "headers": [
     { "source": "/", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
