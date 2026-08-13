@@ -1,6 +1,6 @@
 {
   "routes": [
-    { "src": "^/admin/orders/?$", "dest": "/orders.html" },
+    { "src": "^/admin/orders/?$", "dest": "/api/orders-page.js" },
     { "src": "^/admin/?$", "dest": "/api/admin.js" },
     { "src": "^/$", "dest": "/api/storefront.js" }
   ],
