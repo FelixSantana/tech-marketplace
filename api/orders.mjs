@@ -1,2 +1,2 @@
-import handler from './orders.cjs';
+import handler from './_handlers/orders-handler.cjs';
 export default handler;
