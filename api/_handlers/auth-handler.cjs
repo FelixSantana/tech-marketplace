@@ -14,6 +14,11 @@ module.exports = async function handler(req, res) {
   body = body || {};
   const { action } = body;
   try {
+    if (action === 'status') {
+      const admin = await kvGet(AUTH_KEY);
+      return res.status(200).json({ ok: true, configured: !!admin, email: admin?.email || null });
+    }
+
     if (action === 'setup') {
       const existing = await kvGet(AUTH_KEY);
       if (existing) return res.status(409).json({ error: 'ALREADY_SETUP', message: 'Ya existe una cuenta de administrador.' });
@@ -45,30 +50,16 @@ module.exports = async function handler(req, res) {
     if (action === 'change') {
       const admin = await kvGet(AUTH_KEY);
       if (!admin) return res.status(400).json({ error: 'NOT_SETUP', message: 'No existe una cuenta de administrador.' });
-
-      // The current password is the definitive credential for this operation.
-      // This also lets a valid admin recover from an expired/stale browser token.
       const currentPassword = String(body.currentPassword || '');
       if (!currentPassword) return res.status(400).json({ error: 'CURRENT_PASSWORD_REQUIRED', message: 'Ingresa tu contraseña actual.' });
       const currentHash = hashPassword(currentPassword, admin.salt);
-      if (!safeEqual(currentHash, admin.hash)) {
-        return res.status(401).json({ error: 'WRONG_PASSWORD', message: 'La contraseña actual no es correcta.' });
-      }
-
-      const token = extractBearer(req);
-      if (token) verifyToken(token, admin.secret); // optional: stale sessions are recovered below after password verification
+      if (!safeEqual(currentHash, admin.hash)) return res.status(401).json({ error: 'WRONG_PASSWORD', message: 'La contraseña actual no es correcta.' });
 
       const requestedEmail = String(body.newEmail || '').trim().toLowerCase();
       const requestedPassword = String(body.newPassword || '');
-      if (requestedEmail && !requestedEmail.includes('@')) {
-        return res.status(400).json({ error: 'BAD_EMAIL', message: 'El nuevo correo no es válido.' });
-      }
-      if (requestedPassword && requestedPassword.length < 6) {
-        return res.status(400).json({ error: 'BAD_PASSWORD', message: 'La nueva contraseña debe tener al menos 6 caracteres.' });
-      }
-      if (!requestedEmail && !requestedPassword) {
-        return res.status(400).json({ error: 'NOTHING_TO_CHANGE', message: 'Indica un nuevo correo o una nueva contraseña.' });
-      }
+      if (requestedEmail && !requestedEmail.includes('@')) return res.status(400).json({ error: 'BAD_EMAIL', message: 'El nuevo correo no es válido.' });
+      if (requestedPassword && requestedPassword.length < 6) return res.status(400).json({ error: 'BAD_PASSWORD', message: 'La nueva contraseña debe tener al menos 6 caracteres.' });
+      if (!requestedEmail && !requestedPassword) return res.status(400).json({ error: 'NOTHING_TO_CHANGE', message: 'Indica un nuevo correo o una nueva contraseña.' });
 
       if (requestedEmail) admin.email = requestedEmail;
       if (requestedPassword) {
@@ -76,7 +67,6 @@ module.exports = async function handler(req, res) {
         admin.salt = newSalt;
         admin.hash = hashPassword(requestedPassword, newSalt);
       }
-
       await kvSet(AUTH_KEY, admin);
       const newToken = signToken({ email: admin.email, exp: Date.now() + TOKEN_TTL_MS }, admin.secret);
       return res.status(200).json({ ok: true, token: newToken, email: admin.email });
@@ -85,6 +75,6 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'BAD_ACTION', message: 'Acción de autenticación no válida.' });
   } catch (e) {
     console.error('auth error', e);
-    return res.status(500).json({ error: 'SERVER_ERROR', message: 'No se pudo actualizar la cuenta de administrador.' });
+    return res.status(500).json({ error: 'SERVER_ERROR', message: 'No se pudo procesar la solicitud de autenticación.' });
   }
 };
