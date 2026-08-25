@@ -14,13 +14,12 @@ export default function CheckoutModal({ items, settings, onClose, onOrderCreated
     if (cleanPhone.length < 8) return showToast('Escribe un WhatsApp válido.');
     if (!settings.whatsapp) return showToast('El WhatsApp de la tienda no está configurado.');
 
-    // Abrimos una ventana inmediatamente por la acción del usuario para evitar que el navegador bloquee WhatsApp después del fetch.
     const popup = window.open('about:blank', '_blank');
     if (!popup) return showToast('El navegador bloqueó la ventana de WhatsApp. Permite las ventanas emergentes para este sitio.');
     popup.document.write('<p style="font-family:system-ui;padding:24px">Registrando tu pedido…</p>');
     setSaving(true);
     try {
-      const response = await fetch('/api/orders.cjs', {
+      const response = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ source: 'whatsapp_checkout', customerName: name.trim(), phone: cleanPhone, notes, products: items.map((item) => ({ productId: item.product.id, quantity: item.qty })) })
@@ -32,9 +31,7 @@ export default function CheckoutModal({ items, settings, onClose, onOrderCreated
       items.forEach((item) => lines.push(`• ${item.product.name} x${item.qty} — ${settings.currency} ${(Number(item.product.price) * item.qty).toLocaleString('es-DO')}`));
       lines.push('', `Total: ${settings.currency} ${total.toLocaleString('es-DO')}`, '', '¿Está todo disponible?');
       const storePhone = String(settings.whatsapp).replace(/\D/g, '');
-      const url = `https://wa.me/${storePhone}?text=${encodeURIComponent(lines.join('\n'))}`;
-
-      popup.location.href = url;
+      popup.location.href = `https://wa.me/${storePhone}?text=${encodeURIComponent(lines.join('\n'))}`;
       onOrderCreated?.(data.order);
       onClose();
     } catch (error) {
