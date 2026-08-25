@@ -1,2 +1,2 @@
-import handler from './auth.cjs';
+import handler from './_handlers/auth-handler.cjs';
 export default handler;
