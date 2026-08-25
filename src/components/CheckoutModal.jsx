@@ -16,17 +16,12 @@ export default function CheckoutModal({ items, settings, onClose, onOrderCreated
 
     const popup = window.open('about:blank', '_blank');
     if (!popup) return showToast('El navegador bloqueó la ventana de WhatsApp. Permite las ventanas emergentes para este sitio.');
-    popup.document.write('<p style="font-family:system-ui;padding:24px">Registrando tu pedido…</p>');
+    popup.document.write('<div style="font-family:system-ui,sans-serif;background:#0a0c12;color:#edeef3;min-height:100vh;display:grid;place-items:center"><div style="text-align:center;padding:30px"><div style="font-size:34px;margin-bottom:10px">⏳</div><strong>Preparando tu pedido…</strong><p style="opacity:.65">Te llevaremos a WhatsApp en unos segundos.</p></div></div>');
     setSaving(true);
     try {
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ source: 'whatsapp_checkout', customerName: name.trim(), phone: cleanPhone, notes, products: items.map((item) => ({ productId: item.product.id, quantity: item.qty })) })
-      });
+      const response = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ source: 'whatsapp_checkout', customerName: name.trim(), phone: cleanPhone, notes, products: items.map((item) => ({ productId: item.product.id, quantity: item.qty })) }) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.message || 'No se pudo registrar el pedido.');
-
       const lines = [`Hola ${settings.storeName}! Quiero hacer este pedido:`, ''];
       items.forEach((item) => lines.push(`• ${item.product.name} x${item.qty} — ${settings.currency} ${(Number(item.product.price) * item.qty).toLocaleString('es-DO')}`));
       lines.push('', `Total: ${settings.currency} ${total.toLocaleString('es-DO')}`, '', '¿Está todo disponible?');
@@ -38,23 +33,18 @@ export default function CheckoutModal({ items, settings, onClose, onOrderCreated
       popup.close();
       console.error('checkout order failed', error);
       showToast(error.message || 'No se pudo registrar el pedido.');
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   return (
-    <div className="overlay" onClick={(e) => { if (e.target.classList.contains('overlay') && !saving) onClose(); }}>
-      <form className="panel" style={{ maxWidth: 520 }} onSubmit={submit}>
-        <div className="panel-head"><h2>Confirmar pedido</h2><button type="button" className="icon-btn" onClick={onClose} disabled={saving}>✕</button></div>
-        <p style={{ color: 'var(--text-muted)', marginTop: 0 }}>Completa tus datos. Primero registraremos la orden como pendiente y después abriremos WhatsApp.</p>
-        <div className="form-grid">
-          <label>Nombre<input value={name} onChange={(e) => setName(e.target.value)} placeholder="Tu nombre" autoFocus maxLength={120} /></label>
-          <label>WhatsApp<input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="809 555 1234" inputMode="tel" maxLength={20} /></label>
-          <label>Notas <span style={{ color: 'var(--text-muted)' }}>(opcional)</span><textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notas para el pedido" maxLength={1000} rows={3} /></label>
-        </div>
-        <div className="cart-total-row" style={{ marginTop: 16 }}><span>Total</span><strong className="mono">{settings.currency} {total.toLocaleString('es-DO')}</strong></div>
-        <div className="form-actions" style={{ marginTop: 16 }}><button type="button" className="btn-secondary" onClick={onClose} disabled={saving}>Cancelar</button><button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Registrando…' : 'Registrar y abrir WhatsApp'}</button></div>
+    <div className="overlay checkout-overlay" onClick={(e) => { if (e.target.classList.contains('overlay') && !saving) onClose(); }}>
+      <form className="panel checkout-panel" onSubmit={submit}>
+        <div className="checkout-head"><div><span className="checkout-kicker">FINALIZAR PEDIDO</span><h2>Completa tu pedido</h2><p>Registraremos tu orden y luego te llevaremos a WhatsApp.</p></div><button type="button" className="icon-btn" onClick={onClose} disabled={saving} aria-label="Cerrar">✕</button></div>
+        <div className="checkout-summary"><div className="checkout-summary-title">Resumen <span>{items.length} {items.length === 1 ? 'producto' : 'productos'}</span></div>{items.map((item) => <div className="checkout-item" key={item.product.id}><div className="checkout-item-img">{item.product.images?.[0] ? <img src={item.product.images[0]} alt="" /> : '📦'}</div><div className="checkout-item-info"><strong>{item.product.name}</strong><small>Cantidad: {item.qty}</small></div><b>{settings.currency} {(Number(item.product.price) * item.qty).toLocaleString('es-DO')}</b></div>)}<div className="checkout-total"><span>Total del pedido</span><strong>{settings.currency} {total.toLocaleString('es-DO')}</strong></div></div>
+        <div className="checkout-form-title">Tus datos</div>
+        <div className="form-grid"><label>Nombre<input value={name} onChange={(e) => setName(e.target.value)} placeholder="Tu nombre" autoFocus maxLength={120} /></label><label>WhatsApp<input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="809 555 1234" inputMode="tel" maxLength={20} /></label><label className="checkout-notes">Notas <span>(opcional)</span><textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Color, horario de entrega, etc." maxLength={1000} rows={3} /></label></div>
+        <div className="checkout-security">🔒 <span>Tus datos se usan únicamente para registrar y coordinar este pedido.</span></div>
+        <div className="form-actions checkout-actions"><button type="button" className="btn-secondary" onClick={onClose} disabled={saving}>Cancelar</button><button type="submit" className="btn-wa checkout-submit" disabled={saving}>{saving ? 'Registrando…' : 'Pedir por WhatsApp'}<span>→</span></button></div>
       </form>
     </div>
   );
