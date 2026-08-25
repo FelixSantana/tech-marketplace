@@ -1,2 +1,2 @@
-import handler from './admin-reset.cjs';
+import handler from './_handlers/admin-reset-handler.cjs';
 export default handler;
