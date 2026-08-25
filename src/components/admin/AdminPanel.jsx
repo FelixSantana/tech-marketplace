@@ -2,6 +2,7 @@ import { useState } from 'react';
 import ProductList from './ProductList';
 import ProductForm from './ProductForm';
 import SettingsForm from './SettingsForm';
+import OrdersPanel from './OrdersPanel';
 
 export default function AdminPanel({ products, setProducts, categories, setCategories, settings, setSettings, saveCatalog, adminToken, authRequest, setAdminToken, onClose, onLogout, showToast }) {
   const [tab, setTab] = useState('productos');
@@ -42,14 +43,15 @@ export default function AdminPanel({ products, setProducts, categories, setCateg
 
   return (
     <div className="overlay">
-      <div className="panel">
+      <div className="panel" style={{ maxWidth: 1100 }}>
         <div className="panel-head">
-          <h2>Panel de inventario</h2>
+          <h2>Panel de administración</h2>
           <button className="icon-btn" onClick={onClose}>✕</button>
         </div>
         <div className="tabs">
           <button className={`tab ${tab === 'productos' ? 'active' : ''}`} onClick={() => switchTab('productos')}>Productos</button>
           <button className={`tab ${tab === 'agregar' ? 'active' : ''}`} onClick={() => switchTab('agregar')}>{editingId ? 'Editar' : 'Agregar'}</button>
+          <button className={`tab ${tab === 'ordenes' ? 'active' : ''}`} onClick={() => switchTab('ordenes')}>Órdenes</button>
           <button className={`tab ${tab === 'ajustes' ? 'active' : ''}`} onClick={() => switchTab('ajustes')}>Ajustes</button>
         </div>
         {tab === 'productos' && (
@@ -57,6 +59,9 @@ export default function AdminPanel({ products, setProducts, categories, setCateg
         )}
         {tab === 'agregar' && (
           <ProductForm key={editingId || 'new'} editingProduct={editingProduct} categories={categories} setCategories={setCategories} settings={settings} onSave={handleSaveProduct} onCancel={() => { setEditingId(null); setTab('productos'); }} saveCatalog={saveCatalog} adminToken={adminToken} showToast={showToast} />
+        )}
+        {tab === 'ordenes' && (
+          <OrdersPanel adminToken={adminToken} products={products} showToast={showToast} />
         )}
         {tab === 'ajustes' && (
           <SettingsForm settings={settings} onSaveSettings={handleSaveSettings} authRequest={authRequest} setAdminToken={setAdminToken} onLogout={onLogout} showToast={showToast} />
