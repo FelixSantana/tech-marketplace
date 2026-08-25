@@ -12,27 +12,29 @@ export default function AdminPanel({ products, setProducts, categories, setCateg
   const switchTab = (t) => { if (t !== 'agregar') setEditingId(null); setTab(t); };
 
   const handleSaveProduct = async (data) => {
-    let nextProducts;
-    if (editingId) {
-      nextProducts = products.map((p) => (p.id === editingId ? { ...p, ...data, image: undefined, stock: undefined } : p));
-    } else {
-      nextProducts = [...products, { id: 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), ...data }];
-    }
+    const nextProducts = editingId
+      ? products.map((p) => (p.id === editingId ? { ...p, ...data } : p))
+      : [...products, { id: 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), ...data }];
+
     setProducts(nextProducts);
     const ok = await saveCatalog(adminToken, { products: nextProducts });
     if (ok) {
-      showToast(editingId ? 'Producto actualizado' : 'Producto agregado');
+      showToast(editingId ? 'Producto actualizado correctamente' : 'Producto agregado correctamente');
       setEditingId(null);
       setTab('productos');
-    } else { showToast('Error al guardar. Intenta de nuevo.'); }
+      return true;
+    }
+    showToast('No se pudo guardar el producto. Verifica que tu sesión de administrador siga activa.');
+    return false;
   };
 
   const handleDeleteProduct = async (id) => {
     if (!confirm('¿Eliminar este producto?')) return;
     const nextProducts = products.filter((p) => p.id !== id);
     setProducts(nextProducts);
-    await saveCatalog(adminToken, { products: nextProducts });
-    showToast('Producto eliminado');
+    const ok = await saveCatalog(adminToken, { products: nextProducts });
+    if (ok) showToast('Producto eliminado');
+    else showToast('No se pudo eliminar el producto.');
   };
 
   const handleSaveSettings = async (updates) => {
@@ -43,10 +45,10 @@ export default function AdminPanel({ products, setProducts, categories, setCateg
 
   return (
     <div className="overlay">
-      <div className="panel" style={{ maxWidth: 1100 }}>
+      <div className="panel admin-panel" style={{ maxWidth: 1100 }}>
         <div className="panel-head">
-          <h2>Panel de administración</h2>
-          <button className="icon-btn" onClick={onClose}>✕</button>
+          <div><h2>Panel de administración</h2><p className="admin-subtitle">Gestiona productos, pedidos y configuración de tu tienda.</p></div>
+          <button className="icon-btn" onClick={onClose} aria-label="Cerrar panel">✕</button>
         </div>
         <div className="tabs">
           <button className={`tab ${tab === 'productos' ? 'active' : ''}`} onClick={() => switchTab('productos')}>Productos</button>
