@@ -8,10 +8,19 @@ async function kvGet(key) {
   if (!data || data.result === null || data.result === undefined) return null;
   try { return JSON.parse(data.result); } catch (e) { return null; }
 }
+
 async function kvSet(key, value) {
   const r = await fetch(`${KV_URL}/set/${encodeURIComponent(key)}`, { method: 'POST', headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'text/plain' }, body: JSON.stringify(value) });
   if (!r.ok) throw new Error('KV SET failed: ' + r.status);
   return true;
 }
+
+async function kvSetEx(key, value, seconds) {
+  const ttl = Math.max(1, Math.floor(Number(seconds) || 1));
+  const r = await fetch(`${KV_URL}/set/${encodeURIComponent(key)}?EX=${ttl}`, { method: 'POST', headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'text/plain' }, body: JSON.stringify(value) });
+  if (!r.ok) throw new Error('KV SET EX failed: ' + r.status);
+  return true;
+}
+
 function kvConfigured() { return !!(KV_URL && KV_TOKEN); }
-module.exports = { kvGet, kvSet, kvConfigured };
+module.exports = { kvGet, kvSet, kvSetEx, kvConfigured };

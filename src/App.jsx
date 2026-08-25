@@ -4,6 +4,7 @@ import CategoryChips from './components/CategoryChips';
 import ProductGrid from './components/ProductGrid';
 import ProductDetail from './components/ProductDetail';
 import CartModal from './components/CartModal';
+import CheckoutModal from './components/CheckoutModal';
 import Toast from './components/Toast';
 import { SetupModal, LoginModal } from './components/admin/AuthModals';
 import AdminPanel from './components/admin/AdminPanel';
@@ -24,6 +25,7 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [detailProductId, setDetailProductId] = useState(null);
   const [modal, setModal] = useState(null);
+  const [checkoutItems, setCheckoutItems] = useState([]);
   const [isAdminRoute, setIsAdminRoute] = useState(false);
 
   useEffect(() => {
@@ -57,10 +59,34 @@ export default function App() {
 
   const handleAddCart = useCallback((id, qty) => addToCart(id, qty, showToast), [addToCart, showToast]);
 
+  const startCheckout = useCallback((items) => {
+    if (!settings.whatsapp) { showToast('Configura primero el WhatsApp de la tienda'); return; }
+    setCheckoutItems(items);
+    setModal('checkout');
+  }, [settings.whatsapp, showToast]);
+
+  const handleSingleOrder = useCallback((product, qty = 1) => {
+    startCheckout([{ product, qty }]);
+  }, [startCheckout]);
+
+  const handleCartCheckout = useCallback(() => {
+    const items = cart.map((ci) => {
+      const product = products.find((p) => p.id === ci.productId);
+      return product ? { product, qty: ci.qty } : null;
+    }).filter(Boolean);
+    if (!items.length) { showToast('Tu carrito está vacío.'); return; }
+    setModal(null);
+    startCheckout(items);
+  }, [cart, products, startCheckout, showToast]);
+
   const handleLogout = () => {
     setAdminToken('');
     setModal(null);
     showToast('Sesión cerrada');
+  };
+
+  const handleOrderCreated = () => {
+    showToast('Pedido registrado correctamente');
   };
 
   return (
@@ -75,7 +101,7 @@ export default function App() {
             <p>{loadError}</p>
           </div>
         ) : (
-          <ProductGrid products={products} allProducts={products} settings={settings} activeCategory={activeCategory} searchTerm={searchTerm} onOpenDetail={setDetailProductId} onAddCart={handleAddCart} />
+          <ProductGrid products={products} allProducts={products} settings={settings} activeCategory={activeCategory} searchTerm={searchTerm} onOpenDetail={setDetailProductId} onAddCart={handleAddCart} onOrderWhatsApp={handleSingleOrder} />
         )}
       </main>
       <footer>Catálogo digital de {settings.storeName || 'Synaptic Tech'}</footer>
@@ -85,15 +111,18 @@ export default function App() {
       </button>
       {settings.configured && isAdminRoute && (
         <button className="admin-fab" style={{ display: 'flex' }} onClick={openAdmin} title="Panel de administrador">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0 1.51-1H21a2 2 0 0 0 0-4h-.09A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 .33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 1 .33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 0 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
         </button>
       )}
       <Toast message={message} visible={visible} />
       {detailProductId && (
-        <ProductDetail product={products.find((p) => p.id === detailProductId)} settings={settings} onClose={() => setDetailProductId(null)} onAddCart={(id, qty) => handleAddCart(id, qty)} />
+        <ProductDetail product={products.find((p) => p.id === detailProductId)} settings={settings} onClose={() => setDetailProductId(null)} onAddCart={(id, qty) => handleAddCart(id, qty)} onOrderWhatsApp={handleSingleOrder} />
       )}
       {modal === 'cart' && (
-        <CartModal cart={cart} products={products} settings={settings} onClose={() => setModal(null)} onUpdateQty={updateCartQty} onRemove={removeFromCart} onClear={clearCart} showToast={showToast} />
+        <CartModal cart={cart} products={products} settings={settings} onClose={() => setModal(null)} onUpdateQty={updateCartQty} onRemove={removeFromCart} onClear={clearCart} onCheckout={handleCartCheckout} showToast={showToast} />
+      )}
+      {modal === 'checkout' && (
+        <CheckoutModal items={checkoutItems} settings={settings} onClose={() => { setModal(null); setCheckoutItems([]); }} onOrderCreated={handleOrderCreated} showToast={showToast} />
       )}
       {modal === 'setup' && (
         <SetupModal settings={settings} authRequest={authRequest} setAdminToken={setAdminToken} showToast={showToast} onSetupComplete={async (updates) => {
