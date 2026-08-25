@@ -15,7 +15,28 @@ async function getCatalog() { return (await kvGet(CATALOG_KEY)) || { products: [
 function catalogMap(catalog) { return new Map((catalog.products || []).map((p) => [String(p.id), p])); }
 function buildPublicItems(inputItems, catalog) { const map = catalogMap(catalog); if (!Array.isArray(inputItems) || !inputItems.length) throw new Error('ORDER_PRODUCTS_REQUIRED'); const items = []; for (const raw of inputItems) { const product = map.get(String(raw.productId || raw.id)); const quantity = Math.floor(Number(raw.quantity || raw.qty || 0)); if (!product || quantity < 1 || quantity > 999) throw new Error('INVALID_PRODUCT'); const available = Number(product.stockQty ?? product.stock ?? 0); if (available >= 0 && quantity > available) throw new Error('INSUFFICIENT_STOCK'); const unitPrice = money(product.price); items.push({ productId: product.id, name: cleanText(product.name, 180), quantity, unitPrice, subtotal: money(unitPrice * quantity) }); } return items; }
 function buildAdminItems(inputItems, catalog) { const map = catalogMap(catalog); if (!Array.isArray(inputItems) || !inputItems.length) throw new Error('ORDER_PRODUCTS_REQUIRED'); return inputItems.map((raw) => { const product = map.get(String(raw.productId || raw.id)); if (!product) throw new Error('INVALID_PRODUCT'); const quantity = Math.max(1, Math.floor(Number(raw.quantity || raw.qty || 1))); const unitPrice = money(raw.unitPrice ?? raw.price ?? product.price); return { productId: product.id, name: cleanText(raw.name || product.name, 180), quantity, unitPrice, subtotal: money(unitPrice * quantity) }; }); }
-function makeOrder(body, items, source) { const total = money(items.reduce((sum, item) => sum + item.subtotal, 0)); const now = new Date().toISOString(); return { id: `ord_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, customerName: cleanText(body.customerName || body.name, 120), phone: cleanPhone(body.phone || body.customerPhone), products: items, total, status: 'pending', paymentStatus: 'pending', shippingStatus: 'pending', notes: cleanText(body.notes, 1000), source, createdAt: now, updatedAt: now }; }
+function makeOrder(body, items, source) { const total = money(items.reduce((sum, item) => sum + item.subtotal, 0)); const now = new Date().toISOString(); return { id: `ord_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, customerName: cleanText(body.customerName || body.name, 120), phone: cleanPhone(body.phone || body.customerPhone), products: items, total, status: 'pending', paymentStatus: 'pending', shippingStatus: 'pending', notes: cleanText(body.notes, 1000), source, inventoryDeducted: false, createdAt: now, updatedAt: now }; }
+function getStock(product) { const raw = product.stockQty ?? product.stock; const value = Number(raw); return Number.isFinite(value) && value >= 0 ? value : null; }
+function applyInventoryDeduction(catalog, order) {
+  const products = Array.isArray(catalog.products) ? catalog.products.map((product) => ({ ...product })) : [];
+  const map = new Map(products.map((product) => [String(product.id), product]));
+  for (const item of order.products || []) {
+    const product = map.get(String(item.productId));
+    if (!product) throw new Error('INVENTORY_PRODUCT_NOT_FOUND');
+    const stock = getStock(product);
+    if (stock === null) throw new Error('INVENTORY_NOT_CONFIGURED');
+    const quantity = Math.max(0, Math.floor(Number(item.quantity || 0)));
+    if (quantity > stock) throw new Error('INSUFFICIENT_STOCK_ON_COMPLETION');
+  }
+  for (const item of order.products || []) {
+    const product = map.get(String(item.productId));
+    const quantity = Math.max(0, Math.floor(Number(item.quantity || 0)));
+    const nextStock = getStock(product) - quantity;
+    product.stockQty = nextStock;
+    if (Object.prototype.hasOwnProperty.call(product, 'stock')) product.stock = nextStock;
+  }
+  return { ...catalog, products };
+}
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*'); res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS'); res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end(); if (!kvConfigured()) return res.status(503).json({ error: 'DB_NOT_CONNECTED' });
@@ -27,7 +48,20 @@ module.exports = async function handler(req, res) {
     if (req.method === 'POST') { const catalog = await getCatalog(); const items = buildAdminItems(body.products, catalog); const customerName = cleanText(body.customerName || body.name, 120); const phone = cleanPhone(body.phone || body.customerPhone); if (customerName.length < 2) return res.status(400).json({ error: 'INVALID_CUSTOMER' }); const order = makeOrder({ ...body, customerName, phone }, items, 'manual'); orders.unshift(order); await kvSet(ORDERS_KEY, orders.slice(0, 1000)); return res.status(201).json({ ok: true, order }); }
     const id = cleanText(body.id, 100); if (!id) return res.status(400).json({ error: 'ORDER_ID_REQUIRED' }); const index = orders.findIndex((o) => o.id === id); if (index < 0) return res.status(404).json({ error: 'ORDER_NOT_FOUND' });
     if (req.method === 'DELETE') { orders.splice(index, 1); await kvSet(ORDERS_KEY, orders); return res.status(200).json({ ok: true }); }
-    if (req.method === 'PUT') { const catalog = await getCatalog(); const current = orders[index]; const next = { ...current }; if (body.customerName !== undefined) next.customerName = cleanText(body.customerName, 120); if (body.phone !== undefined) next.phone = cleanPhone(body.phone); if (body.notes !== undefined) next.notes = cleanText(body.notes, 1000); if (body.status !== undefined && ['pending', 'paid', 'shipped', 'completed', 'cancelled'].includes(body.status)) next.status = body.status; if (body.paymentStatus !== undefined && ['pending', 'paid', 'refunded'].includes(body.paymentStatus)) next.paymentStatus = body.paymentStatus; if (body.shippingStatus !== undefined && ['pending', 'shipped', 'delivered', 'cancelled'].includes(body.shippingStatus)) next.shippingStatus = body.shippingStatus; if (Array.isArray(body.products)) next.products = buildAdminItems(body.products, catalog); next.total = money(next.products.reduce((sum, item) => sum + item.subtotal, 0)); next.updatedAt = new Date().toISOString(); orders[index] = next; await kvSet(ORDERS_KEY, orders); return res.status(200).json({ ok: true, order: next }); }
+    if (req.method === 'PUT') {
+      const catalog = await getCatalog(); const current = orders[index]; const next = { ...current };
+      if (body.customerName !== undefined) next.customerName = cleanText(body.customerName, 120);
+      if (body.phone !== undefined) next.phone = cleanPhone(body.phone);
+      if (body.notes !== undefined) next.notes = cleanText(body.notes, 1000);
+      if (body.status !== undefined && ['pending', 'paid', 'shipped', 'completed', 'cancelled'].includes(body.status)) next.status = body.status;
+      if (body.paymentStatus !== undefined && ['pending', 'paid', 'refunded'].includes(body.paymentStatus)) next.paymentStatus = body.paymentStatus;
+      if (body.shippingStatus !== undefined && ['pending', 'shipped', 'delivered', 'cancelled'].includes(body.shippingStatus)) next.shippingStatus = body.shippingStatus;
+      if (Array.isArray(body.products)) { if (current.inventoryDeducted) throw new Error('COMPLETED_ORDER_PRODUCTS_LOCKED'); next.products = buildAdminItems(body.products, catalog); }
+      next.total = money(next.products.reduce((sum, item) => sum + item.subtotal, 0));
+      const isCompleting = current.status !== 'completed' && next.status === 'completed';
+      if (isCompleting && !current.inventoryDeducted) { const updatedCatalog = applyInventoryDeduction(catalog, next); await kvSet(CATALOG_KEY, updatedCatalog); next.inventoryDeducted = true; next.inventoryDeductedAt = new Date().toISOString(); }
+      next.updatedAt = new Date().toISOString(); orders[index] = next; await kvSet(ORDERS_KEY, orders); return res.status(200).json({ ok: true, order: next });
+    }
     return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
-  } catch (e) { const messages = { ORDER_PRODUCTS_REQUIRED: 'Agrega al menos un producto.', INVALID_PRODUCT: 'Uno de los productos ya no existe en el catálogo.', INSUFFICIENT_STOCK: 'La cantidad solicitada supera el stock disponible.' }; const message = messages[e.message]; if (message) return res.status(400).json({ error: e.message, message }); console.error('orders error', e); return res.status(500).json({ error: 'SERVER_ERROR', message: 'No se pudo procesar la orden.' }); }
+  } catch (e) { const messages = { ORDER_PRODUCTS_REQUIRED: 'Agrega al menos un producto.', INVALID_PRODUCT: 'Uno de los productos ya no existe en el catálogo.', INSUFFICIENT_STOCK: 'La cantidad solicitada supera el stock disponible.', INVENTORY_PRODUCT_NOT_FOUND: 'Uno de los productos de la orden ya no existe en el inventario.', INVENTORY_NOT_CONFIGURED: 'Uno de los productos no tiene inventario configurado.', INSUFFICIENT_STOCK_ON_COMPLETION: 'No hay suficiente inventario para completar esta orden.', COMPLETED_ORDER_PRODUCTS_LOCKED: 'No puedes modificar los productos de una orden cuyo inventario ya fue descontado.' }; const message = messages[e.message]; if (message) return res.status(400).json({ error: e.message, message }); console.error('orders error', e); return res.status(500).json({ error: 'SERVER_ERROR', message: 'No se pudo procesar la orden.' }); }
 };
