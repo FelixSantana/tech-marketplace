@@ -22,5 +22,11 @@ async function kvSetEx(key, value, seconds) {
   return true;
 }
 
+async function kvDel(key) {
+  const r = await fetch(`${KV_URL}/del/${encodeURIComponent(key)}`, { method: 'POST', headers: { Authorization: `Bearer ${KV_TOKEN}` } });
+  if (!r.ok) throw new Error('KV DEL failed: ' + r.status);
+  return true;
+}
+
 function kvConfigured() { return !!(KV_URL && KV_TOKEN); }
-module.exports = { kvGet, kvSet, kvSetEx, kvConfigured };
+module.exports = { kvGet, kvSet, kvSetEx, kvDel, kvConfigured };
