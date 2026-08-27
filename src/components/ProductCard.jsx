@@ -12,12 +12,10 @@ export default function ProductCard({ product, settings, onOpenDetail, onAddCart
         {isOut && <span className="badge-out">Agotado</span>}
       </div>
       <div className="card-body">
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          {product.category && <div className="card-cat">{product.category}</div>}
-          {product.warranty && <div className="card-warranty">🛡️ {product.warranty}</div>}
-        </div>
+        {product.category && <div className="card-cat">{product.category}</div>}
         <div className="card-name">{product.name}</div>
         {product.description && <div className="card-desc">{product.description}</div>}
+        {product.warranty && <div className="card-warranty">Garantía: {product.warranty}</div>}
         <div className="card-price mono"><span className="currency">{settings.currency}</span>{Number(product.price).toLocaleString('es-DO')}</div>
         <div className="card-actions">
           <button className="btn-cart-add" title="Agregar al carrito" disabled={isOut} onClick={(e) => { e.stopPropagation(); onAddCart(product.id, 1); }}>
