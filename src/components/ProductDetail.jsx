@@ -34,9 +34,10 @@ export default function ProductDetail({ product, settings, onClose, onAddCart, o
           )}
         </div>
         <div className="detail-body">
-          {(product.category || product.warranty) && <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 }}>{product.category && <div className="detail-cat">{product.category}</div>}{product.warranty && <div className="card-warranty">🛡️ {product.warranty}</div>}</div>}
+          {product.category && <div className="detail-cat">{product.category}</div>}
           <div className="detail-name">{product.name}</div>
           {product.description ? <div className="detail-desc">{product.description}</div> : <div className="detail-desc">Sin descripción.</div>}
+          {product.warranty && <div className="card-warranty detail-warranty">Garantía: {product.warranty}</div>}
           <div className="detail-price mono">{settings.currency} {Number(product.price).toLocaleString('es-DO')}</div>
           <div className={`detail-stock ${stockClass}`}>{stockLabel}</div>
           {!isOut && <div className="qty-row"><span className="qlabel">Cantidad a pedir</span><div className="qty-stepper"><button disabled={qty <= 1} onClick={() => setQty((q) => Math.max(1, q - 1))}>−</button><span className="qty-val">{qty}</span><button disabled={qty >= stockQty} onClick={() => setQty((q) => Math.min(stockQty, q + 1))}>+</button></div></div>}
