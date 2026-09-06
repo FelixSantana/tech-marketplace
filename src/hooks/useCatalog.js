@@ -5,9 +5,31 @@ export const defaultCategories = [
   { name: 'Laptops', emoji: '💻' }, { name: 'Celulares', emoji: '📱' }, { name: 'Accesorios', emoji: '🎧' }, { name: 'Servicios', emoji: '🛠️' },
 ];
 const CATALOG_API = '/api/catalog';
-export function getStockQty(p) { if (typeof p.stockQty === 'number') return p.stockQty; return p.stock === false ? 0 : 999; }
+export function hasVariants(p) { return Array.isArray(p.variants) && p.variants.length > 0; }
+export function getVariants(p) { return Array.isArray(p.variants) ? p.variants : []; }
+export function getVariant(p, variantId) { if (!variantId) return null; return getVariants(p).find((v) => v.id === variantId) || null; }
+export function getStockQty(p) { if (hasVariants(p)) return getVariants(p).reduce((s, v) => s + Math.max(0, Math.floor(Number(v.stockQty) || 0)), 0); if (typeof p.stockQty === 'number') return p.stockQty; return p.stock === false ? 0 : 999; }
+// null = el producto tiene variantes y no se eligio ninguna valida: no hay precio que mostrar
+export function getUnitPrice(p, variantId) { if (!hasVariants(p)) return Number(p.price); const v = getVariant(p, variantId); return v ? Number(v.price) : null; }
+export function getMinPrice(p) { if (!hasVariants(p)) return Number(p.price); return Math.min(...getVariants(p).map((v) => Number(v.price) || 0)); }
 export function getProductImages(p) { if (Array.isArray(p.images) && p.images.length) return p.images; if (p.image) return [p.image]; return []; }
 export function getPrimaryImage(p) { const imgs = getProductImages(p); const idx = typeof p.primaryImage === 'number' && p.primaryImage < imgs.length ? p.primaryImage : 0; return imgs[idx] || ''; }
+
+// Deja el producto en forma canonica. Con variantes, price y stockQty pasan a ser espejo del
+// minimo y de la suma, para que una version vieja del codigo siga mostrando algo coherente.
+export function normalizeProduct(p) {
+  const base = { ...p, images: getProductImages(p), primaryImage: typeof p.primaryImage === 'number' ? p.primaryImage : 0 };
+  if (!hasVariants(p)) {
+    delete base.variants; delete base.variantAxis;
+    base.stockQty = getStockQty(p);
+    return base;
+  }
+  base.variants = getVariants(p).map((v) => ({ id: v.id, label: String(v.label || '').trim(), price: Number(v.price) || 0, stockQty: Math.max(0, Math.floor(Number(v.stockQty) || 0)) }));
+  base.variantAxis = String(p.variantAxis || '').trim() || 'Variante';
+  base.stockQty = getStockQty(base);
+  base.price = getMinPrice(base);
+  return base;
+}
 
 export function useCatalog() {
   const [settings, setSettings] = useState({ ...defaultSettings });
@@ -30,7 +52,7 @@ export function useCatalog() {
       const data = await r.json();
       if (data.settings) setSettings({ ...defaultSettings, ...data.settings });
       if (Array.isArray(data.products)) {
-        setProducts(data.products.map((p) => ({ ...p, images: getProductImages(p), primaryImage: typeof p.primaryImage === 'number' ? p.primaryImage : 0, stockQty: getStockQty(p) })));
+        setProducts(data.products.map(normalizeProduct));
       }
       if (Array.isArray(data.categories) && data.categories.length) {
         setCategories(data.categories.map((c) => {

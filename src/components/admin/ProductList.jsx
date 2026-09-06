@@ -1,4 +1,4 @@
-import { getStockQty, getPrimaryImage } from '../../hooks/useCatalog';
+import { getStockQty, getPrimaryImage, hasVariants, getMinPrice, getVariants } from '../../hooks/useCatalog';
 
 export default function ProductList({ products, settings, onEdit, onDelete }) {
   if (products.length === 0) {
@@ -14,7 +14,7 @@ export default function ProductList({ products, settings, onEdit, onDelete }) {
             <div className="thumb">{img && <img src={img} alt="" />}</div>
             <div className="info">
               <div className="n">{p.name}{stockQty <= 0 ? ' · Agotado' : ''}</div>
-              <div className="p mono">{settings.currency} {Number(p.price).toLocaleString('es-DO')}{p.category ? ' · ' + p.category : ''} · Stock: {stockQty}</div>
+              <div className="p mono">{hasVariants(p) ? 'desde ' : ''}{settings.currency} {getMinPrice(p).toLocaleString('es-DO')}{p.category ? ' · ' + p.category : ''} · Stock: {stockQty}{hasVariants(p) ? ` · ${getVariants(p).length} opciones` : ''}</div>
             </div>
             <div className="actions">
               <button title="Editar" onClick={() => onEdit(p.id)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg></button>

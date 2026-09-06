@@ -1,5 +1,6 @@
 import { useId, useState, useEffect } from 'react';
-import { getStockQty, getProductImages } from '../../hooks/useCatalog';
+import { getStockQty, getProductImages, getVariants } from '../../hooks/useCatalog';
+import VariantTable from './VariantTable';
 import { compressImage, EMOJI_PICKS } from '../../lib/utils';
 
 const MAX_IMAGES = 6;
@@ -16,8 +17,11 @@ export default function ProductForm({ editingProduct, categories, setCategories,
   const [showNewCat, setShowNewCat] = useState(false);
   const [newCatName, setNewCatName] = useState('');
   const [newCatEmoji, setNewCatEmoji] = useState('');
+  const [variantAxis, setVariantAxis] = useState(editingProduct?.variantAxis || '');
+  const [variants, setVariants] = useState(() => getVariants(editingProduct || {}).map((v) => ({ ...v })));
   const [saving, setSaving] = useState(false);
   const uid = useId();
+  const conVariantes = variants.length > 0;
 
   useEffect(() => {
     if (editingProduct?.category && !categories.some((c) => c.name === editingProduct.category)) {
@@ -63,10 +67,23 @@ export default function ProductForm({ editingProduct, categories, setCategories,
 
   const handleSubmit = async () => {
     if (!name.trim()) return showToast('Ingresa el nombre del producto');
-    if (price === '' || isNaN(price) || Number(price) < 0) return showToast('Ingresa un precio válido');
-    if (stockQty === '' || isNaN(stockQty) || Number(stockQty) < 0) return showToast('Ingresa una cantidad de stock válida');
     if (category === '__new__') return showToast('Termina de crear la categoría o cancélala');
-    const data = { name: name.trim(), price: Number(price), category, warranty: warranty.trim(), description: description.trim(), stockQty: Math.floor(Number(stockQty)), images: images.slice(), primaryImage: images.length ? Math.min(primaryIdx, images.length - 1) : 0 };
+    let limpias = [];
+    if (conVariantes) {
+      if (!variantAxis.trim()) return showToast('Ponle nombre a la opción (ej. Capacidad)');
+      limpias = variants.map((v) => ({ id: v.id, label: String(v.label || '').trim(), price: Number(v.price), stockQty: Math.floor(Number(v.stockQty)) }));
+      if (limpias.some((v) => !v.label)) return showToast('Cada opción necesita un nombre');
+      if (limpias.some((v) => isNaN(v.price) || v.price < 0)) return showToast('Cada opción necesita un precio válido');
+      if (limpias.some((v) => isNaN(v.stockQty) || v.stockQty < 0)) return showToast('Cada opción necesita un stock válido');
+      const etiquetas = limpias.map((v) => v.label.toLowerCase());
+      if (new Set(etiquetas).size !== etiquetas.length) return showToast('Hay dos opciones con el mismo nombre');
+    } else {
+      if (price === '' || isNaN(price) || Number(price) < 0) return showToast('Ingresa un precio válido');
+      if (stockQty === '' || isNaN(stockQty) || Number(stockQty) < 0) return showToast('Ingresa una cantidad de stock válida');
+    }
+    // Con opciones, precio y stock del producto quedan como espejo del minimo y de la suma:
+    // asi una version vieja del codigo sigue mostrando algo coherente.
+    const data = { name: name.trim(), price: conVariantes ? Math.min(...limpias.map((v) => v.price)) : Number(price), category, warranty: warranty.trim(), description: description.trim(), stockQty: conVariantes ? limpias.reduce((s, v) => s + v.stockQty, 0) : Math.floor(Number(stockQty)), images: images.slice(), primaryImage: images.length ? Math.min(primaryIdx, images.length - 1) : 0, ...(conVariantes ? { variantAxis: variantAxis.trim(), variants: limpias } : {}) };
     setSaving(true);
     try { await onSave(data); } finally { setSaving(false); }
   };
@@ -83,7 +100,10 @@ export default function ProductForm({ editingProduct, categories, setCategories,
         <div className="hint">Hasta {MAX_IMAGES} fotos. La estrella define la imagen principal.</div>
       </div>
       <div className="field"><label htmlFor={`${uid}-name`}>Nombre del producto</label><input id={`${uid}-name`} type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Audífonos Bluetooth X200" /></div>
-      <div className="field-row"><div className="field"><label htmlFor={`${uid}-price`}>Precio ({settings.currency})</label><input id={`${uid}-price`} type="number" min="0" placeholder="0" value={price} onChange={(e) => setPrice(e.target.value)} /></div><div className="field"><label htmlFor={`${uid}-stock`}>Cantidad en stock</label><input id={`${uid}-stock`} type="number" min="0" step="1" placeholder="0" value={stockQty} onChange={(e) => setStockQty(e.target.value)} /></div></div>
+      <div className="field-row"><div className="field"><label htmlFor={`${uid}-price`}>Precio ({settings.currency})</label><input id={`${uid}-price`} type="number" min="0" placeholder="0" value={conVariantes ? Math.min(...variants.map((v) => Number(v.price) || 0)) : price} onChange={(e) => setPrice(e.target.value)} disabled={conVariantes} /></div><div className="field"><label htmlFor={`${uid}-stock`}>Cantidad en stock</label><input id={`${uid}-stock`} type="number" min="0" step="1" placeholder="0" value={conVariantes ? variants.reduce((s, v) => s + (Math.floor(Number(v.stockQty)) || 0), 0) : stockQty} onChange={(e) => setStockQty(e.target.value)} disabled={conVariantes} /></div></div>
+      {conVariantes && <div className="hint">Los calcula la tabla de opciones de abajo.</div>}
+      <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon">◧</span><div><h3>Opciones del producto</h3><p>Para vender el mismo producto en varias configuraciones, cada una con su precio y su inventario.</p></div></div>
+      <VariantTable axis={variantAxis} setAxis={setVariantAxis} variants={variants} setVariants={setVariants} currency={settings.currency} />
       <div className="field"><label htmlFor={`${uid}-category`}>Categoría</label><select id={`${uid}-category`} value={category} onChange={(e) => { const v = e.target.value; setCategory(v); setShowNewCat(v === '__new__'); }}><option value="" disabled={!!category}>Selecciona una categoría</option>{categories.map((c) => <option key={c.name} value={c.name}>{c.emoji} {c.name}</option>)}<option value="__new__">+ Crear categoría</option></select>{showNewCat && <div className="new-category-box"><input type="text" aria-label="Nombre de la nueva categoría" placeholder="Nombre de la nueva categoría" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} /><div className="field-row"><input type="text" aria-label="Emoji de la nueva categoría" placeholder="📦" maxLength={4} value={newCatEmoji} onChange={(e) => setNewCatEmoji(e.target.value)} /><div className="hint">Puedes elegir un emoji o dejarlo vacío.</div></div><div className="emoji-picks">{EMOJI_PICKS.map((e) => <button type="button" className="emoji-pick" key={e} onClick={() => setNewCatEmoji(e)}>{e}</button>)}</div><div className="form-actions"><button type="button" className="btn-secondary" onClick={() => { setShowNewCat(false); setCategory(''); setNewCatName(''); setNewCatEmoji(''); }}>Cancelar</button><button type="button" className="btn-primary" onClick={addNewCategory}>Guardar categoría</button></div></div>}</div>
       <div className="field warranty-field"><label htmlFor={`${uid}-warranty`}>Garantía</label><div className="input-with-icon"><span>✓</span><input id={`${uid}-warranty`} type="text" value={warranty} onChange={(e) => setWarranty(e.target.value)} placeholder="Ej. 6 meses, 1 año, Sin garantía" /></div><div className="hint">Esta información aparecerá en la tarjeta del producto.</div></div>
       <div className="field"><label htmlFor={`${uid}-description`}>Descripción detallada</label><textarea id={`${uid}-description`} style={{ minHeight: 90 }} placeholder="Detalles, color, capacidad, especificaciones, etc." value={description} onChange={(e) => setDescription(e.target.value)} /><div className="hint">Se muestra al abrir el detalle del producto.</div></div>

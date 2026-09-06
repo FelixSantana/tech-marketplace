@@ -1,11 +1,19 @@
-import { getStockQty, getPrimaryImage } from '../hooks/useCatalog';
+import { getPrimaryImage, hasVariants, getVariant, getUnitPrice } from '../hooks/useCatalog';
+import { cartKey } from '../hooks/useCart';
+
+const variantStock = (v) => Math.max(0, Math.floor(Number(v?.stockQty) || 0));
 
 export default function CartModal({ cart, products, settings, onClose, onUpdateQty, onRemove, onClear, onCheckout, showToast }) {
   const items = cart.map((ci) => {
     const p = products.find((x) => x.id === ci.productId);
-    return p ? { ...ci, product: p } : null;
+    if (!p) return null;
+    const variantId = ci.variantId || null;
+    // El carrito ya descarta al hidratar lo que no resuelve; esto cubre un catalogo
+    // que cambio con el modal abierto.
+    if (hasVariants(p) && !getVariant(p, variantId)) return null;
+    return { ...ci, variantId, product: p, unitPrice: getUnitPrice(p, variantId) || 0 };
   }).filter(Boolean);
-  const total = items.reduce((s, it) => s + Number(it.product.price) * it.qty, 0);
+  const total = items.reduce((s, it) => s + it.unitPrice * it.qty, 0);
 
   return (
     <div className="overlay" onClick={(e) => { if (e.target.classList.contains('overlay')) onClose(); }}>
@@ -18,12 +26,13 @@ export default function CartModal({ cart, products, settings, onClose, onUpdateQ
             <div className="cart-list">
               {items.map((it) => {
                 const img = getPrimaryImage(it.product);
-                const stockQty = getStockQty(it.product);
-                return <div className="cart-row" key={it.productId}>
+                const variant = getVariant(it.product, it.variantId);
+                const stockQty = variant ? variantStock(variant) : Math.max(0, Math.floor(Number(it.product.stockQty) || 0));
+                return <div className="cart-row" key={cartKey(it.productId, it.variantId)}>
                   <div className="thumb">{img && <img src={img} alt="" />}</div>
-                  <div className="info"><div className="n">{it.product.name}</div><div className="p mono">{settings.currency} {Number(it.product.price).toLocaleString('es-DO')} c/u</div></div>
-                  <div className="qty-stepper" style={{ flexShrink: 0 }}><button disabled={it.qty <= 1} onClick={() => onUpdateQty(it.productId, it.qty - 1)}>−</button><span className="qty-val">{it.qty}</span><button disabled={it.qty >= stockQty} onClick={() => onUpdateQty(it.productId, it.qty + 1)}>+</button></div>
-                  <button className="icon-btn" title="Quitar" onClick={() => onRemove(it.productId)}>✕</button>
+                  <div className="info"><div className="n">{it.product.name}</div>{variant && <div className="cart-variant">{it.product.variantAxis}: {variant.label}</div>}<div className="p mono">{settings.currency} {it.unitPrice.toLocaleString('es-DO')} c/u</div></div>
+                  <div className="qty-stepper" style={{ flexShrink: 0 }}><button disabled={it.qty <= 1} onClick={() => onUpdateQty(it.productId, it.qty - 1, it.variantId)}>−</button><span className="qty-val">{it.qty}</span><button disabled={it.qty >= stockQty} onClick={() => onUpdateQty(it.productId, it.qty + 1, it.variantId)}>+</button></div>
+                  <button className="icon-btn" title="Quitar" onClick={() => onRemove(it.productId, it.variantId)}>✕</button>
                 </div>;
               })}
             </div>

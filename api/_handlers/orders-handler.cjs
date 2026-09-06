@@ -1,4 +1,5 @@
 const { kvGet, kvSet, kvSetEx, kvConfigured } = require('../_lib/kv.cjs');
+const { cleanText, money, buildPublicItems, buildAdminItems, applyInventoryDeduction } = require('../_lib/orders-logic.cjs');
 const { AUTH_KEY, verifyToken, extractBearer } = require('../_lib/auth.cjs');
 const ORDERS_KEY = 'synaptic_orders';
 const CATALOG_KEY = 'synaptic_catalog';
@@ -9,34 +10,8 @@ async function requireAdmin(req) { const admin = await kvGet(AUTH_KEY); if (!adm
 function clientIp(req) { const forwarded = req.headers?.['x-forwarded-for'] || req.headers?.['X-Forwarded-For'] || ''; return String(forwarded).split(',')[0].trim() || req.socket?.remoteAddress || 'unknown'; }
 async function rateLimitPublic(req) { const bucket = Math.floor(Date.now() / (RATE_WINDOW_SECONDS * 1000)); const key = `synaptic_order_rate:${clientIp(req)}:${bucket}`; const current = await kvGet(key); const count = Number(current?.count || 0) + 1; if (count > RATE_LIMIT) return false; await kvSetEx(key, { count }, RATE_WINDOW_SECONDS + 10); return true; }
 function cleanPhone(value) { return String(value || '').replace(/\D/g, '').slice(0, 20); }
-function cleanText(value, max = 500) { return String(value || '').trim().slice(0, max); }
-function money(value) { const n = Number(value); return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : 0; }
 async function getCatalog() { return (await kvGet(CATALOG_KEY)) || { products: [], settings: {} }; }
-function catalogMap(catalog) { return new Map((catalog.products || []).map((p) => [String(p.id), p])); }
-function buildPublicItems(inputItems, catalog) { const map = catalogMap(catalog); if (!Array.isArray(inputItems) || !inputItems.length) throw new Error('ORDER_PRODUCTS_REQUIRED'); const items = []; for (const raw of inputItems) { const product = map.get(String(raw.productId || raw.id)); const quantity = Math.floor(Number(raw.quantity || raw.qty || 0)); if (!product || quantity < 1 || quantity > 999) throw new Error('INVALID_PRODUCT'); const available = Number(product.stockQty ?? product.stock ?? 0); if (available >= 0 && quantity > available) throw new Error('INSUFFICIENT_STOCK'); const unitPrice = money(product.price); items.push({ productId: product.id, name: cleanText(product.name, 180), quantity, unitPrice, subtotal: money(unitPrice * quantity) }); } return items; }
-function buildAdminItems(inputItems, catalog) { const map = catalogMap(catalog); if (!Array.isArray(inputItems) || !inputItems.length) throw new Error('ORDER_PRODUCTS_REQUIRED'); return inputItems.map((raw) => { const product = map.get(String(raw.productId || raw.id)); if (!product) throw new Error('INVALID_PRODUCT'); const quantity = Math.max(1, Math.floor(Number(raw.quantity || raw.qty || 1))); const unitPrice = money(raw.unitPrice ?? raw.price ?? product.price); return { productId: product.id, name: cleanText(raw.name || product.name, 180), quantity, unitPrice, subtotal: money(unitPrice * quantity) }; }); }
 function makeOrder(body, items, source) { const total = money(items.reduce((sum, item) => sum + item.subtotal, 0)); const now = new Date().toISOString(); return { id: `ord_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, customerName: cleanText(body.customerName || body.name, 120), phone: cleanPhone(body.phone || body.customerPhone), products: items, total, status: 'pending', paymentStatus: 'pending', shippingStatus: 'pending', notes: cleanText(body.notes, 1000), source, inventoryDeducted: false, createdAt: now, updatedAt: now }; }
-function getStock(product) { const raw = product.stockQty ?? product.stock; const value = Number(raw); return Number.isFinite(value) && value >= 0 ? value : null; }
-function applyInventoryDeduction(catalog, order) {
-  const products = Array.isArray(catalog.products) ? catalog.products.map((product) => ({ ...product })) : [];
-  const map = new Map(products.map((product) => [String(product.id), product]));
-  for (const item of order.products || []) {
-    const product = map.get(String(item.productId));
-    if (!product) throw new Error('INVENTORY_PRODUCT_NOT_FOUND');
-    const stock = getStock(product);
-    if (stock === null) throw new Error('INVENTORY_NOT_CONFIGURED');
-    const quantity = Math.max(0, Math.floor(Number(item.quantity || 0)));
-    if (quantity > stock) throw new Error('INSUFFICIENT_STOCK_ON_COMPLETION');
-  }
-  for (const item of order.products || []) {
-    const product = map.get(String(item.productId));
-    const quantity = Math.max(0, Math.floor(Number(item.quantity || 0)));
-    const nextStock = getStock(product) - quantity;
-    product.stockQty = nextStock;
-    if (Object.prototype.hasOwnProperty.call(product, 'stock')) product.stock = nextStock;
-  }
-  return { ...catalog, products };
-}
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*'); res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS'); res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end(); if (!kvConfigured()) return res.status(503).json({ error: 'DB_NOT_CONNECTED' });
@@ -63,5 +38,5 @@ module.exports = async function handler(req, res) {
       next.updatedAt = new Date().toISOString(); orders[index] = next; await kvSet(ORDERS_KEY, orders); return res.status(200).json({ ok: true, order: next });
     }
     return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
-  } catch (e) { const messages = { ORDER_PRODUCTS_REQUIRED: 'Agrega al menos un producto.', INVALID_PRODUCT: 'Uno de los productos ya no existe en el catálogo.', INSUFFICIENT_STOCK: 'La cantidad solicitada supera el stock disponible.', INVENTORY_PRODUCT_NOT_FOUND: 'Uno de los productos de la orden ya no existe en el inventario.', INVENTORY_NOT_CONFIGURED: 'Uno de los productos no tiene inventario configurado.', INSUFFICIENT_STOCK_ON_COMPLETION: 'No hay suficiente inventario para completar esta orden.', COMPLETED_ORDER_PRODUCTS_LOCKED: 'No puedes modificar los productos de una orden cuyo inventario ya fue descontado.' }; const message = messages[e.message]; if (message) return res.status(400).json({ error: e.message, message }); console.error('orders error', e); return res.status(500).json({ error: 'SERVER_ERROR', message: 'No se pudo procesar la orden.' }); }
+  } catch (e) { const messages = { ORDER_PRODUCTS_REQUIRED: 'Agrega al menos un producto.', INVALID_PRODUCT: 'Uno de los productos ya no existe en el catálogo.', INSUFFICIENT_STOCK: 'La cantidad solicitada supera el stock disponible.', VARIANT_REQUIRED: 'Elige una opción del producto antes de continuar.', INVALID_VARIANT: 'La opción elegida ya no está disponible en ese producto.', INVENTORY_VARIANT_UNKNOWN: 'Esta orden es anterior a las opciones de ese producto. Edítala y elige una opción antes de completarla.', INVENTORY_VARIANT_NOT_FOUND: 'La opción de uno de los productos de la orden ya no existe en el inventario.', INVENTORY_PRODUCT_NOT_FOUND: 'Uno de los productos de la orden ya no existe en el inventario.', INVENTORY_NOT_CONFIGURED: 'Uno de los productos no tiene inventario configurado.', INSUFFICIENT_STOCK_ON_COMPLETION: 'No hay suficiente inventario para completar esta orden.', COMPLETED_ORDER_PRODUCTS_LOCKED: 'No puedes modificar los productos de una orden cuyo inventario ya fue descontado.' }; const message = messages[e.message]; if (message) return res.status(400).json({ error: e.message, message }); console.error('orders error', e); return res.status(500).json({ error: 'SERVER_ERROR', message: 'No se pudo procesar la orden.' }); }
 };
