@@ -2,6 +2,7 @@ import { useId, useState, useEffect } from 'react';
 import { getStockQty, getProductImages, getVariants } from '../../hooks/useCatalog';
 import VariantTable from './VariantTable';
 import { compressImage, EMOJI_PICKS } from '../../lib/utils';
+import { uploadImage } from '../../lib/uploadImage';
 
 const MAX_IMAGES = 6;
 
@@ -37,10 +38,17 @@ export default function ProductForm({ editingProduct, categories, setCategories,
     const toProcess = files.slice(0, remaining);
     if (files.length > remaining) showToast(`Solo se agregaron ${remaining} foto(s), máximo ${MAX_IMAGES} por producto`);
     const compressed = [];
+    let incrustadas = 0;
     for (const file of toProcess) {
-      try { compressed.push(await compressImage(file)); } catch { showToast('No se pudo procesar una de las imágenes'); }
+      try {
+        const subida = await uploadImage(await compressImage(file), adminToken);
+        if (subida.error) { showToast(subida.error); continue; }
+        if (subida.incrustada) incrustadas += 1;
+        compressed.push(subida.url);
+      } catch { showToast('No se pudo procesar una de las imágenes'); }
     }
     setImages((prev) => [...prev, ...compressed]);
+    if (incrustadas) showToast('Las fotos quedaron dentro del catálogo: el almacén de imágenes no está disponible.');
     e.target.value = '';
   };
 

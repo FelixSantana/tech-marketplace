@@ -1,7 +1,8 @@
 import { useId, useState } from 'react';
 import { compressImage } from '../../lib/utils';
+import { uploadImage } from '../../lib/uploadImage';
 
-export default function SettingsForm({ settings, onSaveSettings, authRequest, setAdminToken, onLogout, showToast }) {
+export default function SettingsForm({ settings, onSaveSettings, authRequest, adminToken, setAdminToken, onLogout, showToast }) {
   const [storeName, setStoreName] = useState(settings.storeName);
   const [tagline, setTagline] = useState(settings.tagline);
   const [whatsapp, setWhatsapp] = useState(settings.whatsapp);
@@ -18,7 +19,12 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, se
   const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try { setPendingLogo(await compressImage(file)); } catch { showToast('No se pudo procesar el logo'); }
+    try {
+      const subida = await uploadImage(await compressImage(file), adminToken, 'logo');
+      if (subida.error) { showToast(subida.error); e.target.value = ''; return; }
+      setPendingLogo(subida.url);
+      if (subida.incrustada) showToast('El logo quedó dentro del catálogo: el almacén de imágenes no está disponible.');
+    } catch { showToast('No se pudo procesar el logo'); }
     e.target.value = '';
   };
 

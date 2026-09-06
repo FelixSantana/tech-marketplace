@@ -85,3 +85,11 @@
   .print-item{border-color:#b8bcc6}
   @page{margin:14mm}
 }
+
+/* --- Migracion de fotos al almacen --- */
+.migrate-box{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;padding:13px 15px;margin-bottom:14px;border:1px solid color-mix(in srgb,var(--border) 55%,var(--accent) 45%);border-radius:13px;background:color-mix(in srgb,var(--surface) 88%,var(--accent) 12%)}
+.migrate-box.hecho{border-color:var(--border);background:var(--surface)}
+.migrate-box strong{display:block;font-size:13px}
+.migrate-box span{display:block;font-size:11px;color:var(--text-muted);margin-top:2px}
+.migrate-box button{margin:0;flex-shrink:0}
+.migrate-progress{font-variant-numeric:tabular-nums;font-weight:700;color:var(--text)!important}

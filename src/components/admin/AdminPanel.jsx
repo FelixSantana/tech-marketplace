@@ -4,6 +4,7 @@ import ProductForm from './ProductForm';
 import SettingsForm from './SettingsForm';
 import OrdersPanel from './OrdersPanel';
 import PrintCatalog from './PrintCatalog';
+import MigrateImages from './MigrateImages';
 
 export default function AdminPanel({ products, setProducts, categories, setCategories, settings, setSettings, saveCatalog, adminToken, authRequest, setAdminToken, onClose, onLogout, showToast }) {
   const [tab, setTab] = useState('productos');
@@ -71,6 +72,7 @@ export default function AdminPanel({ products, setProducts, categories, setCateg
                 <button className="btn-secondary" onClick={() => setPrintMode('inventario')}>Hoja de inventario</button>
               </div>
             </div>
+            <MigrateImages products={products} setProducts={setProducts} settings={settings} setSettings={setSettings} saveCatalog={saveCatalog} adminToken={adminToken} showToast={showToast} />
             <ProductList products={products} settings={settings} onEdit={(id) => { setEditingId(id); setTab('agregar'); }} onDelete={handleDeleteProduct} />
           </>
         )}
@@ -81,7 +83,7 @@ export default function AdminPanel({ products, setProducts, categories, setCateg
           <OrdersPanel adminToken={adminToken} products={products} showToast={showToast} />
         )}
         {tab === 'ajustes' && (
-          <SettingsForm settings={settings} onSaveSettings={handleSaveSettings} authRequest={authRequest} setAdminToken={setAdminToken} onLogout={onLogout} showToast={showToast} />
+          <SettingsForm settings={settings} onSaveSettings={handleSaveSettings} authRequest={authRequest} adminToken={adminToken} setAdminToken={setAdminToken} onLogout={onLogout} showToast={showToast} />
         )}
       </div>
       {printMode && <PrintCatalog products={products} settings={settings} modo={printMode} onClose={() => setPrintMode(null)} />}
