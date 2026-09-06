@@ -3,10 +3,13 @@ import ProductList from './ProductList';
 import ProductForm from './ProductForm';
 import SettingsForm from './SettingsForm';
 import OrdersPanel from './OrdersPanel';
+import PrintCatalog from './PrintCatalog';
 
 export default function AdminPanel({ products, setProducts, categories, setCategories, settings, setSettings, saveCatalog, adminToken, authRequest, setAdminToken, onClose, onLogout, showToast }) {
   const [tab, setTab] = useState('productos');
   const [editingId, setEditingId] = useState(null);
+  // null | 'clientes' | 'inventario'. Solo se llega aqui con sesion de admin abierta.
+  const [printMode, setPrintMode] = useState(null);
   const editingProduct = editingId ? products.find((p) => p.id === editingId) : null;
 
   const switchTab = (t) => { if (t !== 'agregar') setEditingId(null); setTab(t); };
@@ -57,7 +60,19 @@ export default function AdminPanel({ products, setProducts, categories, setCateg
           <button className={`tab ${tab === 'ajustes' ? 'active' : ''}`} onClick={() => switchTab('ajustes')}>Ajustes</button>
         </div>
         {tab === 'productos' && (
-          <ProductList products={products} settings={settings} onEdit={(id) => { setEditingId(id); setTab('agregar'); }} onDelete={handleDeleteProduct} />
+          <>
+            <div className="print-actions">
+              <div>
+                <strong>Imprimir el catálogo</strong>
+                <span>Se abre una vista lista para imprimir o guardar como PDF desde el navegador.</span>
+              </div>
+              <div className="print-actions-buttons">
+                <button className="btn-secondary" onClick={() => setPrintMode('clientes')}>Catálogo para clientes</button>
+                <button className="btn-secondary" onClick={() => setPrintMode('inventario')}>Hoja de inventario</button>
+              </div>
+            </div>
+            <ProductList products={products} settings={settings} onEdit={(id) => { setEditingId(id); setTab('agregar'); }} onDelete={handleDeleteProduct} />
+          </>
         )}
         {tab === 'agregar' && (
           <ProductForm key={editingId || 'new'} editingProduct={editingProduct} categories={categories} setCategories={setCategories} settings={settings} onSave={handleSaveProduct} onCancel={() => { setEditingId(null); setTab('productos'); }} saveCatalog={saveCatalog} adminToken={adminToken} showToast={showToast} />
@@ -69,6 +84,7 @@ export default function AdminPanel({ products, setProducts, categories, setCateg
           <SettingsForm settings={settings} onSaveSettings={handleSaveSettings} authRequest={authRequest} setAdminToken={setAdminToken} onLogout={onLogout} showToast={showToast} />
         )}
       </div>
+      {printMode && <PrintCatalog products={products} settings={settings} modo={printMode} onClose={() => setPrintMode(null)} />}
     </div>
   );
 }
