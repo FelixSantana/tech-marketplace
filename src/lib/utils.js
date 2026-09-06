@@ -21,22 +21,19 @@ export function compressImage(file) {
   });
 }
 export function normalizePhone(raw) { let digits = (raw || '').replace(/\D/g, ''); if (digits.length === 10) digits = '1' + digits; return digits; }
-export function buildWaLink(product, qty, settings) {
-  qty = Math.max(1, Number(qty) || 1);
-  const phone = normalizePhone(settings.whatsapp);
-  const lines = [`Hola ${settings.storeName}! Vi este producto en el catálogo y me interesa:`, ``, `• Producto: ${product.name}`, `• Cantidad: ${qty}`, `• Total: ${settings.currency} ${(Number(product.price) * qty).toLocaleString('es-DO')}`];
-  if (product.category) lines.push(`• Categoría: ${product.category}`);
-  lines.push(``, `¿Está disponible?`);
-  return `https://wa.me/${phone}?text=${encodeURIComponent(lines.join('\n'))}`;
-}
-export function buildCartWaLink(items, settings) {
+// Arma el enlace de WhatsApp con el pedido. Funcion pura y probada: es el texto que el
+// cliente termina enviando, asi que no debe depender de nada del navegador.
+export function buildOrderWaLink(items, settings) {
   const phone = normalizePhone(settings.whatsapp);
   const lines = [`Hola ${settings.storeName}! Quiero hacer este pedido:`, ``];
   let total = 0;
   items.forEach((it) => {
-    const subtotal = Number(it.product.price) * it.qty;
+    const variante = (it.product.variants || []).find((v) => v.id === (it.variantId || null));
+    const precio = Number(variante ? variante.price : it.product.price) || 0;
+    const subtotal = precio * it.qty;
     total += subtotal;
-    lines.push(`• ${it.product.name} x${it.qty} — ${settings.currency} ${subtotal.toLocaleString('es-DO')}`);
+    const etiqueta = variante ? ` (${it.product.variantAxis || 'Opción'}: ${variante.label})` : '';
+    lines.push(`• ${it.product.name}${etiqueta} x${it.qty} — ${settings.currency} ${subtotal.toLocaleString('es-DO')}`);
   });
   lines.push(``, `Total: ${settings.currency} ${total.toLocaleString('es-DO')}`, ``, `¿Está todo disponible?`);
   return `https://wa.me/${phone}?text=${encodeURIComponent(lines.join('\n'))}`;

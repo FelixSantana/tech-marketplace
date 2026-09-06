@@ -93,3 +93,12 @@
 .migrate-box span{display:block;font-size:11px;color:var(--text-muted);margin-top:2px}
 .migrate-box button{margin:0;flex-shrink:0}
 .migrate-progress{font-variant-numeric:tabular-nums;font-weight:700;color:var(--text)!important}
+
+/* --- Confirmacion del pedido: el enlace a WhatsApp lo abre el toque del cliente --- */
+.checkout-done{padding:30px 26px 26px;text-align:center}
+.checkout-done-badge{width:52px;height:52px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;font-size:26px;font-weight:800;color:#05200e;background:var(--whatsapp)}
+.checkout-done h2{margin:0 0 8px;font-size:21px}
+.checkout-done>p{margin:0 0 20px;color:var(--text-muted);font-size:13px;line-height:1.5}
+.checkout-done a.checkout-submit{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:50px;text-decoration:none;border:0;cursor:pointer}
+.checkout-done-hint{margin:12px 0 16px;font-size:11px;color:var(--text-muted);line-height:1.5}
+.checkout-done .btn-secondary{width:100%;margin:0;min-height:42px}
