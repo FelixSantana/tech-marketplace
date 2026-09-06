@@ -19,7 +19,6 @@ export default function ProductDetail({ product, settings, onClose, onAddCart, o
   const faltaElegir = conVariantes && !variant;
   const unitPrice = conVariantes ? (variant ? Number(variant.price) : getMinPrice(product)) : Number(product.price);
 
-  useEffect(() => { setQty(1); }, [variantId]);
   useEffect(() => {
     if (qty > stockQty && stockQty > 0) setQty(stockQty);
     if (qty < 1) setQty(1);
@@ -67,7 +66,7 @@ export default function ProductDetail({ product, settings, onClose, onAddCart, o
                       className={`variant-option ${v.id === variantId ? 'active' : ''} ${agotada ? 'agotada' : ''}`}
                       disabled={agotada}
                       aria-pressed={v.id === variantId}
-                      onClick={() => setVariantId(v.id)}
+                      onClick={() => { setVariantId(v.id); setQty(1); }}
                     >
                       <span className="variant-option-label">{v.label}</span>
                       <span className="variant-option-price mono">{settings.currency} {Number(v.price).toLocaleString('es-DO')}</span>

@@ -23,7 +23,7 @@ function verifyToken(token, secret) {
     const payload = JSON.parse(json);
     if (!payload.exp || Date.now() > payload.exp) return null;
     return payload;
-  } catch (e) { return null; }
+  } catch { return null; }
 }
 function extractBearer(req) { const h = (req.headers && req.headers['authorization']) || ''; return h.startsWith('Bearer ') ? h.slice(7) : ''; }
 module.exports = { AUTH_KEY, TOKEN_TTL_MS, hashPassword, safeEqual, signToken, verifyToken, extractBearer };

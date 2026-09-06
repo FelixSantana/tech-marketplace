@@ -6,7 +6,7 @@ async function kvGet(key) {
   if (!r.ok) throw new Error('KV GET failed: ' + r.status);
   const data = await r.json();
   if (!data || data.result === null || data.result === undefined) return null;
-  try { return JSON.parse(data.result); } catch (e) { return null; }
+  try { return JSON.parse(data.result); } catch { return null; }
 }
 
 async function kvSet(key, value) {

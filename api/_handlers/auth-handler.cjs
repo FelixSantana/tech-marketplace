@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const { kvGet, kvSet, kvConfigured } = require('../_lib/kv.cjs');
-const { AUTH_KEY, TOKEN_TTL_MS, hashPassword, safeEqual, signToken, verifyToken, extractBearer } = require('../_lib/auth.cjs');
+const { AUTH_KEY, TOKEN_TTL_MS, hashPassword, safeEqual, signToken } = require('../_lib/auth.cjs');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -10,7 +10,7 @@ module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
   if (!kvConfigured()) return res.status(503).json({ error: 'DB_NOT_CONNECTED', message: 'La base de datos aún no está conectada.' });
   let body = req.body;
-  if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = {}; } }
+  if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
   body = body || {};
   const { action } = body;
   try {
