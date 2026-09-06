@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { compressImage } from '../../lib/utils';
 
 export default function SettingsForm({ settings, onSaveSettings, authRequest, setAdminToken, onLogout, showToast }) {
@@ -11,6 +11,7 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, se
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [savingAccess, setSavingAccess] = useState(false);
+  const uid = useId();
 
   const currentLogo = pendingLogo !== undefined ? pendingLogo : settings.logo;
 
@@ -47,18 +48,18 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, se
   return (
     <div className="settings-form">
       <div className="form-section-title"><span className="section-icon">⚙</span><div><h3>Configuración de la tienda</h3><p>Estos datos se muestran en el catálogo y en los pedidos.</p></div></div>
-      <div className="field"><label>Logo de la tienda</label><div className="img-upload"><div className="img-preview">{currentLogo ? <img src={currentLogo} alt="Logo" /> : 'ST'}</div><label className="upload-btn">Subir logo<input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleLogoUpload} /></label>{currentLogo && <button type="button" className="icon-btn" title="Quitar logo" onClick={() => setPendingLogo(null)}>✕</button>}</div></div>
-      <div className="field"><label>Nombre de la tienda</label><input type="text" value={storeName} onChange={(e) => setStoreName(e.target.value)} /></div>
-      <div className="field"><label>Frase corta (tagline)</label><input type="text" value={tagline} onChange={(e) => setTagline(e.target.value)} /></div>
-      <div className="field"><label>Número de WhatsApp</label><input type="tel" placeholder="8091234567" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} /></div>
-      <div className="field"><label>Moneda</label><input type="text" placeholder="RD$" value={currency} onChange={(e) => setCurrency(e.target.value)} /></div>
+      <div className="field"><label htmlFor={`${uid}-logo`}>Logo de la tienda</label><div className="img-upload"><div className="img-preview">{currentLogo ? <img src={currentLogo} alt="Logo" /> : 'ST'}</div><label className="upload-btn">Subir logo<input id={`${uid}-logo`} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleLogoUpload} /></label>{currentLogo && <button type="button" className="icon-btn" title="Quitar logo" onClick={() => setPendingLogo(null)}>✕</button>}</div></div>
+      <div className="field"><label htmlFor={`${uid}-store`}>Nombre de la tienda</label><input id={`${uid}-store`} type="text" value={storeName} onChange={(e) => setStoreName(e.target.value)} /></div>
+      <div className="field"><label htmlFor={`${uid}-tagline`}>Frase corta (tagline)</label><input id={`${uid}-tagline`} type="text" value={tagline} onChange={(e) => setTagline(e.target.value)} /></div>
+      <div className="field"><label htmlFor={`${uid}-wa`}>Número de WhatsApp</label><input id={`${uid}-wa`} type="tel" placeholder="8091234567" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} /></div>
+      <div className="field"><label htmlFor={`${uid}-currency`}>Moneda</label><input id={`${uid}-currency`} type="text" placeholder="RD$" value={currency} onChange={(e) => setCurrency(e.target.value)} /></div>
       <button className="btn-primary full-action" onClick={handleSaveSettings}>Guardar ajustes</button>
 
       <div className="access-card">
         <div className="access-card-head"><div className="access-icon">♙</div><div><h3>Acceso de administrador</h3><p>Actualiza el correo y/o contraseña. Por seguridad, siempre debes confirmar tu contraseña actual.</p></div></div>
-        <div className="field"><label>Contraseña actual</label><input type="password" placeholder="••••••••" autoComplete="current-password" value={curPassword} onChange={(e) => setCurPassword(e.target.value)} /></div>
-        <div className="field email-field"><label>Nuevo correo electrónico</label><div className="input-with-icon"><span>✉</span><input type="email" placeholder="nuevo@correo.com" autoComplete="username" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} /></div><div className="hint">Déjalo vacío si solo quieres cambiar la contraseña.</div></div>
-        <div className="field"><label>Nueva contraseña</label><input type="password" placeholder="Mínimo 6 caracteres" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} /></div>
+        <div className="field"><label htmlFor={`${uid}-curpass`}>Contraseña actual</label><input id={`${uid}-curpass`} type="password" placeholder="••••••••" autoComplete="current-password" value={curPassword} onChange={(e) => setCurPassword(e.target.value)} /></div>
+        <div className="field email-field"><label htmlFor={`${uid}-newemail`}>Nuevo correo electrónico</label><div className="input-with-icon"><span>✉</span><input id={`${uid}-newemail`} type="email" placeholder="nuevo@correo.com" autoComplete="username" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} /></div><div className="hint">Déjalo vacío si solo quieres cambiar la contraseña.</div></div>
+        <div className="field"><label htmlFor={`${uid}-newpass`}>Nueva contraseña</label><input id={`${uid}-newpass`} type="password" placeholder="Mínimo 6 caracteres" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} /></div>
         <button className="btn-primary full-action" onClick={handleSaveCreds} disabled={savingAccess}>{savingAccess ? 'Actualizando…' : 'Actualizar acceso'}</button>
         <div className="access-note">💡 Al cambiar el acceso, tu sesión se actualizará automáticamente.</div>
       </div>

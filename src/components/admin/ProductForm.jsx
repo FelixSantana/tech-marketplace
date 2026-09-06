@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useId, useState, useEffect } from 'react';
 import { getStockQty, getProductImages } from '../../hooks/useCatalog';
 import { compressImage, EMOJI_PICKS } from '../../lib/utils';
 
@@ -17,6 +17,7 @@ export default function ProductForm({ editingProduct, categories, setCategories,
   const [newCatName, setNewCatName] = useState('');
   const [newCatEmoji, setNewCatEmoji] = useState('');
   const [saving, setSaving] = useState(false);
+  const uid = useId();
 
   useEffect(() => {
     if (editingProduct?.category && !categories.some((c) => c.name === editingProduct.category)) {
@@ -74,18 +75,18 @@ export default function ProductForm({ editingProduct, categories, setCategories,
     <div className="product-form">
       <div className="form-section-title"><span className="section-icon">▣</span><div><h3>Información del producto</h3><p>Completa los datos que verá el cliente.</p></div></div>
       <div className="field">
-        <label>Fotos del producto</label>
+        <label htmlFor={`${uid}-photos`}>Fotos del producto</label>
         <div className="img-thumbs">
           {images.map((img, idx) => <div className={`img-thumb ${idx === primaryIdx ? 'primary' : ''}`} key={idx}><img src={img} alt="" /><button type="button" className="thumb-star" title="Marcar como principal" onClick={() => setPrimaryIdx(idx)}>★</button><button type="button" className="thumb-del" title="Eliminar" onClick={() => deleteImg(idx)}>✕</button></div>)}
-          {images.length < MAX_IMAGES && <label className="img-thumb-add">+<input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleImgUpload} /></label>}
+          {images.length < MAX_IMAGES && <label className="img-thumb-add">+<input id={`${uid}-photos`} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleImgUpload} /></label>}
         </div>
         <div className="hint">Hasta {MAX_IMAGES} fotos. La estrella define la imagen principal.</div>
       </div>
-      <div className="field"><label>Nombre del producto</label><input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Audífonos Bluetooth X200" /></div>
-      <div className="field-row"><div className="field"><label>Precio ({settings.currency})</label><input type="number" min="0" placeholder="0" value={price} onChange={(e) => setPrice(e.target.value)} /></div><div className="field"><label>Cantidad en stock</label><input type="number" min="0" step="1" placeholder="0" value={stockQty} onChange={(e) => setStockQty(e.target.value)} /></div></div>
-      <div className="field"><label>Categoría</label><select value={category} onChange={(e) => { const v = e.target.value; setCategory(v); setShowNewCat(v === '__new__'); }}><option value="" disabled={!!category}>Selecciona una categoría</option>{categories.map((c) => <option key={c.name} value={c.name}>{c.emoji} {c.name}</option>)}<option value="__new__">+ Crear categoría</option></select>{showNewCat && <div className="new-category-box"><input type="text" placeholder="Nombre de la nueva categoría" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} /><div className="field-row"><input type="text" placeholder="📦" maxLength={4} value={newCatEmoji} onChange={(e) => setNewCatEmoji(e.target.value)} /><div className="hint">Puedes elegir un emoji o dejarlo vacío.</div></div><div className="emoji-picks">{EMOJI_PICKS.map((e) => <button type="button" className="emoji-pick" key={e} onClick={() => setNewCatEmoji(e)}>{e}</button>)}</div><div className="form-actions"><button type="button" className="btn-secondary" onClick={() => { setShowNewCat(false); setCategory(''); setNewCatName(''); setNewCatEmoji(''); }}>Cancelar</button><button type="button" className="btn-primary" onClick={addNewCategory}>Guardar categoría</button></div></div>}</div>
-      <div className="field warranty-field"><label>Garantía</label><div className="input-with-icon"><span>✓</span><input type="text" value={warranty} onChange={(e) => setWarranty(e.target.value)} placeholder="Ej. 6 meses, 1 año, Sin garantía" /></div><div className="hint">Esta información aparecerá en la tarjeta del producto.</div></div>
-      <div className="field"><label>Descripción detallada</label><textarea style={{ minHeight: 90 }} placeholder="Detalles, color, capacidad, especificaciones, etc." value={description} onChange={(e) => setDescription(e.target.value)} /><div className="hint">Se muestra al abrir el detalle del producto.</div></div>
+      <div className="field"><label htmlFor={`${uid}-name`}>Nombre del producto</label><input id={`${uid}-name`} type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Audífonos Bluetooth X200" /></div>
+      <div className="field-row"><div className="field"><label htmlFor={`${uid}-price`}>Precio ({settings.currency})</label><input id={`${uid}-price`} type="number" min="0" placeholder="0" value={price} onChange={(e) => setPrice(e.target.value)} /></div><div className="field"><label htmlFor={`${uid}-stock`}>Cantidad en stock</label><input id={`${uid}-stock`} type="number" min="0" step="1" placeholder="0" value={stockQty} onChange={(e) => setStockQty(e.target.value)} /></div></div>
+      <div className="field"><label htmlFor={`${uid}-category`}>Categoría</label><select id={`${uid}-category`} value={category} onChange={(e) => { const v = e.target.value; setCategory(v); setShowNewCat(v === '__new__'); }}><option value="" disabled={!!category}>Selecciona una categoría</option>{categories.map((c) => <option key={c.name} value={c.name}>{c.emoji} {c.name}</option>)}<option value="__new__">+ Crear categoría</option></select>{showNewCat && <div className="new-category-box"><input type="text" aria-label="Nombre de la nueva categoría" placeholder="Nombre de la nueva categoría" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} /><div className="field-row"><input type="text" aria-label="Emoji de la nueva categoría" placeholder="📦" maxLength={4} value={newCatEmoji} onChange={(e) => setNewCatEmoji(e.target.value)} /><div className="hint">Puedes elegir un emoji o dejarlo vacío.</div></div><div className="emoji-picks">{EMOJI_PICKS.map((e) => <button type="button" className="emoji-pick" key={e} onClick={() => setNewCatEmoji(e)}>{e}</button>)}</div><div className="form-actions"><button type="button" className="btn-secondary" onClick={() => { setShowNewCat(false); setCategory(''); setNewCatName(''); setNewCatEmoji(''); }}>Cancelar</button><button type="button" className="btn-primary" onClick={addNewCategory}>Guardar categoría</button></div></div>}</div>
+      <div className="field warranty-field"><label htmlFor={`${uid}-warranty`}>Garantía</label><div className="input-with-icon"><span>✓</span><input id={`${uid}-warranty`} type="text" value={warranty} onChange={(e) => setWarranty(e.target.value)} placeholder="Ej. 6 meses, 1 año, Sin garantía" /></div><div className="hint">Esta información aparecerá en la tarjeta del producto.</div></div>
+      <div className="field"><label htmlFor={`${uid}-description`}>Descripción detallada</label><textarea id={`${uid}-description`} style={{ minHeight: 90 }} placeholder="Detalles, color, capacidad, especificaciones, etc." value={description} onChange={(e) => setDescription(e.target.value)} /><div className="hint">Se muestra al abrir el detalle del producto.</div></div>
       <div className="form-actions product-form-actions"><button className="btn-secondary" onClick={onCancel} disabled={saving}>Cancelar</button><button className="btn-primary" onClick={handleSubmit} disabled={saving}>{saving ? 'Guardando…' : editingProduct ? 'Guardar cambios' : 'Agregar al catálogo'}</button></div>
     </div>
   );

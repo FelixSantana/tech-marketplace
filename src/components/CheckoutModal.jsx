@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
 export default function CheckoutModal({ items, settings, onClose, onOrderCreated, showToast }) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const uid = useId();
   const total = items.reduce((sum, item) => sum + Number(item.product.price) * item.qty, 0);
 
   const submit = async (e) => {
@@ -42,7 +43,7 @@ export default function CheckoutModal({ items, settings, onClose, onOrderCreated
         <div className="checkout-head"><div><span className="checkout-kicker">FINALIZAR PEDIDO</span><h2>Completa tu pedido</h2><p>Registraremos tu orden y luego te llevaremos a WhatsApp.</p></div><button type="button" className="icon-btn" onClick={onClose} disabled={saving} aria-label="Cerrar">✕</button></div>
         <div className="checkout-summary"><div className="checkout-summary-title">Resumen <span>{items.length} {items.length === 1 ? 'producto' : 'productos'}</span></div>{items.map((item) => <div className="checkout-item" key={item.product.id}><div className="checkout-item-img">{item.product.images?.[0] ? <img src={item.product.images[0]} alt="" /> : '📦'}</div><div className="checkout-item-info"><strong>{item.product.name}</strong><small>Cantidad: {item.qty}</small></div><b>{settings.currency} {(Number(item.product.price) * item.qty).toLocaleString('es-DO')}</b></div>)}<div className="checkout-total"><span>Total del pedido</span><strong>{settings.currency} {total.toLocaleString('es-DO')}</strong></div></div>
         <div className="checkout-form-title">Tus datos</div>
-        <div className="form-grid"><label>Nombre<input value={name} onChange={(e) => setName(e.target.value)} placeholder="Tu nombre" autoFocus maxLength={120} /></label><label>WhatsApp<input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="809 555 1234" inputMode="tel" maxLength={20} /></label><label className="checkout-notes">Notas <span>(opcional)</span><textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Color, horario de entrega, etc." maxLength={1000} rows={3} /></label></div>
+        <div className="form-grid"><label htmlFor={`${uid}-name`}>Nombre completo<input id={`${uid}-name`} value={name} onChange={(e) => setName(e.target.value)} placeholder="Tu nombre" autoFocus maxLength={120} /></label><label htmlFor={`${uid}-phone`}>WhatsApp<input id={`${uid}-phone`} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="809 555 1234" inputMode="tel" maxLength={20} /></label><label className="checkout-notes" htmlFor={`${uid}-notes`}>Notas <span>(opcional)</span><textarea id={`${uid}-notes`} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Color, horario de entrega, etc." maxLength={1000} rows={3} /></label></div>
         <div className="checkout-security">🔒 <span>Tus datos se usan únicamente para registrar y coordinar este pedido.</span></div>
         <div className="form-actions checkout-actions"><button type="button" className="btn-secondary" onClick={onClose} disabled={saving}>Cancelar</button><button type="submit" className="btn-wa checkout-submit" disabled={saving}>{saving ? 'Registrando…' : 'Pedir por WhatsApp'}<span>→</span></button></div>
       </form>
