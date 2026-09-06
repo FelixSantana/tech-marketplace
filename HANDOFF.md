@@ -26,6 +26,8 @@ Catálogo digital de productos para **Synaptic Tech**, una tienda de tecnología
 
 **Patrón de API (`.mjs` + `_handlers/*.cjs`):** el `package.json` tiene `"type": "module"`, así que Vercel trata todo `.js` como ES Module. Las funciones públicas en `/api/*.mjs` son wrappers ESM mínimos que solo hacen `import handler from './_handlers/xxx-handler.cjs'; export default handler;` — la lógica real vive en `api/_handlers/*.cjs`, que sí puede usar `require()` sin problema porque `.cjs` siempre se trata como CommonJS sin importar el `package.json`. **Si agregas un endpoint nuevo, sigue este mismo patrón** (archivo pública `.mjs` de una línea + handler real en `_handlers/*.cjs`) — no pongas lógica directamente en un `.js` en `/api`, causará un 500 silencioso (ver sección 8).
 
+La lógica de dominio que conviene probar sin levantar HTTP ni tocar Redis vive un nivel más abajo, en `_lib/*.cjs` (`orders-logic.cjs`, `upload-logic.cjs`), y el handler solo la orquesta. Las pruebas de `npm test` apuntan ahí.
+
 ---
 
 ## 3. Identificadores del proyecto
@@ -78,21 +80,28 @@ synaptic-react/
 │   │       ├── ProductList.jsx         ← lista editable de productos
 │   │       ├── ProductForm.jsx         ← alta/edición de producto (incluye campo Garantía)
 │   │       ├── OrdersPanel.jsx         ← dashboard de órdenes: KPIs, filtros, tabla, alta manual de orden
-│   │       └── SettingsForm.jsx        ← nombre tienda, WhatsApp, logo, cambio de credenciales
+│   │       ├── SettingsForm.jsx        ← nombre tienda, WhatsApp, logo, cambio de credenciales
+│   │       ├── VariantTable.jsx        ← tabla de variantes dentro de ProductForm
+│   │       ├── PrintCatalog.jsx        ← vistas imprimibles (clientes / inventario)
+│   │       └── MigrateImages.jsx       ← botón para mover fotos incrustadas al bucket
 │   └── assets/                         (vacío, sin usar)
 └── api/
     ├── auth.mjs                        ← wrapper → _handlers/auth-handler.cjs
     ├── catalog.mjs                     ← wrapper → _handlers/catalog-handler.cjs
     ├── orders.mjs                      ← wrapper → _handlers/orders-handler.cjs
     ├── admin-reset.mjs                 ← wrapper → _handlers/admin-reset-handler.cjs
+    ├── upload.mjs                      ← wrapper → _handlers/upload-handler.cjs
     ├── _handlers/
     │   ├── auth-handler.cjs            ← POST: setup | login | change | status
     │   ├── catalog-handler.cjs         ← GET público, POST protegido (Bearer token)
     │   ├── orders-handler.cjs          ← GET/POST/PUT/DELETE, ver sección 6
-    │   └── admin-reset-handler.cjs     ← POST protegido por ADMIN_RESET_SECRET, borra la cuenta admin
+    │   ├── admin-reset-handler.cjs     ← POST protegido por ADMIN_RESET_SECRET, borra la cuenta admin
+    │   └── upload-handler.cjs          ← POST protegido, sube una imagen a Vercel Blob
     └── _lib/
         ├── kv.cjs                      ← helper genérico para Upstash Redis REST (kvGet/kvSet/kvDel)
-        └── auth.cjs                    ← hashPassword, signToken, verifyToken, extractBearer
+        ├── auth.cjs                    ← hashPassword, signToken, verifyToken, extractBearer
+        ├── orders-logic.cjs            ← lógica de órdenes sin HTTP: líneas y descuento de inventario
+        └── upload-logic.cjs            ← validación de las imágenes que se suben
 ```
 
 ---
@@ -150,7 +159,13 @@ synaptic-react/
 }
 ```
 
-**Las imágenes se guardan como base64 inline dentro del JSON** (comprimidas a máx. 520px, calidad 0.62 JPEG — ver `compressImage` en `lib/utils.js`). No hay bucket de archivos. `useCatalog.js` rechaza guardar si el payload del catálogo supera 4.5MB.
+**Las imágenes se suben a Vercel Blob y en el catálogo solo queda su URL.** El panel las comprime antes de subir (máx. 520px, calidad 0.62 JPEG — ver `compressImage` en `lib/utils.js`) y las manda a `POST /api/upload`.
+
+Las fotos viejas siguen guardadas como base64 inline dentro del JSON y **se muestran igual**: el `<img>` recibe la cadena tal cual venga, sea URL o data URL. No hay migración obligatoria; el botón "Mover fotos" de la pestaña Productos las pasa al bucket cuando se quiera.
+
+Si `BLOB_READ_WRITE_TOKEN` no está configurado, `/api/upload` responde `503` y el panel vuelve a incrustar la foto como antes, avisando al usuario. Por eso desplegar sin bucket no rompe nada.
+
+`useCatalog.js` sigue rechazando guardar si el payload del catálogo supera 4.5MB — un límite que ya casi no se toca una vez migradas las fotos.
 
 ---
 
@@ -195,6 +210,7 @@ Variables de entorno necesarias en Vercel → Settings → Environment Variables
 - `KV_REST_API_URL` / `UPSTASH_REDIS_REST_URL`
 - `KV_REST_API_TOKEN` / `UPSTASH_REDIS_REST_TOKEN`
 - `ADMIN_RESET_SECRET` (opcional, solo si se quiere habilitar `/api/admin-reset`)
+- `BLOB_READ_WRITE_TOKEN` — lo inyecta solo Vercel al crear un store de Blob en el proyecto. Sin él, las fotos se siguen incrustando en el catálogo.
 
 ---
 
@@ -206,6 +222,8 @@ npm install
 npm run dev          # servidor de desarrollo Vite, sin backend real
 npm run build         # build de producción → dist/
 npm run preview       # sirve el build de producción localmente
+npm test              # vitest, solo lógica pura (catálogo, órdenes, subida de imágenes)
+npm run lint          # oxlint
 ```
 
 Para probar el backend en local (Vite no ejecuta `/api` por sí solo):
@@ -217,11 +235,18 @@ Para probar el backend en local (Vite no ejecuta `/api` por sí solo):
 ## 11. Pendientes / ideas para continuar
 
 - [ ] **Dominio personalizado** — aún corre sobre `*.vercel.app`.
-- [ ] **Migrar imágenes a un bucket real** (Vercel Blob, Cloudinary, S3) en vez de base64 inline — el catálogo puede volverse pesado y lento con muchas fotos.
-- [ ] **Variantes de producto** (talla, color).
-- [ ] **Exportar catálogo a PDF**.
-- [ ] **Webhook real de WhatsApp Business API** en vez de links `wa.me` — permitiría automatizar respuestas.
-- [ ] **Revisar accesibilidad de formularios** — algunos campos usan `<label>` envolviendo el input sin `htmlFor`/`id` explícitos; funciona pero vale la pena revisar con un lector de pantalla.
+- [ ] **Webhook real de WhatsApp Business API** en vez de links `wa.me` — permitiría automatizar respuestas. Bloqueado por la verificación de negocio en Meta, que la hace el dueño.
+- [ ] **El panel no recarga el catálogo tras completar una orden.** Completar una orden descuenta stock en el servidor, pero el panel sigue mostrando el valor viejo hasta recargar la página.
+- [ ] **`applyInventoryDeduction` valida cada línea por separado.** Dos líneas de la misma variante que juntas superen el stock pasan la validación. Viene de antes de las variantes.
+- [ ] **Quedan 5 avisos de lint**, todos `set-state-in-effect` y un `exhaustive-deps`, en `App.jsx`, `OrdersPanel`, `useCart` y `ProductDetail`. Arreglarlos cambia comportamiento y merece su propia tarea.
+- [ ] **El bucket no borra las fotos huérfanas.** Al quitar o reemplazar una foto, la anterior se queda en Blob. Con fotos de ~30KB y 1GB de capacidad no corre prisa.
+
+Hechos en la sesión del 2026-09-05:
+
+- [x] **Variantes de producto** — un eje por producto, con precio y stock propios. Ver `VARIANTES.md`.
+- [x] **Exportar catálogo** — dos vistas imprimibles desde el panel: catálogo para clientes y hoja de inventario.
+- [x] **Migrar imágenes a un bucket real** — Vercel Blob.
+- [x] **Accesibilidad de formularios** — los 20 controles con `htmlFor`/`id` explícitos.
 
 ---
 
