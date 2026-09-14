@@ -31,6 +31,18 @@ export function normalizeProduct(p) {
   return base;
 }
 
+function normalizeCategories(raw) {
+  if (!Array.isArray(raw) || !raw.length) return defaultCategories.slice();
+  return raw.map((c) => {
+    if (typeof c === 'string') {
+      const known = defaultCategories.find((d) => d.name.toLowerCase() === c.toLowerCase());
+      return known ? { ...known } : { name: c, emoji: '📦' };
+    }
+    return c;
+  });
+}
+const catalogVersion = (data) => { const v = Number(data && data.version); return Number.isInteger(v) && v >= 0 ? v : 0; };
+
 export function useCatalog() {
   const [settings, setSettings] = useState({ ...defaultSettings });
   const [products, setProducts] = useState([]);
@@ -39,8 +51,9 @@ export function useCatalog() {
   const [loadError, setLoadError] = useState('');
   const [saveError, setSaveError] = useState('');
 
-  const fetchCatalog = useCallback(async () => {
-    setLoading(true);
+  // silent: recarga sin mostrar el estado de carga, para refrescar desde el panel.
+  const fetchCatalog = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
       const r = await fetch(CATALOG_API);
       if (!r.ok) {
@@ -54,15 +67,7 @@ export function useCatalog() {
       if (Array.isArray(data.products)) {
         setProducts(data.products.map(normalizeProduct));
       }
-      if (Array.isArray(data.categories) && data.categories.length) {
-        setCategories(data.categories.map((c) => {
-          if (typeof c === 'string') {
-            const known = defaultCategories.find((d) => d.name.toLowerCase() === c.toLowerCase());
-            return known ? { ...known } : { name: c, emoji: '📦' };
-          }
-          return c;
-        }));
-      } else { setCategories(defaultCategories.slice()); }
+      setCategories(normalizeCategories(data.categories));
       setLoading(false);
       return data;
     } catch (e) {
@@ -73,28 +78,48 @@ export function useCatalog() {
     }
   }, []);
 
-  const saveCatalog = useCallback(async (adminToken, overrides = {}) => {
+  // Guarda un cambio expresado como funcion sobre el catalogo mas reciente del servidor, nunca
+  // una copia de lo que el panel tenga en memoria. El panel puede llevar horas abierto y entre
+  // tanto completar una orden descuenta stock en el servidor: guardar la copia vieja revertia
+  // ese descuento. `cambio(fresco)` devuelve solo lo que cambia: { products }, { settings }...
+  const saveCatalog = useCallback(async (adminToken, cambio) => {
+    if (typeof cambio !== 'function') throw new Error('saveCatalog espera una funcion sobre el catalogo fresco');
+    setSaveError('');
     try {
-      const payload = { settings: overrides.settings || settings, products: overrides.products || products, categories: overrides.categories || categories };
-      const str = JSON.stringify(payload);
-      if (str.length > 4500000) {
-        setSaveError('El inventario ya casi llega al límite de almacenamiento. Elimina o reduce fotos de algunos productos e intenta de nuevo.');
-        return false;
+      for (let intento = 0; intento < 2; intento += 1) {
+        const lectura = await fetch(CATALOG_API, { cache: 'no-store' });
+        if (!lectura.ok) { setSaveError('No se pudo leer el catálogo del servidor.'); return false; }
+        const data = await lectura.json();
+        const fresco = { settings: { ...defaultSettings, ...(data.settings || {}) }, products: Array.isArray(data.products) ? data.products.map(normalizeProduct) : [], categories: normalizeCategories(data.categories) };
+        const parcial = cambio(fresco) || {};
+        const payload = { settings: parcial.settings || fresco.settings, products: parcial.products || fresco.products, categories: parcial.categories || fresco.categories, version: catalogVersion(data) };
+        const str = JSON.stringify(payload);
+        if (str.length > 4500000) {
+          setSaveError('El inventario ya casi llega al límite de almacenamiento. Elimina o reduce fotos de algunos productos e intenta de nuevo.');
+          return false;
+        }
+        const r = await fetch(CATALOG_API, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + adminToken }, body: str });
+        // Alguien escribio entre la lectura y el guardado: se vuelve a aplicar el cambio sobre lo nuevo.
+        if (r.status === 409) continue;
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({}));
+          if (r.status === 401) { setSaveError('Tu sesión expiró. Vuelve a iniciar sesión.'); }
+          else { setSaveError(err.message || 'Error al guardar en el servidor.'); }
+          return false;
+        }
+        setSettings(payload.settings);
+        setProducts(payload.products.map(normalizeProduct));
+        setCategories(payload.categories);
+        return true;
       }
-      const r = await fetch(CATALOG_API, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + adminToken }, body: str });
-      if (!r.ok) {
-        const err = await r.json().catch(() => ({}));
-        if (r.status === 401) { setSaveError('Tu sesión expiró. Vuelve a iniciar sesión.'); }
-        else { setSaveError(err.message || 'Error al guardar en el servidor.'); }
-        return false;
-      }
-      return true;
+      setSaveError('El catálogo cambió varias veces mientras guardabas. Vuelve a intentarlo.');
+      return false;
     } catch (e) {
       console.error('saveCatalog failed', e);
       setSaveError('No se pudo conectar con el servidor.');
       return false;
     }
-  }, [settings, products, categories]);
+  }, []);
 
   return { settings, setSettings, products, setProducts, categories, setCategories, loading, loadError, saveError, fetchCatalog, saveCatalog };
 }

@@ -5,8 +5,9 @@ import SettingsForm from './SettingsForm';
 import OrdersPanel from './OrdersPanel';
 import PrintCatalog from './PrintCatalog';
 import MigrateImages from './MigrateImages';
+import { mergeProductEdit } from '../../lib/catalogMerge';
 
-export default function AdminPanel({ products, setProducts, categories, setCategories, settings, setSettings, saveCatalog, adminToken, authRequest, setAdminToken, onClose, onLogout, showToast }) {
+export default function AdminPanel({ products, categories, setCategories, settings, saveCatalog, refreshCatalog, adminToken, authRequest, setAdminToken, onClose, onLogout, showToast }) {
   const [tab, setTab] = useState('productos');
   const [editingId, setEditingId] = useState(null);
   // null | 'clientes' | 'inventario'. Solo se llega aqui con sesion de admin abierta.
@@ -15,13 +16,11 @@ export default function AdminPanel({ products, setProducts, categories, setCateg
 
   const switchTab = (t) => { if (t !== 'agregar') setEditingId(null); setTab(t); };
 
-  const handleSaveProduct = async (data) => {
-    const nextProducts = editingId
-      ? products.map((p) => (p.id === editingId ? { ...p, ...data } : p))
-      : [...products, { id: 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), ...data }];
-
-    setProducts(nextProducts);
-    const ok = await saveCatalog(adminToken, { products: nextProducts });
+  // original: el producto tal como estaba al abrir el formulario. Con el se distingue el stock que
+  // el admin cambio del que solo arrastra el formulario y que el servidor pudo haber descontado.
+  const handleSaveProduct = async (data, original) => {
+    const id = editingId || 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+    const ok = await saveCatalog(adminToken, (fresco) => ({ products: mergeProductEdit(fresco.products, { id, original: editingId ? original : null, data }) }));
     if (ok) {
       showToast(editingId ? 'Producto actualizado correctamente' : 'Producto agregado correctamente');
       setEditingId(null);
@@ -34,18 +33,12 @@ export default function AdminPanel({ products, setProducts, categories, setCateg
 
   const handleDeleteProduct = async (id) => {
     if (!confirm('¿Eliminar este producto?')) return;
-    const nextProducts = products.filter((p) => p.id !== id);
-    setProducts(nextProducts);
-    const ok = await saveCatalog(adminToken, { products: nextProducts });
+    const ok = await saveCatalog(adminToken, (fresco) => ({ products: fresco.products.filter((p) => p.id !== id) }));
     if (ok) showToast('Producto eliminado');
     else showToast('No se pudo eliminar el producto.');
   };
 
-  const handleSaveSettings = async (updates) => {
-    const nextSettings = { ...settings, ...updates };
-    setSettings(nextSettings);
-    return saveCatalog(adminToken, { settings: nextSettings });
-  };
+  const handleSaveSettings = async (updates) => saveCatalog(adminToken, (fresco) => ({ settings: { ...fresco.settings, ...updates } }));
 
   return (
     <div className="overlay">
@@ -72,7 +65,7 @@ export default function AdminPanel({ products, setProducts, categories, setCateg
                 <button className="btn-secondary" onClick={() => setPrintMode('inventario')}>Hoja de inventario</button>
               </div>
             </div>
-            <MigrateImages products={products} setProducts={setProducts} settings={settings} setSettings={setSettings} saveCatalog={saveCatalog} adminToken={adminToken} showToast={showToast} />
+            <MigrateImages products={products} settings={settings} saveCatalog={saveCatalog} adminToken={adminToken} showToast={showToast} />
             <ProductList products={products} settings={settings} onEdit={(id) => { setEditingId(id); setTab('agregar'); }} onDelete={handleDeleteProduct} />
           </>
         )}
@@ -80,7 +73,7 @@ export default function AdminPanel({ products, setProducts, categories, setCateg
           <ProductForm key={editingId || 'new'} editingProduct={editingProduct} categories={categories} setCategories={setCategories} settings={settings} onSave={handleSaveProduct} onCancel={() => { setEditingId(null); setTab('productos'); }} saveCatalog={saveCatalog} adminToken={adminToken} showToast={showToast} />
         )}
         {tab === 'ordenes' && (
-          <OrdersPanel adminToken={adminToken} products={products} showToast={showToast} />
+          <OrdersPanel adminToken={adminToken} products={products} showToast={showToast} onInventoryChanged={refreshCatalog} />
         )}
         {tab === 'ajustes' && (
           <SettingsForm settings={settings} onSaveSettings={handleSaveSettings} authRequest={authRequest} adminToken={adminToken} setAdminToken={setAdminToken} onLogout={onLogout} showToast={showToast} />

@@ -21,6 +21,8 @@ export default function ProductForm({ editingProduct, categories, setCategories,
   const [variantAxis, setVariantAxis] = useState(editingProduct?.variantAxis || '');
   const [variants, setVariants] = useState(() => getVariants(editingProduct || {}).map((v) => ({ ...v })));
   const [saving, setSaving] = useState(false);
+  // Foto del producto al abrir el formulario, para saber luego que cambio el admin de verdad.
+  const [original] = useState(() => (editingProduct ? JSON.parse(JSON.stringify(editingProduct)) : null));
   const uid = useId();
   const conVariantes = variants.length > 0;
 
@@ -64,12 +66,14 @@ export default function ProductForm({ editingProduct, categories, setCategories,
     const trimmed = newCatName.trim();
     if (!trimmed) return showToast('Escribe un nombre para la categoría');
     const emoji = newCatEmoji.trim() || '📦';
-    const existing = categories.find((c) => c.name.toLowerCase() === trimmed.toLowerCase());
-    const nextCategories = existing ? categories.map((c) => c.name === existing.name ? { ...c, emoji } : c) : [...categories, { name: trimmed, emoji }];
-    setCategories(nextCategories);
-    const ok = await saveCatalog(adminToken, { categories: nextCategories });
+    let elegida = trimmed;
+    const ok = await saveCatalog(adminToken, (fresco) => {
+      const existing = fresco.categories.find((c) => c.name.toLowerCase() === trimmed.toLowerCase());
+      elegida = existing ? existing.name : trimmed;
+      return { categories: existing ? fresco.categories.map((c) => (c.name === existing.name ? { ...c, emoji } : c)) : [...fresco.categories, { name: trimmed, emoji }] };
+    });
     if (!ok) return showToast('No se pudo guardar la categoría.');
-    setCategory(existing ? existing.name : trimmed);
+    setCategory(elegida);
     setShowNewCat(false); setNewCatName(''); setNewCatEmoji('');
   };
 
@@ -93,7 +97,7 @@ export default function ProductForm({ editingProduct, categories, setCategories,
     // asi una version vieja del codigo sigue mostrando algo coherente.
     const data = { name: name.trim(), price: conVariantes ? Math.min(...limpias.map((v) => v.price)) : Number(price), category, warranty: warranty.trim(), description: description.trim(), stockQty: conVariantes ? limpias.reduce((s, v) => s + v.stockQty, 0) : Math.floor(Number(stockQty)), images: images.slice(), primaryImage: images.length ? Math.min(primaryIdx, images.length - 1) : 0, ...(conVariantes ? { variantAxis: variantAxis.trim(), variants: limpias } : {}) };
     setSaving(true);
-    try { await onSave(data); } finally { setSaving(false); }
+    try { await onSave(data, original); } finally { setSaving(false); }
   };
 
   return (

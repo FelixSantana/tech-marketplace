@@ -1,5 +1,6 @@
 const { kvGet, kvSet, kvConfigured } = require('../_lib/kv.cjs');
 const { AUTH_KEY, verifyToken, extractBearer } = require('../_lib/auth.cjs');
+const { catalogVersion, prepareCatalogWrite } = require('../_lib/catalog-logic.cjs');
 const CATALOG_KEY = 'synaptic_catalog';
 const DEFAULT_DATA = {
   settings: { storeName: 'Synaptic Tech', tagline: 'Tecnología al alcance de tu WhatsApp', whatsapp: '', currency: 'RD$', logo: '', configured: false },
@@ -22,8 +23,14 @@ module.exports = async function handler(req, res) {
       let body = req.body;
       if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
       if (!body || !body.settings) return res.status(400).json({ error: 'BAD_REQUEST' });
-      await kvSet(CATALOG_KEY, body);
-      return res.status(200).json({ ok: true });
+      // Solo se acepta un guardado que parta de la ultima version: una copia vieja del panel
+      // no puede pisar un descuento de stock hecho al completar una orden.
+      const stored = await kvGet(CATALOG_KEY);
+      let next;
+      try { next = prepareCatalogWrite(stored, body); }
+      catch { return res.status(409).json({ error: 'CATALOG_CONFLICT', message: 'El catálogo cambió mientras editabas.', version: catalogVersion(stored) }); }
+      await kvSet(CATALOG_KEY, next);
+      return res.status(200).json({ ok: true, version: next.version });
     }
     return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
   } catch { return res.status(500).json({ error: 'SERVER_ERROR' }); }

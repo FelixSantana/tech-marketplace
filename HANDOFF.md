@@ -140,6 +140,12 @@ synaptic-react/
 }
 ```
 
+**Versión del catálogo** — el documento lleva un campo `version` entero. `POST /api/catalog` solo acepta un guardado cuyo `version` sea el que está guardado, y responde `409 CATALOG_CONFLICT` si no; completar una orden también la sube. Un catálogo sin el campo cuenta como versión 0.
+
+Por eso **el panel nunca guarda lo que tiene en memoria**: `saveCatalog(token, cambio)` lee el catálogo fresco del servidor, le aplica `cambio(fresco)` y manda la versión leída; si choca, reintenta una vez. Toda escritura nueva desde el panel tiene que expresarse como función sobre el catálogo fresco. Antes, un panel abierto hacía rato guardaba su copia vieja y revertía el stock descontado al completar una orden.
+
+Al editar un producto, `mergeProductEdit` (`src/lib/catalogMerge.js`) decide el stock: si el admin no cambió el número respecto de cuando abrió el formulario, manda el valor fresco del servidor; si lo cambió, manda el del admin. Lo mismo por variante.
+
 **Admin** — key `synaptic_admin`: `{ email, salt, hash, secret }`.
 
 **Órdenes** — key `synaptic_orders`, array de objetos (más recientes primero, tope de 1000 guardadas):
@@ -236,10 +242,14 @@ Para probar el backend en local (Vite no ejecuta `/api` por sí solo):
 
 - [ ] **Dominio personalizado** — aún corre sobre `*.vercel.app`.
 - [ ] **Webhook real de WhatsApp Business API** en vez de links `wa.me` — permitiría automatizar respuestas. Bloqueado por la verificación de negocio en Meta, que la hace el dueño.
-- [ ] **El panel no recarga el catálogo tras completar una orden.** Completar una orden descuenta stock en el servidor, pero el panel sigue mostrando el valor viejo hasta recargar la página.
 - [ ] **`applyInventoryDeduction` valida cada línea por separado.** Dos líneas de la misma variante que juntas superen el stock pasan la validación. Viene de antes de las variantes.
 - [ ] **Quedan 5 avisos de lint**, todos `set-state-in-effect` y un `exhaustive-deps`, en `App.jsx`, `OrdersPanel`, `useCart` y `ProductDetail`. Arreglarlos cambia comportamiento y merece su propia tarea.
 - [ ] **El bucket no borra las fotos huérfanas.** Al quitar o reemplazar una foto, la anterior se queda en Blob. Con fotos de ~30KB y 1GB de capacidad no corre prisa.
+
+Hechos el 2026-09-14:
+
+- [x] **Editar un producto revertía el stock vendido.** Completar una orden descontaba en el servidor, pero el panel guardaba su copia vieja del catálogo entero y deshacía el descuento; la orden quedaba marcada como descontada y esa venta no se restaba nunca. Resuelto con versión del catálogo y guardado sobre la copia fresca (ver sección 5). El panel además recarga el catálogo al cambiar el estado de una orden.
+- [x] **Quitar todas las variantes no las quitaba.** El formulario sin variantes omitía el campo y las viejas sobrevivían al mezclar.
 
 Hechos en la sesión del 2026-09-05:
 

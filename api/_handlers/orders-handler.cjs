@@ -1,5 +1,6 @@
 const { kvGet, kvSet, kvSetEx, kvConfigured } = require('../_lib/kv.cjs');
 const { cleanText, money, buildPublicItems, buildAdminItems, applyInventoryDeduction } = require('../_lib/orders-logic.cjs');
+const { bumpVersion } = require('../_lib/catalog-logic.cjs');
 const { AUTH_KEY, verifyToken, extractBearer } = require('../_lib/auth.cjs');
 const ORDERS_KEY = 'synaptic_orders';
 const CATALOG_KEY = 'synaptic_catalog';
@@ -34,7 +35,7 @@ module.exports = async function handler(req, res) {
       if (Array.isArray(body.products)) { if (current.inventoryDeducted) throw new Error('COMPLETED_ORDER_PRODUCTS_LOCKED'); next.products = buildAdminItems(body.products, catalog); }
       next.total = money(next.products.reduce((sum, item) => sum + item.subtotal, 0));
       const isCompleting = current.status !== 'completed' && next.status === 'completed';
-      if (isCompleting && !current.inventoryDeducted) { const updatedCatalog = applyInventoryDeduction(catalog, next); await kvSet(CATALOG_KEY, updatedCatalog); next.inventoryDeducted = true; next.inventoryDeductedAt = new Date().toISOString(); }
+      if (isCompleting && !current.inventoryDeducted) { const updatedCatalog = applyInventoryDeduction(catalog, next); await kvSet(CATALOG_KEY, bumpVersion(updatedCatalog)); next.inventoryDeducted = true; next.inventoryDeductedAt = new Date().toISOString(); }
       next.updatedAt = new Date().toISOString(); orders[index] = next; await kvSet(ORDERS_KEY, orders); return res.status(200).json({ ok: true, order: next });
     }
     return res.status(405).json({ error: 'METHOD_NOT_ALLOWED' });

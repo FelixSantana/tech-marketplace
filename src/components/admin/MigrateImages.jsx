@@ -4,7 +4,7 @@ import { getProductImages } from '../../hooks/useCatalog';
 
 // Mueve al bucket las fotos que hoy viven incrustadas dentro del JSON del catalogo.
 // Corre con la sesion de admin abierta y guarda por el mismo camino que el resto del panel.
-export default function MigrateImages({ products, setProducts, settings, setSettings, saveCatalog, adminToken, showToast }) {
+export default function MigrateImages({ products, settings, saveCatalog, adminToken, showToast }) {
   const [estado, setEstado] = useState(null); // null | {hechas, total, fallidas}
   const [corriendo, setCorriendo] = useState(false);
 
@@ -18,26 +18,21 @@ export default function MigrateImages({ products, setProducts, settings, setSett
     let hechas = 0;
     let fallidas = 0;
 
-    const siguientesProductos = [];
-    for (const p of products) {
-      const imagenes = getProductImages(p);
-      const nuevas = [];
-      for (const src of imagenes) {
-        if (!esIncrustada(src)) { nuevas.push(src); continue; }
-        const subida = await uploadImage(src, adminToken);
-        // incrustada true = el bucket no respondio; se deja la foto como estaba.
-        if (subida.error || subida.incrustada) { fallidas += 1; nuevas.push(src); }
-        else { hechas += 1; nuevas.push(subida.url); }
-        setEstado({ hechas, total: pendientes, fallidas });
-      }
-      siguientesProductos.push({ ...p, images: nuevas });
+    // Se anota que foto incrustada paso a que URL, y al final se aplica sobre el catalogo fresco.
+    // Asi, mover fotos no pisa el stock que se haya descontado mientras subian.
+    const reemplazos = new Map();
+    for (const src of products.flatMap(getProductImages)) {
+      if (!esIncrustada(src) || reemplazos.has(src)) continue;
+      const subida = await uploadImage(src, adminToken);
+      // incrustada true = el bucket no respondio; se deja la foto como estaba.
+      if (subida.error || subida.incrustada) fallidas += 1;
+      else { hechas += 1; reemplazos.set(src, subida.url); }
+      setEstado({ hechas, total: pendientes, fallidas });
     }
-
-    let siguientesSettings = settings;
     if (esIncrustada(settings.logo)) {
       const subida = await uploadImage(settings.logo, adminToken, 'logo');
-      if (subida.error || subida.incrustada) { fallidas += 1; }
-      else { hechas += 1; siguientesSettings = { ...settings, logo: subida.url }; }
+      if (subida.error || subida.incrustada) fallidas += 1;
+      else { hechas += 1; reemplazos.set(settings.logo, subida.url); }
       setEstado({ hechas, total: pendientes, fallidas });
     }
 
@@ -48,10 +43,11 @@ export default function MigrateImages({ products, setProducts, settings, setSett
     }
 
     // Un solo guardado al final: si falla, el catalogo queda intacto y se puede reintentar.
-    const ok = await saveCatalog(adminToken, { products: siguientesProductos, settings: siguientesSettings });
+    const ok = await saveCatalog(adminToken, (fresco) => ({
+      products: fresco.products.map((p) => ({ ...p, images: getProductImages(p).map((src) => reemplazos.get(src) || src) })),
+      settings: { ...fresco.settings, logo: reemplazos.get(fresco.settings.logo) || fresco.settings.logo },
+    }));
     if (ok) {
-      setProducts(siguientesProductos);
-      setSettings(siguientesSettings);
       showToast(fallidas ? `Se movieron ${hechas} fotos. ${fallidas} quedaron dentro del catálogo.` : `Listo: ${hechas} fotos movidas al almacén.`);
     } else {
       showToast('Las fotos se subieron pero no se pudo guardar el catálogo. Vuelve a intentarlo.');
