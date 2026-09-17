@@ -1,12 +1,15 @@
 import { useId, useState } from 'react';
 import { compressImage } from '../../lib/utils';
 import { uploadImage } from '../../lib/uploadImage';
+import ShippingForm from './ShippingForm';
+import { ajustesDeEnvio } from '../../lib/envio';
 
 export default function SettingsForm({ settings, onSaveSettings, authRequest, adminToken, setAdminToken, onLogout, showToast }) {
   const [storeName, setStoreName] = useState(settings.storeName);
   const [tagline, setTagline] = useState(settings.tagline);
   const [whatsapp, setWhatsapp] = useState(settings.whatsapp);
   const [currency, setCurrency] = useState(settings.currency);
+  const [envio, setEnvio] = useState(() => ajustesDeEnvio(settings));
   const [pendingLogo, setPendingLogo] = useState(undefined);
   const [curPassword, setCurPassword] = useState('');
   const [newEmail, setNewEmail] = useState('');
@@ -30,7 +33,17 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
 
   const handleSaveSettings = async () => {
     if (!whatsapp.trim()) return showToast('El número de WhatsApp no puede estar vacío');
-    const ok = await onSaveSettings({ storeName: storeName.trim() || 'Synaptic Tech', tagline: tagline.trim(), whatsapp: whatsapp.trim(), currency: currency.trim() || 'RD$', ...(pendingLogo !== undefined ? { logo: pendingLogo || '' } : {}) });
+    if (envio.activo && !envio.retiroEnTienda && !(envio.zonas || []).length) return showToast('Agrega al menos una zona de envío, o permite el retiro en tienda');
+    if (envio.activo && (envio.zonas || []).some((z) => !String(z.nombre || '').trim())) return showToast('Cada zona de envío necesita un nombre');
+    if (envio.activo && envio.retiroEnTienda && !String(envio.direccionTienda || '').trim()) return showToast('Escribe la dirección de la tienda para el retiro');
+    const envioLimpio = {
+      activo: envio.activo === true,
+      zonas: (envio.zonas || []).map((z) => ({ id: z.id, nombre: String(z.nombre || '').trim(), precio: Math.max(0, Number(z.precio) || 0) })),
+      retiroEnTienda: envio.retiroEnTienda === true,
+      direccionTienda: String(envio.direccionTienda || '').trim(),
+      pedidoMinimo: Math.max(0, Number(envio.pedidoMinimo) || 0),
+    };
+    const ok = await onSaveSettings({ storeName: storeName.trim() || 'Synaptic Tech', tagline: tagline.trim(), whatsapp: whatsapp.trim(), currency: currency.trim() || 'RD$', envio: envioLimpio, ...(pendingLogo !== undefined ? { logo: pendingLogo || '' } : {}) });
     if (ok) { showToast('Ajustes guardados'); setPendingLogo(undefined); }
     else showToast('No se pudieron guardar los ajustes. Verifica tu sesión.');
   };
@@ -59,6 +72,8 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
       <div className="field"><label htmlFor={`${uid}-tagline`}>Frase corta (tagline)</label><input id={`${uid}-tagline`} type="text" value={tagline} onChange={(e) => setTagline(e.target.value)} /></div>
       <div className="field"><label htmlFor={`${uid}-wa`}>Número de WhatsApp</label><input id={`${uid}-wa`} type="tel" placeholder="8091234567" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} /></div>
       <div className="field"><label htmlFor={`${uid}-currency`}>Moneda</label><input id={`${uid}-currency`} type="text" placeholder="RD$" value={currency} onChange={(e) => setCurrency(e.target.value)} /></div>
+      <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon">⛟</span><div><h3>Entrega y envío</h3><p>Qué le pides al cliente al finalizar el pedido y cuánto cobras por llevarlo.</p></div></div>
+      <ShippingForm envio={envio} setEnvio={setEnvio} currency={currency} />
       <button className="btn-primary full-action" onClick={handleSaveSettings}>Guardar ajustes</button>
 
       <div className="access-card">

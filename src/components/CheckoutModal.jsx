@@ -1,16 +1,28 @@
 import { useId, useState } from 'react';
 import { getVariant, getUnitPrice } from '../hooks/useCatalog';
 import { buildOrderWaLink } from '../lib/utils';
+import { ajustesDeEnvio, costoDeEnvio, faltaParaPedir } from '../lib/envio';
+import PrivacyNotice from './PrivacyNotice';
 
 export default function CheckoutModal({ items, settings, onClose, onOrderCreated, showToast }) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [verPrivacidad, setVerPrivacidad] = useState(false);
   // Con el pedido ya guardado, aqui vive el enlace a WhatsApp que el cliente toca.
   const [waLink, setWaLink] = useState(null);
   const uid = useId();
-  const total = items.reduce((sum, item) => sum + (getUnitPrice(item.product, item.variantId) || 0) * item.qty, 0);
+
+  const envio = ajustesDeEnvio(settings);
+  const [modo, setModo] = useState(() => (!envio.activo ? 'coordinado' : envio.zonas.length ? 'domicilio' : envio.retiroEnTienda ? 'retiro' : 'domicilio'));
+  const [zonaId, setZonaId] = useState(() => (envio.zonas.length === 1 ? envio.zonas[0].id : ''));
+  const [direccion, setDireccion] = useState('');
+
+  const subtotal = items.reduce((sum, item) => sum + (getUnitPrice(item.product, item.variantId) || 0) * item.qty, 0);
+  const costoEnvio = costoDeEnvio(settings, modo, zonaId);
+  const total = subtotal + costoEnvio;
+  const moneda = (n) => `${settings.currency} ${n.toLocaleString('es-DO')}`;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -18,16 +30,28 @@ export default function CheckoutModal({ items, settings, onClose, onOrderCreated
     if (name.trim().length < 2) return showToast('Escribe tu nombre.');
     if (cleanPhone.length < 8) return showToast('Escribe un WhatsApp válido.');
     if (!settings.whatsapp) return showToast('El WhatsApp de la tienda no está configurado.');
+    const falta = faltaParaPedir(settings, { modo, zonaId, direccion }, subtotal);
+    if (falta) return showToast(falta);
+
+    const entrega = { modo, zonaId: modo === 'domicilio' ? zonaId : null, zonaNombre: envio.zonas.find((z) => z.id === zonaId)?.nombre || '', direccion: modo === 'domicilio' ? direccion.trim() : '', costo: costoEnvio };
 
     // Primero se registra el pedido y solo despues se ofrece el enlace. Antes se abria una
     // pestana en blanco antes de saber si el pedido entraba, y en movil esa pestana se
     // quedaba en blanco: escribirle encima o navegarla tras la espera no siempre funciona.
     setSaving(true);
     try {
-      const response = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ source: 'whatsapp_checkout', customerName: name.trim(), phone: cleanPhone, notes, products: items.map((item) => ({ productId: item.product.id, variantId: item.variantId || null, quantity: item.qty })) }) });
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source: 'whatsapp_checkout', customerName: name.trim(), phone: cleanPhone, notes,
+          entrega: modo, zonaId: entrega.zonaId, direccion: entrega.direccion,
+          products: items.map((item) => ({ productId: item.product.id, variantId: item.variantId || null, quantity: item.qty })),
+        }),
+      });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.message || 'No se pudo registrar el pedido.');
-      setWaLink(buildOrderWaLink(items, settings));
+      setWaLink(buildOrderWaLink(items, settings, entrega));
       onOrderCreated?.(data.order);
     } catch (error) {
       console.error('checkout order failed', error);
@@ -58,12 +82,57 @@ export default function CheckoutModal({ items, settings, onClose, onOrderCreated
     <div className="overlay checkout-overlay" onClick={(e) => { if (e.target.classList.contains('overlay') && !saving) onClose(); }}>
       <form className="panel checkout-panel" onSubmit={submit}>
         <div className="checkout-head"><div><span className="checkout-kicker">FINALIZAR PEDIDO</span><h2>Completa tu pedido</h2><p>Registraremos tu orden y luego te llevaremos a WhatsApp.</p></div><button type="button" className="icon-btn" onClick={onClose} disabled={saving} aria-label="Cerrar">✕</button></div>
-        <div className="checkout-summary"><div className="checkout-summary-title">Resumen <span>{items.length} {items.length === 1 ? 'producto' : 'productos'}</span></div>{items.map((item) => { const v = getVariant(item.product, item.variantId); const precio = getUnitPrice(item.product, item.variantId) || 0; return <div className="checkout-item" key={`${item.product.id}::${item.variantId || ''}`}><div className="checkout-item-img">{item.product.images?.[0] ? <img src={item.product.images[0]} alt="" /> : '📦'}</div><div className="checkout-item-info"><strong>{item.product.name}</strong><small>{v ? `${item.product.variantAxis}: ${v.label} · ` : ''}Cantidad: {item.qty}</small></div><b>{settings.currency} {(precio * item.qty).toLocaleString('es-DO')}</b></div>; })}<div className="checkout-total"><span>Total del pedido</span><strong>{settings.currency} {total.toLocaleString('es-DO')}</strong></div></div>
+
+        <div className="checkout-summary">
+          <div className="checkout-summary-title">Resumen <span>{items.length} {items.length === 1 ? 'producto' : 'productos'}</span></div>
+          {items.map((item) => { const v = getVariant(item.product, item.variantId); const precio = getUnitPrice(item.product, item.variantId) || 0; return <div className="checkout-item" key={`${item.product.id}::${item.variantId || ''}`}><div className="checkout-item-img">{item.product.images?.[0] ? <img src={item.product.images[0]} alt="" /> : '📦'}</div><div className="checkout-item-info"><strong>{item.product.name}</strong><small>{v ? `${item.product.variantAxis}: ${v.label} · ` : ''}Cantidad: {item.qty}</small></div><b>{moneda(precio * item.qty)}</b></div>; })}
+          {envio.activo && (
+            <div className="checkout-lineas">
+              <div><span>Productos</span><b>{moneda(subtotal)}</b></div>
+              <div><span>{modo === 'retiro' ? 'Retiro en tienda' : 'Envío'}</span><b>{costoEnvio ? moneda(costoEnvio) : 'Gratis'}</b></div>
+            </div>
+          )}
+          <div className="checkout-total"><span>Total del pedido</span><strong>{moneda(total)}</strong></div>
+        </div>
+
+        {envio.activo && (
+          <>
+            <div className="checkout-form-title checkout-form-title--entrega">Cómo lo recibes</div>
+            <div className="entrega-block">
+              {envio.retiroEnTienda && envio.zonas.length > 0 && (
+                <div className="entrega-modos" role="group" aria-label="Forma de entrega">
+                  <button type="button" className={`entrega-modo ${modo === 'domicilio' ? 'active' : ''}`} aria-pressed={modo === 'domicilio'} onClick={() => setModo('domicilio')}>Entrega a domicilio</button>
+                  <button type="button" className={`entrega-modo ${modo === 'retiro' ? 'active' : ''}`} aria-pressed={modo === 'retiro'} onClick={() => setModo('retiro')}>Retiro en tienda</button>
+                </div>
+              )}
+              {modo === 'retiro' ? (
+                <p className="entrega-retiro">Pasas a buscarlo{envio.direccionTienda ? ` a ${envio.direccionTienda}` : ''}. Coordinamos la hora por WhatsApp.</p>
+              ) : (
+                <div className="form-grid">
+                  <label htmlFor={`${uid}-zona`}>Zona de envío
+                    <select id={`${uid}-zona`} value={zonaId} onChange={(e) => setZonaId(e.target.value)}>
+                      <option value="">Elige tu zona</option>
+                      {envio.zonas.map((z) => <option key={z.id} value={z.id}>{z.nombre} — {z.precio ? moneda(z.precio) : 'Gratis'}</option>)}
+                    </select>
+                  </label>
+                  <label className="entrega-direccion" htmlFor={`${uid}-direccion`}>Dirección
+                    <input id={`${uid}-direccion`} value={direccion} onChange={(e) => setDireccion(e.target.value)} placeholder="Calle, número, sector y un punto de referencia" maxLength={300} />
+                  </label>
+                </div>
+              )}
+              {envio.pedidoMinimo > 0 && <p className="entrega-minimo">Pedido mínimo: {moneda(envio.pedidoMinimo)}</p>}
+            </div>
+          </>
+        )}
+
         <div className="checkout-form-title">Tus datos</div>
         <div className="form-grid"><label htmlFor={`${uid}-name`}>Nombre completo<input id={`${uid}-name`} value={name} onChange={(e) => setName(e.target.value)} placeholder="Tu nombre" autoFocus maxLength={120} /></label><label htmlFor={`${uid}-phone`}>WhatsApp<input id={`${uid}-phone`} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="809 555 1234" inputMode="tel" maxLength={20} /></label><label className="checkout-notes" htmlFor={`${uid}-notes`}>Notas <span>(opcional)</span><textarea id={`${uid}-notes`} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Color, horario de entrega, etc." maxLength={1000} rows={3} /></label></div>
-        <div className="checkout-security">🔒 <span>Tus datos se usan únicamente para registrar y coordinar este pedido.</span></div>
+
+        <div className="checkout-security">🔒 <span>Usamos tu nombre, tu WhatsApp y tu dirección solo para coordinar este pedido. <button type="button" className="link-btn" onClick={() => setVerPrivacidad(true)}>Ver aviso de privacidad</button></span></div>
+
         <div className="form-actions checkout-actions"><button type="button" className="btn-secondary" onClick={onClose} disabled={saving}>Cancelar</button><button type="submit" className="btn-wa checkout-submit" disabled={saving}>{saving ? 'Registrando…' : 'Pedir por WhatsApp'}<span>→</span></button></div>
       </form>
+      {verPrivacidad && <PrivacyNotice settings={settings} onClose={() => setVerPrivacidad(false)} />}
     </div>
   );
 }

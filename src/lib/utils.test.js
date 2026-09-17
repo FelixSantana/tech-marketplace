@@ -55,3 +55,34 @@ describe('buildOrderWaLink', () => {
     expect(url).not.toContain(' ');
   });
 });
+
+describe('buildOrderWaLink con entrega', () => {
+  const entregaDomicilio = { modo: 'domicilio', zonaNombre: 'Santo Domingo', direccion: 'Calle 10 #5, Los Jardines', costo: 250 };
+
+  it('sin entrega configurada, el mensaje queda como antes', () => {
+    const msg = mensajeDe(buildOrderWaLink([{ product: mouse, qty: 1 }], settings));
+    expect(msg).not.toContain('Envío');
+    expect(msg).toContain('Total: RD$ 1,200');
+  });
+
+  it('a domicilio: nombra la zona, la direccion y cobra el envio en el total', () => {
+    const msg = mensajeDe(buildOrderWaLink([{ product: mouse, qty: 1 }], settings, entregaDomicilio));
+    expect(msg).toContain('Entrega a domicilio — Santo Domingo');
+    expect(msg).toContain('Dirección: Calle 10 #5, Los Jardines');
+    expect(msg).toContain('Envío: RD$ 250');
+    expect(msg).toContain('Total: RD$ 1,450');
+  });
+
+  it('retiro en tienda: lo dice y no cobra envio', () => {
+    const msg = mensajeDe(buildOrderWaLink([{ product: mouse, qty: 1 }], settings, { modo: 'retiro', costo: 0 }));
+    expect(msg).toContain('Retiro en tienda');
+    expect(msg).not.toContain('Envío:');
+    expect(msg).toContain('Total: RD$ 1,200');
+  });
+
+  it('envio gratis en una zona de precio cero', () => {
+    const msg = mensajeDe(buildOrderWaLink([{ product: mouse, qty: 1 }], settings, { ...entregaDomicilio, costo: 0 }));
+    expect(msg).toContain('Envío: gratis');
+    expect(msg).toContain('Total: RD$ 1,200');
+  });
+});

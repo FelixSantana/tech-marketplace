@@ -23,7 +23,7 @@ export function compressImage(file) {
 export function normalizePhone(raw) { let digits = (raw || '').replace(/\D/g, ''); if (digits.length === 10) digits = '1' + digits; return digits; }
 // Arma el enlace de WhatsApp con el pedido. Funcion pura y probada: es el texto que el
 // cliente termina enviando, asi que no debe depender de nada del navegador.
-export function buildOrderWaLink(items, settings) {
+export function buildOrderWaLink(items, settings, entrega) {
   const phone = normalizePhone(settings.whatsapp);
   const lines = [`Hola ${settings.storeName}! Quiero hacer este pedido:`, ``];
   let total = 0;
@@ -35,7 +35,17 @@ export function buildOrderWaLink(items, settings) {
     const etiqueta = variante ? ` (${it.product.variantAxis || 'Opción'}: ${variante.label})` : '';
     lines.push(`• ${it.product.name}${etiqueta} x${it.qty} — ${settings.currency} ${subtotal.toLocaleString('es-DO')}`);
   });
-  lines.push(``, `Total: ${settings.currency} ${total.toLocaleString('es-DO')}`, ``, `¿Está todo disponible?`);
+
+  const costoEnvio = Number(entrega && entrega.costo) || 0;
+  if (entrega && entrega.modo === 'retiro') {
+    lines.push(``, `Retiro en tienda`);
+  } else if (entrega && entrega.modo === 'domicilio') {
+    lines.push(``, `Entrega a domicilio${entrega.zonaNombre ? ` — ${entrega.zonaNombre}` : ''}`);
+    if (entrega.direccion) lines.push(`Dirección: ${entrega.direccion}`);
+    lines.push(`Envío: ${costoEnvio ? `${settings.currency} ${costoEnvio.toLocaleString('es-DO')}` : 'gratis'}`);
+  }
+
+  lines.push(``, `Total: ${settings.currency} ${(total + costoEnvio).toLocaleString('es-DO')}`, ``, `¿Está todo disponible?`);
   return `https://wa.me/${phone}?text=${encodeURIComponent(lines.join('\n'))}`;
 }
 export function getCategoryEmoji(category, categories) { if (!category) return '📦'; const found = categories.find((c) => c.name.toLowerCase() === category.trim().toLowerCase()); return found ? found.emoji : '📦'; }
