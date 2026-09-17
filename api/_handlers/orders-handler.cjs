@@ -3,11 +3,13 @@ const { cleanText, money, buildPublicItems, buildAdminItems, applyInventoryDeduc
 const { bumpVersion } = require('../_lib/catalog-logic.cjs');
 const { resolverEntrega } = require('../_lib/envio.cjs');
 const { resolverCupon } = require('../_lib/cupones.cjs');
+const { vacio: metricasVacias, registrarEvento } = require('../_lib/metricas.cjs');
 const { AUTH_KEY, verifyToken, extractBearer } = require('../_lib/auth.cjs');
 const ORDERS_KEY = 'synaptic_orders';
 // Resumen de unidades apartadas por pedidos vigentes. Se guarda aparte para que la tienda lo
 // lea sin traerse las mil ordenes en cada visita.
 const RESERVED_KEY = 'synaptic_reservas';
+const METRICAS_KEY = 'synaptic_metricas';
 const CATALOG_KEY = 'synaptic_catalog';
 const RATE_LIMIT = 8;
 const RATE_WINDOW_SECONDS = 60;
@@ -23,7 +25,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end(); if (!kvConfigured()) return res.status(503).json({ error: 'DB_NOT_CONNECTED' });
   try {
     const body = parseBody(req); const isPublicCreate = req.method === 'POST' && body.source === 'whatsapp_checkout';
-    if (isPublicCreate) { if (!(await rateLimitPublic(req))) return res.status(429).json({ error: 'RATE_LIMIT', message: 'Demasiados pedidos. Intenta nuevamente en un minuto.' }); const customerName = cleanText(body.customerName || body.name, 120); const phone = cleanPhone(body.phone || body.customerPhone); if (customerName.length < 2 || phone.length < 8) return res.status(400).json({ error: 'INVALID_CUSTOMER', message: 'Nombre y WhatsApp son obligatorios.' }); const catalog = await getCatalog(); const orders = (await kvGet(ORDERS_KEY)) || []; const items = buildPublicItems(body.products, catalog, reservasDeOrdenes(orders)); const subtotal = items.reduce((sum, it) => sum + it.subtotal, 0); const entrega = resolverEntrega(catalog.settings, body, subtotal); const cupon = resolverCupon(catalog.settings, body.cupon, subtotal); const order = makeOrder({ ...body, customerName, phone }, items, 'whatsapp_checkout', entrega, cupon); orders.unshift(order); const guardadas = orders.slice(0, 1000); await kvSet(ORDERS_KEY, guardadas); await kvSet(RESERVED_KEY, reservasDeOrdenes(guardadas)); return res.status(201).json({ ok: true, order: { id: order.id, total: order.total, status: order.status } }); }
+    if (isPublicCreate) { if (!(await rateLimitPublic(req))) return res.status(429).json({ error: 'RATE_LIMIT', message: 'Demasiados pedidos. Intenta nuevamente en un minuto.' }); const customerName = cleanText(body.customerName || body.name, 120); const phone = cleanPhone(body.phone || body.customerPhone); if (customerName.length < 2 || phone.length < 8) return res.status(400).json({ error: 'INVALID_CUSTOMER', message: 'Nombre y WhatsApp son obligatorios.' }); const catalog = await getCatalog(); const orders = (await kvGet(ORDERS_KEY)) || []; const items = buildPublicItems(body.products, catalog, reservasDeOrdenes(orders)); const subtotal = items.reduce((sum, it) => sum + it.subtotal, 0); const entrega = resolverEntrega(catalog.settings, body, subtotal); const cupon = resolverCupon(catalog.settings, body.cupon, subtotal); const order = makeOrder({ ...body, customerName, phone }, items, 'whatsapp_checkout', entrega, cupon); orders.unshift(order); const guardadas = orders.slice(0, 1000); await kvSet(ORDERS_KEY, guardadas); await kvSet(RESERVED_KEY, reservasDeOrdenes(guardadas)); try { await kvSet(METRICAS_KEY, registrarEvento((await kvGet(METRICAS_KEY)) || metricasVacias(), 'pedido')); } catch (e) { console.error('metricas pedido', e); } return res.status(201).json({ ok: true, order: { id: order.id, total: order.total, status: order.status } }); }
     const auth = await requireAdmin(req); if (!auth.ok) return res.status(auth.status).json({ error: auth.error }); const orders = (await kvGet(ORDERS_KEY)) || [];
     if (req.method === 'GET') return res.status(200).json({ orders });
     if (req.method === 'POST') { const catalog = await getCatalog(); const items = buildAdminItems(body.products, catalog); const customerName = cleanText(body.customerName || body.name, 120); const phone = cleanPhone(body.phone || body.customerPhone); if (customerName.length < 2) return res.status(400).json({ error: 'INVALID_CUSTOMER' }); const order = makeOrder({ ...body, customerName, phone }, items, 'manual'); orders.unshift(order); const guardadas = orders.slice(0, 1000); await kvSet(ORDERS_KEY, guardadas); await kvSet(RESERVED_KEY, reservasDeOrdenes(guardadas)); return res.status(201).json({ ok: true, order }); }

@@ -162,3 +162,28 @@
 /* --- Compartir un producto --- */
 .detail-share{position:absolute;top:12px;right:52px;width:32px;height:32px;display:grid;place-items:center;border:0;border-radius:50%;background:rgba(10,12,18,.6);color:#edeef3;cursor:pointer;backdrop-filter:blur(4px);transition:background-color .16s}
 .detail-share:hover{background:rgba(10,12,18,.85)}
+
+/* --- Metricas --- */
+.metrics-panel{display:flex;flex-direction:column;gap:16px}
+.metrics-periodos{display:flex;gap:6px}
+.metrics-periodo{padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--text);font:500 12px/1 inherit;cursor:pointer}
+.metrics-periodo.active{background:var(--accent);border-color:var(--accent);color:#0a0c12;font-weight:700}
+.funnel{display:flex;flex-direction:column;gap:11px;padding:16px;border:1px solid var(--border);border-radius:13px;background:var(--surface)}
+.funnel-paso{display:flex;flex-direction:column;gap:5px}
+.funnel-texto{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:12.5px}
+.funnel-texto strong{font-size:14px}
+.funnel-texto small{color:var(--text-muted);font-weight:500}
+.funnel-barra{height:9px;border-radius:999px;background:var(--bg-elev);overflow:hidden}
+.funnel-barra>div{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+.metrics-resumen{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+@media (max-width:620px){.metrics-resumen{grid-template-columns:1fr}}
+.metrics-serie{display:flex;align-items:flex-end;gap:3px;height:110px;padding:10px 12px;border:1px solid var(--border);border-radius:13px;background:var(--surface);overflow-x:auto}
+.serie-col{flex:1;min-width:8px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px}
+.serie-barra{width:100%;border-radius:3px 3px 0 0;background:color-mix(in srgb,var(--accent) 70%,var(--surface))}
+.serie-pedido{font:700 9px/1 var(--mono,monospace);color:var(--whatsapp)}
+.vistas-lista{display:flex;flex-direction:column;gap:8px}
+.vistas-row{display:grid;grid-template-columns:minmax(0,1fr) 90px auto;gap:11px;align-items:center;font-size:12.5px}
+.vistas-row>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vistas-barra{height:7px;border-radius:999px;background:var(--bg-elev);overflow:hidden}
+.vistas-barra>div{height:100%;border-radius:999px;background:var(--accent-2)}
+@media (max-width:560px){.vistas-row{grid-template-columns:minmax(0,1fr) auto}.vistas-barra{display:none}}

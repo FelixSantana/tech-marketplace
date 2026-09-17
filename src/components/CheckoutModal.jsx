@@ -4,6 +4,7 @@ import { buildOrderWaLink } from '../lib/utils';
 import { ajustesDeEnvio, costoDeEnvio, faltaParaPedir } from '../lib/envio';
 import { cuponesDeAjustes, probarCupon } from '../lib/cupones';
 import PrivacyNotice from './PrivacyNotice';
+import { registrarEvento } from '../lib/eventos';
 
 export default function CheckoutModal({ items, settings, onClose, onOrderCreated, showToast }) {
   const [name, setName] = useState('');
@@ -73,7 +74,7 @@ export default function CheckoutModal({ items, settings, onClose, onOrderCreated
           <h2>Pedido registrado</h2>
           <p>Ya lo tenemos guardado. Toca el botón para enviarlo por WhatsApp y coordinar la entrega.</p>
           {/* Un enlace de verdad: lo abre el toque del cliente, asi que ningun navegador lo bloquea. */}
-          <a className="btn-wa checkout-submit" href={waLink} target="_blank" rel="noopener noreferrer" onClick={() => setTimeout(onClose, 400)}>
+          <a className="btn-wa checkout-submit" href={waLink} target="_blank" rel="noopener noreferrer" onClick={() => { registrarEvento('whatsapp'); setTimeout(onClose, 400); }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.39 1.26 4.81L2 22l5.42-1.42a9.87 9.87 0 0 0 4.62 1.18h.01c5.46 0 9.9-4.45 9.9-9.91C21.96 6.45 17.5 2 12.04 2Zm5.8 14.06c-.24.68-1.4 1.3-1.93 1.38-.5.08-1.11.11-1.79-.11-.41-.13-.94-.3-1.61-.6-2.84-1.23-4.69-4.1-4.83-4.29-.14-.19-1.15-1.53-1.15-2.92s.72-2.07.98-2.35c.24-.27.53-.34.71-.34.18 0 .35 0 .5.01.17.01.38-.06.6.45.24.57.8 1.96.87 2.1.07.14.11.31.02.5-.09.19-.14.31-.28.47-.14.16-.29.36-.41.48-.14.14-.29.28-.12.56.14.28.75 1.24 1.62 2 1.11.99 2.05 1.3 2.33 1.44.28.14.44.12.6-.07.17-.19.71-.83.9-1.11.19-.28.38-.24.63-.14.26.09 1.64.77 1.92.91.28.14.47.21.53.33.07.12.07.68-.17 1.36Z" /></svg>
             Enviar pedido por WhatsApp
           </a>

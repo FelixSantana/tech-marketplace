@@ -14,6 +14,7 @@ import { useAuth } from './hooks/useAuth';
 import { useToast } from './hooks/useToast';
 import { netearApartados } from './lib/apartados';
 import { buscarPorSlug, rutaProducto } from './lib/rutas';
+import { registrarEvento } from './lib/eventos';
 import './styles.css';
 import './admin-overrides.css';
 
@@ -32,6 +33,7 @@ export default function App() {
   // Abrir y cerrar el detalle cambia la direccion, para que el enlace se pueda compartir.
   const abrirDetalle = useCallback((id) => {
     setDetailProductId(id);
+    registrarEvento('producto', id);
     const p = products.find((x) => x.id === id);
     if (p) window.history.pushState({ producto: id }, '', rutaProducto(p));
   }, [products]);
@@ -44,6 +46,11 @@ export default function App() {
   const [checkoutItems, setCheckoutItems] = useState([]);
   const [checkoutFromCart, setCheckoutFromCart] = useState(false);
   const [isAdminRoute, setIsAdminRoute] = useState(false);
+
+  // Una visita por pestaña, y solo en la tienda: el panel no cuenta como visita.
+  useEffect(() => {
+    if (!window.location.pathname.startsWith('/admin')) registrarEvento('visita');
+  }, []);
 
   // El titulo de la pestana sigue al producto abierto. Al compartir el enlace lo pone el
   // servidor; esto lo mantiene al navegar dentro de la aplicacion.
@@ -100,7 +107,7 @@ export default function App() {
   }, [setAdminToken, showToast]);
 
   const handleAddCart = useCallback((id, qty, variantId = null) => addToCart(id, qty, showToast, variantId), [addToCart, showToast]);
-  const startCheckout = useCallback((items, fromCart = false) => { if (!settings.whatsapp) { showToast('Configura primero el WhatsApp de la tienda'); return; } setCheckoutItems(items); setCheckoutFromCart(fromCart); setModal('checkout'); }, [settings.whatsapp, showToast]);
+  const startCheckout = useCallback((items, fromCart = false) => { if (!settings.whatsapp) { showToast('Configura primero el WhatsApp de la tienda'); return; } registrarEvento('checkout'); setCheckoutItems(items); setCheckoutFromCart(fromCart); setModal('checkout'); }, [settings.whatsapp, showToast]);
   const handleSingleOrder = useCallback((product, qty = 1, variantId = null) => startCheckout([{ product, qty, variantId }]), [startCheckout]);
   const handleCartCheckout = useCallback(() => { const items = cart.map((ci) => { const product = disponibles.find((p) => p.id === ci.productId); return product ? { product, qty: ci.qty, variantId: ci.variantId || null } : null; }).filter(Boolean); if (!items.length) return showToast('Tu carrito está vacío.'); setModal(null); startCheckout(items, true); }, [cart, disponibles, startCheckout, showToast]);
   const handleLogout = () => { setAdminToken(''); setModal(null); showToast('Sesión cerrada'); };
