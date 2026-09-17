@@ -2,6 +2,7 @@ const { kvGet, kvSet, kvConfigured } = require('../_lib/kv.cjs');
 const { AUTH_KEY, verifyToken, extractBearer } = require('../_lib/auth.cjs');
 const { catalogVersion, prepareCatalogWrite } = require('../_lib/catalog-logic.cjs');
 const CATALOG_KEY = 'synaptic_catalog';
+const RESERVED_KEY = 'synaptic_reservas';
 const DEFAULT_DATA = {
   settings: { storeName: 'Synaptic Tech', tagline: 'Tecnología al alcance de tu WhatsApp', whatsapp: '', currency: 'RD$', logo: '', configured: false },
   products: [],
@@ -14,7 +15,9 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (!kvConfigured()) return res.status(503).json({ error: 'DB_NOT_CONNECTED' });
   try {
-    if (req.method === 'GET') { const data = (await kvGet(CATALOG_KEY)) || DEFAULT_DATA; return res.status(200).json(data); }
+    // reservas viaja junto al catalogo para que la tienda muestre lo disponible, no el stock en
+    // bodega. No se guarda dentro del catalogo: lo mantiene el manejador de ordenes.
+    if (req.method === 'GET') { const data = (await kvGet(CATALOG_KEY)) || DEFAULT_DATA; const reservas = (await kvGet(RESERVED_KEY)) || {}; return res.status(200).json({ ...data, reservas }); }
     if (req.method === 'POST') {
       const admin = await kvGet(AUTH_KEY);
       if (!admin) return res.status(400).json({ error: 'NOT_SETUP' });

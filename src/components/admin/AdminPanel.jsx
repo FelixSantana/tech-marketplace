@@ -7,7 +7,7 @@ import PrintCatalog from './PrintCatalog';
 import MigrateImages from './MigrateImages';
 import { mergeProductEdit } from '../../lib/catalogMerge';
 
-export default function AdminPanel({ products, categories, setCategories, settings, saveCatalog, refreshCatalog, adminToken, authRequest, setAdminToken, onClose, onLogout, showToast }) {
+export default function AdminPanel({ products, reservas, categories, setCategories, settings, saveCatalog, refreshCatalog, adminToken, authRequest, setAdminToken, onClose, onLogout, showToast }) {
   const [tab, setTab] = useState('productos');
   const [editingId, setEditingId] = useState(null);
   // null | 'clientes' | 'inventario'. Solo se llega aqui con sesion de admin abierta.
@@ -66,7 +66,7 @@ export default function AdminPanel({ products, categories, setCategories, settin
               </div>
             </div>
             <MigrateImages products={products} settings={settings} saveCatalog={saveCatalog} adminToken={adminToken} showToast={showToast} />
-            <ProductList products={products} settings={settings} onEdit={(id) => { setEditingId(id); setTab('agregar'); }} onDelete={handleDeleteProduct} />
+            <ProductList products={products} reservas={reservas} settings={settings} onEdit={(id) => { setEditingId(id); setTab('agregar'); }} onDelete={handleDeleteProduct} />
           </>
         )}
         {tab === 'agregar' && (

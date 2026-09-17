@@ -50,6 +50,8 @@ export function useCatalog() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [saveError, setSaveError] = useState('');
+  // Unidades retenidas por pedidos vigentes, por articulo. Las mantiene el servidor.
+  const [reservas, setReservas] = useState({});
 
   // silent: recarga sin mostrar el estado de carga, para refrescar desde el panel.
   const fetchCatalog = useCallback(async ({ silent = false } = {}) => {
@@ -63,6 +65,7 @@ export function useCatalog() {
         return null;
       }
       const data = await r.json();
+      setReservas(data.reservas && typeof data.reservas === 'object' ? data.reservas : {});
       if (data.settings) setSettings({ ...defaultSettings, ...data.settings });
       if (Array.isArray(data.products)) {
         setProducts(data.products.map(normalizeProduct));
@@ -121,5 +124,5 @@ export function useCatalog() {
     }
   }, []);
 
-  return { settings, setSettings, products, setProducts, categories, setCategories, loading, loadError, saveError, fetchCatalog, saveCatalog };
+  return { settings, setSettings, products, setProducts, categories, setCategories, reservas, loading, loadError, saveError, fetchCatalog, saveCatalog };
 }

@@ -19,6 +19,28 @@ function getStock(product) {
   return Number.isFinite(value) && value >= 0 ? value : null;
 }
 
+// --- Apartados ---
+// Un pedido registrado retiene sus unidades hasta que se completa (y se descuentan de verdad)
+// o se cancela (y se liberan). Sin esto, dos clientes podian pedir la ultima unidad a la vez.
+const ESTADOS_QUE_RETIENEN = ['pending', 'paid', 'shipped'];
+const claveArticulo = (productId, variantId) => `${productId}::${variantId || ''}`;
+
+function reservasDeOrdenes(orders) {
+  const mapa = {};
+  for (const orden of orders || []) {
+    // inventoryDeducted: el stock ya bajo, no se cuenta dos veces.
+    if (orden.inventoryDeducted) continue;
+    if (!ESTADOS_QUE_RETIENEN.includes(orden.status)) continue;
+    for (const linea of orden.products || []) {
+      const k = claveArticulo(linea.productId, linea.variantId);
+      mapa[k] = (mapa[k] || 0) + Math.max(0, Math.floor(Number(linea.quantity) || 0));
+    }
+  }
+  return mapa;
+}
+
+const apartadoDe = (reservas, productId, variantId) => Math.max(0, Math.floor(Number((reservas || {})[claveArticulo(productId, variantId)]) || 0));
+
 // Un producto con variantes obliga a elegir una: no hay precio ni stock a nivel de producto.
 function resolveVariant(product, raw) {
   if (!hasVariants(product)) return { variant: null, variantId: null };
@@ -47,17 +69,21 @@ function makeLine(product, variant, variantId, quantity, unitPrice, nameOverride
   return line;
 }
 
-function buildPublicItems(inputItems, catalog) {
+function buildPublicItems(inputItems, catalog, reservas) {
   const map = catalogMap(catalog);
   if (!Array.isArray(inputItems) || !inputItems.length) throw new Error('ORDER_PRODUCTS_REQUIRED');
   const items = [];
+  const pedidoHastaAhora = {}; // varias lineas del mismo articulo compiten por el mismo cupo
   for (const raw of inputItems) {
     const product = map.get(String(raw.productId || raw.id));
     const quantity = Math.floor(Number(raw.quantity || raw.qty || 0));
     if (!product || quantity < 1 || quantity > 999) throw new Error('INVALID_PRODUCT');
     const { variant, variantId } = resolveVariant(product, raw);
-    const available = variant ? variantStock(variant) : Number(product.stockQty ?? product.stock ?? 0);
-    if (available >= 0 && quantity > available) throw new Error('INSUFFICIENT_STOCK');
+    const enStock = variant ? variantStock(variant) : Number(product.stockQty ?? product.stock ?? 0);
+    const k = claveArticulo(product.id, variantId);
+    pedidoHastaAhora[k] = (pedidoHastaAhora[k] || 0) + quantity;
+    const available = enStock - apartadoDe(reservas, product.id, variantId);
+    if (enStock >= 0 && pedidoHastaAhora[k] > available) throw new Error('INSUFFICIENT_STOCK');
     const unitPrice = money(variant ? variant.price : product.price);
     items.push(makeLine(product, variant, variantId, quantity, unitPrice));
   }
@@ -131,4 +157,4 @@ function applyInventoryDeduction(catalog, order) {
   return { ...catalog, products };
 }
 
-module.exports = { cleanText, money, getStock, hasVariants, buildPublicItems, buildAdminItems, applyInventoryDeduction };
+module.exports = { cleanText, money, getStock, hasVariants, claveArticulo, reservasDeOrdenes, apartadoDe, buildPublicItems, buildAdminItems, applyInventoryDeduction };
