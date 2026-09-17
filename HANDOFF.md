@@ -83,7 +83,10 @@ synaptic-react/
 │   │       ├── SettingsForm.jsx        ← nombre tienda, WhatsApp, logo, cambio de credenciales
 │   │       ├── VariantTable.jsx        ← tabla de variantes dentro de ProductForm
 │   │       ├── PrintCatalog.jsx        ← vistas imprimibles (clientes / inventario)
-│   │       └── MigrateImages.jsx       ← botón para mover fotos incrustadas al bucket
+│   │       ├── MigrateImages.jsx       ← botón para mover fotos incrustadas al bucket
+│   │       ├── ShippingForm.jsx        ← entrega, retiro y zonas de envío en Ajustes
+│   │       ├── CouponsForm.jsx         ← cupones de descuento en Ajustes
+│   │       └── MetricsPanel.jsx        ← pestaña Métricas: embudo y productos más mirados
 │   └── assets/                         (vacío, sin usar)
 └── api/
     ├── auth.mjs                        ← wrapper → _handlers/auth-handler.cjs
@@ -91,16 +94,25 @@ synaptic-react/
     ├── orders.mjs                      ← wrapper → _handlers/orders-handler.cjs
     ├── admin-reset.mjs                 ← wrapper → _handlers/admin-reset-handler.cjs
     ├── upload.mjs                      ← wrapper → _handlers/upload-handler.cjs
+    ├── producto.mjs                    ← wrapper → _handlers/producto-handler.cjs
+    ├── evento.mjs                      ← wrapper → _handlers/evento-handler.cjs
     ├── _handlers/
     │   ├── auth-handler.cjs            ← POST: setup | login | change | status
     │   ├── catalog-handler.cjs         ← GET público, POST protegido (Bearer token)
     │   ├── orders-handler.cjs          ← GET/POST/PUT/DELETE, ver sección 6
     │   ├── admin-reset-handler.cjs     ← POST protegido por ADMIN_RESET_SECRET, borra la cuenta admin
-    │   └── upload-handler.cjs          ← POST protegido, sube una imagen a Vercel Blob
+    │   ├── upload-handler.cjs          ← POST protegido sube a Blob; DELETE borra fotos sin usar
+    │   ├── producto-handler.cjs        ← sirve /p/<slug> con las etiquetas del producto
+    │   └── evento-handler.cjs          ← POST público cuenta eventos; GET admin da el resumen
     └── _lib/
         ├── kv.cjs                      ← helper genérico para Upstash Redis REST (kvGet/kvSet/kvDel)
         ├── auth.cjs                    ← hashPassword, signToken, verifyToken, extractBearer
-        ├── orders-logic.cjs            ← lógica de órdenes sin HTTP: líneas y descuento de inventario
+        ├── orders-logic.cjs            ← líneas de orden, apartados y descuento de inventario
+        ├── catalog-logic.cjs           ← versión del catálogo y rechazo de guardados viejos
+        ├── envio.cjs                   ← resuelve entrega y costo de envío
+        ├── cupones.cjs                 ← resuelve el descuento de un código
+        ├── metricas.cjs                ← contadores del embudo y su resumen
+        ├── producto-html.cjs           ← inyecta las etiquetas del producto en el HTML
         └── upload-logic.cjs            ← validación de las imágenes que se suben
 ```
 
@@ -146,6 +158,21 @@ Por eso **el panel nunca guarda lo que tiene en memoria**: `saveCatalog(token, c
 
 Al editar un producto, `mergeProductEdit` (`src/lib/catalogMerge.js`) decide el stock: si el admin no cambió el número respecto de cuando abrió el formulario, manda el valor fresco del servidor; si lo cambió, manda el del admin. Lo mismo por variante.
 
+**Entrega, envío y cupones** — viven dentro de `settings` del catálogo:
+
+```jsonc
+"envio": { "activo": false, "zonas": [{ "id": "z_x", "nombre": "Santo Domingo", "precio": 250 }],
+           "retiroEnTienda": false, "direccionTienda": "", "pedidoMinimo": 0 },
+"cupones": [{ "id": "c_x", "codigo": "BIENVENIDO", "tipo": "porcentaje", "valor": 10,
+              "vence": "", "minimo": 0, "activo": true }]
+```
+
+Con `envio.activo` en falso el checkout se comporta como antes: la entrega se coordina por WhatsApp y no se le pide nada más al cliente. **El costo del envío y el descuento los calcula siempre el servidor** (`api/_lib/envio.cjs` y `api/_lib/cupones.cjs`) a partir de estos ajustes; el navegador solo manda la zona elegida y el código escrito. Los cupones no llevan contador de usos, a propósito: contarlo obligaría a que el pedido público escriba en el catálogo y eso choca con el control de versión.
+
+**Apartados** — key `synaptic_reservas`: `{ "<productId>::<variantId|>": unidades }`. Un pedido en `pending`, `paid` o `shipped` retiene sus unidades; cancelarlo las libera; completarlo las descuenta del stock. Lo recalcula el manejador de órdenes en cada cambio y viaja junto al catálogo en el `GET`, para que la tienda muestre **lo disponible** sin traerse las mil órdenes. El panel sigue viendo el stock real más cuántas hay apartadas.
+
+**Métricas** — key `synaptic_metricas`: `{ dias: { "YYYY-MM-DD": { visita, producto, checkout, pedido, whatsapp } }, productos: { "<id>": vistas } }`. Contadores propios, sin terceros y sin datos del visitante. Los días se podan a 60. El evento `pedido` lo cuenta el manejador de órdenes y el endpoint lo rechaza si llega de fuera.
+
 **Admin** — key `synaptic_admin`: `{ email, salt, hash, secret }`.
 
 **Órdenes** — key `synaptic_orders`, array de objetos (más recientes primero, tope de 1000 guardadas):
@@ -178,7 +205,8 @@ Si `BLOB_READ_WRITE_TOKEN` no está configurado, `/api/upload` responde `503` y 
 ## 6. Flujo de la app
 
 1. **Primera visita sin configurar** (`GET /api/auth` acción `status` → `configured: false`) → se abre el `SetupModal` pidiendo nombre de tienda, WhatsApp, correo y contraseña de admin.
-2. **Cliente normal** entra a `/` → navega el catálogo, agrega al carrito o pide un producto individual → llega al `CheckoutModal`, llena nombre/WhatsApp/notas → al confirmar, se hace `POST /api/orders` con `source: "whatsapp_checkout"` (público, sin auth, con rate limit) que **registra la orden en Redis** y **luego** abre el link `wa.me` con el mensaje prellenado.
+2. **Enlace propio de un producto**: `/p/<nombre-en-guiones>-<sufijo-del-id>`. Lo sirve `api/producto`, que pide el `index.html` del despliegue y le inyecta título, descripción con precio, `og:image` y datos estructurados, porque WhatsApp no ejecuta JavaScript al armar la vista previa. El sufijo del id es lo que resuelve el producto, así que renombrarlo no rompe enlaces ya compartidos. **Ojo:** una foto incrustada en el catálogo no sirve como `og:image`; mientras no se migren al bucket, la vista previa por producto muestra la imagen de la tienda.
+3. **Cliente normal** entra a `/` → navega el catálogo, agrega al carrito o pide un producto individual → llega al `CheckoutModal`, llena nombre/WhatsApp/notas → al confirmar, se hace `POST /api/orders` con `source: "whatsapp_checkout"` (público, sin auth, con rate limit) que **registra la orden en Redis** y **luego** abre el link `wa.me` con el mensaje prellenado.
 3. **Admin** entra a `/admin` → `LoginModal` si no hay token válido; si hay sesión, panel con 4 pestañas: Productos / Agregar-Editar / **Órdenes** / Ajustes.
 4. En **Órdenes**, el admin puede: ver KPIs (órdenes de hoy, ingresos de hoy, pendientes, total), buscar/filtrar por estado, cambiar el estado de una orden, crear una orden manual (`source: "manual"`), o eliminarla. **Al marcar una orden como `completed`, el backend descuenta automáticamente el stock** de los productos involucrados (una sola vez, controlado por el flag `inventoryDeducted`).
 5. El endpoint de órdenes distingue automáticamente entre pedido público (checkout del cliente, sin token) y gestión admin (requiere Bearer token) según el método HTTP y el campo `source` del body.
@@ -240,11 +268,28 @@ Para probar el backend en local (Vite no ejecuta `/api` por sí solo):
 
 ## 11. Pendientes / ideas para continuar
 
-- [ ] **Dominio personalizado** — aún corre sobre `*.vercel.app`.
-- [ ] **Webhook real de WhatsApp Business API** en vez de links `wa.me` — permitiría automatizar respuestas. Bloqueado por la verificación de negocio en Meta, que la hace el dueño.
-- [ ] **`applyInventoryDeduction` valida cada línea por separado.** Dos líneas de la misma variante que juntas superen el stock pasan la validación. Viene de antes de las variantes.
-- [ ] **Quedan 5 avisos de lint**, todos `set-state-in-effect` y un `exhaustive-deps`, en `App.jsx`, `OrdersPanel`, `useCart` y `ProductDetail`. Arreglarlos cambia comportamiento y merece su propia tarea.
-- [ ] **El bucket no borra las fotos huérfanas.** Al quitar o reemplazar una foto, la anterior se queda en Blob. Con fotos de ~30KB y 1GB de capacidad no corre prisa.
+- [ ] **Crear el store de Blob en Vercel y tocar "Mover fotos"** en el panel. El código está desplegado y esperando el token; hasta entonces las fotos siguen viajando dentro del catálogo y las vistas previas por producto muestran la imagen de la tienda. Lo hace el dueño.
+- [ ] **Dominio personalizado** — aún corre sobre `*.vercel.app`. Al ponerlo hay que actualizar las URLs absolutas de `index.html` y regenerar `public/og-image.jpg` si cambia el nombre o el lema.
+- [ ] **WhatsApp Business API** en vez de links `wa.me` — bloqueado por la verificación de negocio en Meta, que hace el dueño. **El aviso de pedido nuevo va aquí**: se decidió esperar a la API en vez de usar correo o Telegram, así que hoy un pedido que el cliente no llega a enviar solo se ve abriendo el panel.
+- [ ] **Cobro con enlace de pago** (AZUL ofrece Link de Pagos, 4–6% de comisión). La afiliación la hace el dueño.
+- [ ] **Contador de usos de los cupones.** Ver la sección 5: hoy no se cuentan a propósito.
+- [ ] **Cabeceras de seguridad y sesión de admin más corta.** Solo se envía HSTS; la sesión dura 30 días en el navegador.
+- [ ] **Límite de intentos en el login del panel.** Los pedidos y los eventos ya tienen límite por IP; el login no.
+- [ ] **Respaldo automático del catálogo.** Vive en una sola clave, sin historial: un guardado malo no tiene vuelta atrás.
+- [ ] **Instalable en el teléfono** (manifiesto web). No existe.
+- [ ] **Comprobante fiscal electrónico (e-CF).** Consultar primero con el contador si aplica.
+
+Hechos el 2026-09-17:
+
+- [x] **Búsqueda sin acentos** — "audifonos" encuentra "Audífonos".
+- [x] **Stock validado por suma de líneas** — dos líneas del mismo artículo ya no se pasan del stock.
+- [x] **Apartar stock al entrar el pedido** — ver sección 5. La tienda muestra lo disponible.
+- [x] **Datos de entrega y envío por zona** — configurables en Ajustes, apagado por defecto.
+- [x] **Aviso de privacidad en el checkout** — texto para la Ley 172-13, pendiente de que lo valide un abogado.
+- [x] **Cupones de descuento.**
+- [x] **Enlace propio por producto, con vista previa** — ver sección 6.
+- [x] **Analítica del embudo** — pestaña Métricas, contadores propios.
+- [x] **Limpieza técnica** — lint en cero y el almacén ya borra las fotos que dejan de usarse.
 
 Hechos el 2026-09-14:
 
