@@ -1,9 +1,21 @@
 import { useState, useEffect } from 'react';
 import { getStockQty, getProductImages, hasVariants, getVariants, getVariant, getMinPrice } from '../hooks/useCatalog';
+import { rutaProducto } from '../lib/rutas';
 
 const variantStock = (v) => Math.max(0, Math.floor(Number(v?.stockQty) || 0));
 
-export default function ProductDetail({ product, settings, onClose, onAddCart, onOrderWhatsApp }) {
+// Comparte el enlace propio del producto: en movil abre el menu del sistema, y si no,
+// lo copia al portapapeles.
+async function compartir(product, avisar) {
+  const url = `${window.location.origin}${rutaProducto(product)}`;
+  try {
+    if (navigator.share) { await navigator.share({ title: product.name, url }); return; }
+    await navigator.clipboard.writeText(url);
+    avisar('Enlace copiado');
+  } catch { avisar(`Copia este enlace: ${url}`); }
+}
+
+export default function ProductDetail({ product, settings, onClose, onAddCart, onOrderWhatsApp, showToast }) {
   const [imgIndex, setImgIndex] = useState(0);
   const [qty, setQty] = useState(1);
   const conVariantes = hasVariants(product);
@@ -38,6 +50,9 @@ export default function ProductDetail({ product, settings, onClose, onAddCart, o
       <div className="panel detail-panel">
         <div className="detail-carousel">
           <button className="detail-close" onClick={onClose}>✕</button>
+          <button className="detail-share" onClick={() => compartir(product, (m) => showToast?.(m))} title="Compartir este producto" aria-label="Compartir este producto">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>
+          </button>
           {imgs.length ? <img src={imgs[imgIndex]} alt={product.name} /> : <div className="placeholder">Sin imagen</div>}
           {isOut && <span className="detail-badge-out">Agotado</span>}
           {imgs.length > 1 && (

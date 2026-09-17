@@ -158,3 +158,7 @@
 .cupon-caja button{margin:0;min-height:44px;min-width:92px;border-radius:11px}
 .cupon-error{margin:7px 0 0;font-size:11.5px;color:var(--danger)}
 .cupon-ok{margin:7px 0 0;font-size:11.5px;color:var(--whatsapp);font-weight:600}
+
+/* --- Compartir un producto --- */
+.detail-share{position:absolute;top:12px;right:52px;width:32px;height:32px;display:grid;place-items:center;border:0;border-radius:50%;background:rgba(10,12,18,.6);color:#edeef3;cursor:pointer;backdrop-filter:blur(4px);transition:background-color .16s}
+.detail-share:hover{background:rgba(10,12,18,.85)}
