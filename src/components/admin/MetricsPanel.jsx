@@ -10,17 +10,21 @@ export default function MetricsPanel({ adminToken, showToast }) {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
 
+  // No toca el estado antes del await, para que llamarla desde un efecto no encadene renders.
+  // El indicador de carga lo encienden los botones de periodo y el de reintentar.
   const cargar = useCallback(async () => {
-    setCargando(true); setError('');
     try {
       const r = await fetch(`/api/evento?dias=${dias}`, { headers: { Authorization: `Bearer ${adminToken}` } });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(data.message || data.error || 'No se pudieron cargar las métricas.');
-      setDatos(data);
+      setError(''); setDatos(data);
     } catch (e) { setError(e.message); showToast(e.message); }
     finally { setCargando(false); }
   }, [dias, adminToken, showToast]);
 
+  const reintentar = useCallback(() => { setCargando(true); cargar(); }, [cargar]);
+  // Igual que en OrdersPanel: cargar datos al montar, sin tocar el estado antes del await.
+  // eslint-disable-next-line react/set-state-in-effect
   useEffect(() => { cargar(); }, [cargar]);
 
   // Cada paso se compara contra las visitas, no contra el paso anterior: un visitante abre
@@ -43,13 +47,13 @@ export default function MetricsPanel({ adminToken, showToast }) {
         <div><span className="section-kicker">MÉTRICAS</span><h2>Embudo de venta</h2><p className="admin-subtitle">De dónde salen tus pedidos y dónde se pierden las visitas.</p></div>
         <div className="metrics-periodos" role="group" aria-label="Periodo">
           {PERIODOS.map((d) => (
-            <button key={d} type="button" className={`metrics-periodo ${dias === d ? 'active' : ''}`} aria-pressed={dias === d} onClick={() => setDias(d)}>{d} días</button>
+            <button key={d} type="button" className={`metrics-periodo ${dias === d ? 'active' : ''}`} aria-pressed={dias === d} onClick={() => { setCargando(true); setDias(d); }}>{d} días</button>
           ))}
         </div>
       </div>
 
       {error ? (
-        <div className="orders-error"><div className="error-icon">!</div><h3>Métricas no disponibles</h3><p>{error}</p><button className="btn-secondary" onClick={cargar}>Reintentar</button></div>
+        <div className="orders-error"><div className="error-icon">!</div><h3>Métricas no disponibles</h3><p>{error}</p><button className="btn-secondary" onClick={reintentar}>Reintentar</button></div>
       ) : cargando ? (
         <div className="empty-state" style={{ padding: 30 }}><p>Cargando métricas…</p></div>
       ) : datos.totales.visita === 0 && datos.totales.pedido === 0 ? (

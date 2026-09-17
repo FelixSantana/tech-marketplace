@@ -24,7 +24,7 @@ export default function App() {
   const disponibles = useMemo(() => netearApartados(products, reservas), [products, reservas]);
   const { message, visible, showToast } = useToast();
   const { cart, addToCart, updateCartQty, removeFromCart, clearCart, cartCount } = useCart(disponibles, showToast);
-  const { adminToken, setAdminToken, authRequest } = useAuth();
+  const { adminToken, setAdminToken, authRequest, authStatus } = useAuth();
   const [theme, setTheme] = useState(() => { try { return localStorage.getItem('theme') || 'dark'; } catch { return 'dark'; } });
   const [activeCategory, setActiveCategory] = useState('Todos');
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,7 +45,8 @@ export default function App() {
   const [modal, setModal] = useState(null);
   const [checkoutItems, setCheckoutItems] = useState([]);
   const [checkoutFromCart, setCheckoutFromCart] = useState(false);
-  const [isAdminRoute, setIsAdminRoute] = useState(false);
+  // Se resuelve al inicializar para que no parpadee la tienda antes de abrirse el panel.
+  const [isAdminRoute, setIsAdminRoute] = useState(() => window.location.pathname.replace(/\/$/, '') === '/admin');
 
   // Una visita por pestaña, y solo en la tienda: el panel no cuenta como visita.
   useEffect(() => {
@@ -79,11 +80,14 @@ export default function App() {
 
   useEffect(() => { document.documentElement.setAttribute('data-theme', theme === 'light' ? 'light' : 'dark'); try { localStorage.setItem('theme', theme); } catch {} }, [theme]);
 
+  useEffect(() => { fetchCatalog(); }, [fetchCatalog]);
+
+  // authStatus no depende del token, asi que esto corre una sola vez al abrir la pagina.
   useEffect(() => {
-    fetchCatalog();
-    setIsAdminRoute(location.pathname.replace(/\/$/, '') === '/admin');
-    authRequest('status').then((r) => { if (r.ok) setAdminConfigured(!!r.configured); else setAdminConfigured(false); });
-  }, []);
+    let vivo = true;
+    authStatus().then((r) => { if (vivo) setAdminConfigured(r.ok ? !!r.configured : false); });
+    return () => { vivo = false; };
+  }, [authStatus]);
 
   useEffect(() => {
     if (loading || !isAdminRoute || adminConfigured === null) return;

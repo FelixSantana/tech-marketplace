@@ -21,5 +21,18 @@ export function useAuth() {
       return { ok: false, message: 'No se pudo conectar con el servidor.' };
     }
   }, [adminToken]);
-  return { adminToken, setAdminToken, authRequest };
+  // Sin el token entre sus dependencias: es publica y asi la referencia no cambia nunca, que
+  // es lo que permite usarla en el efecto de arranque sin reejecutarlo al iniciar sesion.
+  const authStatus = useCallback(async () => {
+    try {
+      const r = await fetch(AUTH_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'status' }) });
+      const data = await r.json().catch(() => ({}));
+      return r.ok ? { ok: true, configured: !!data.configured } : { ok: false };
+    } catch (e) {
+      console.error('authStatus failed', e);
+      return { ok: false };
+    }
+  }, []);
+
+  return { adminToken, setAdminToken, authRequest, authStatus };
 }

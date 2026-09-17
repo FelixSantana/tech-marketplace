@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { fotosQueSobran } from '../lib/huerfanas';
 
 export const defaultSettings = { storeName: 'Synaptic Tech', tagline: 'Tecnología al alcance de tu WhatsApp', whatsapp: '', currency: 'RD$', logo: '', configured: false };
 export const defaultCategories = [
@@ -113,6 +114,14 @@ export function useCatalog() {
         setSettings(payload.settings);
         setProducts(payload.products.map(normalizeProduct));
         setCategories(payload.categories);
+
+        // Ya guardado: se piden de baja las fotos del almacen que este cambio dejo sin usar.
+        // Va despues y aparte a proposito: si el borrado falla, el catalogo ya quedo bien.
+        const sobran = fotosQueSobran(fresco, payload);
+        if (sobran.length) {
+          fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + adminToken }, body: JSON.stringify({ urls: sobran }) })
+            .catch((e) => console.error('no se pudieron borrar fotos sin usar', e));
+        }
         return true;
       }
       setSaveError('El catálogo cambió varias veces mientras guardabas. Vuelve a intentarlo.');

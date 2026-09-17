@@ -21,6 +21,10 @@ export function useCart(products, onToast) {
   const [cart, setCart] = useState([]);
   const [hydrated, setHydrated] = useState(false);
 
+  // Hidratar el carrito desde localStorage en cuanto llega el catalogo es justo lo que la regla
+  // exime: sincronizar con un sistema externo. Derivarlo en el render no sirve aqui, porque
+  // ademas hay que avisar al cliente si se le descarto algo, y porque el carrito pasa a ser el
+  // estado autoritativo desde ese momento. Se deja el efecto a proposito.
   useEffect(() => {
     if (hydrated || products.length === 0) return;
     const saved = readCart();
@@ -38,6 +42,7 @@ export function useCart(products, onToast) {
         if (qty <= 0) { descartados = true; return null; }
         return { productId: ci.productId, variantId, qty };
       }).filter(Boolean);
+      // eslint-disable-next-line react/set-state-in-effect -- ver el comentario del efecto
       setCart(cleaned);
       if (descartados && saved.length) onToast?.('Algunos productos cambiaron y salieron de tu carrito');
     }
