@@ -2,6 +2,8 @@ import { useId, useState } from 'react';
 import { compressImage } from '../../lib/utils';
 import { uploadImage } from '../../lib/uploadImage';
 import ShippingForm from './ShippingForm';
+import CouponsForm from './CouponsForm';
+import { cuponesDeAjustes } from '../../lib/cupones';
 import { ajustesDeEnvio } from '../../lib/envio';
 
 export default function SettingsForm({ settings, onSaveSettings, authRequest, adminToken, setAdminToken, onLogout, showToast }) {
@@ -10,6 +12,7 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
   const [whatsapp, setWhatsapp] = useState(settings.whatsapp);
   const [currency, setCurrency] = useState(settings.currency);
   const [envio, setEnvio] = useState(() => ajustesDeEnvio(settings));
+  const [cupones, setCupones] = useState(() => cuponesDeAjustes(settings));
   const [pendingLogo, setPendingLogo] = useState(undefined);
   const [curPassword, setCurPassword] = useState('');
   const [newEmail, setNewEmail] = useState('');
@@ -43,7 +46,12 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
       direccionTienda: String(envio.direccionTienda || '').trim(),
       pedidoMinimo: Math.max(0, Number(envio.pedidoMinimo) || 0),
     };
-    const ok = await onSaveSettings({ storeName: storeName.trim() || 'Synaptic Tech', tagline: tagline.trim(), whatsapp: whatsapp.trim(), currency: currency.trim() || 'RD$', envio: envioLimpio, ...(pendingLogo !== undefined ? { logo: pendingLogo || '' } : {}) });
+    if (cupones.some((c) => !String(c.codigo || '').trim())) return showToast('Cada cupón necesita un código');
+    const codigos = cupones.map((c) => String(c.codigo).toUpperCase());
+    if (new Set(codigos).size !== codigos.length) return showToast('Hay dos cupones con el mismo código');
+    if (cupones.some((c) => !(Number(c.valor) > 0))) return showToast('Cada cupón necesita un valor mayor que cero');
+    const cuponesLimpios = cupones.map((c) => ({ id: c.id, codigo: String(c.codigo).toUpperCase().trim(), tipo: c.tipo === 'monto' ? 'monto' : 'porcentaje', valor: Math.max(0, Number(c.valor) || 0), vence: c.vence || '', minimo: Math.max(0, Number(c.minimo) || 0), activo: c.activo !== false }));
+    const ok = await onSaveSettings({ cupones: cuponesLimpios, storeName: storeName.trim() || 'Synaptic Tech', tagline: tagline.trim(), whatsapp: whatsapp.trim(), currency: currency.trim() || 'RD$', envio: envioLimpio, ...(pendingLogo !== undefined ? { logo: pendingLogo || '' } : {}) });
     if (ok) { showToast('Ajustes guardados'); setPendingLogo(undefined); }
     else showToast('No se pudieron guardar los ajustes. Verifica tu sesión.');
   };
@@ -74,6 +82,8 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
       <div className="field"><label htmlFor={`${uid}-currency`}>Moneda</label><input id={`${uid}-currency`} type="text" placeholder="RD$" value={currency} onChange={(e) => setCurrency(e.target.value)} /></div>
       <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon">⛟</span><div><h3>Entrega y envío</h3><p>Qué le pides al cliente al finalizar el pedido y cuánto cobras por llevarlo.</p></div></div>
       <ShippingForm envio={envio} setEnvio={setEnvio} currency={currency} />
+      <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon">%</span><div><h3>Cupones de descuento</h3><p>Se aplican al precio de los productos, no al envío.</p></div></div>
+      <CouponsForm cupones={cupones} setCupones={setCupones} currency={currency} />
       <button className="btn-primary full-action" onClick={handleSaveSettings}>Guardar ajustes</button>
 
       <div className="access-card">

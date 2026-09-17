@@ -86,3 +86,23 @@ describe('buildOrderWaLink con entrega', () => {
     expect(msg).toContain('Total: RD$ 1,200');
   });
 });
+
+describe('buildOrderWaLink con cupon', () => {
+  it('nombra el descuento y lo resta del total', () => {
+    const msg = mensajeDe(buildOrderWaLink([{ product: mouse, qty: 2 }], settings, undefined, { codigo: 'BIENVENIDO', descuento: 240 }));
+    expect(msg).toContain('Descuento BIENVENIDO: −RD$ 240');
+    expect(msg).toContain('Total: RD$ 2,160');
+  });
+
+  it('descuento y envio juntos: resta del subtotal y suma el envio', () => {
+    const msg = mensajeDe(buildOrderWaLink([{ product: mouse, qty: 2 }], settings, { modo: 'domicilio', zonaNombre: 'Santiago', direccion: 'Calle 1', costo: 400 }, { codigo: 'MIL', descuento: 1000 }));
+    expect(msg).toContain('Envío: RD$ 400');
+    expect(msg).toContain('Descuento MIL: −RD$ 1,000');
+    expect(msg).toContain('Total: RD$ 1,800');
+  });
+
+  it('sin cupon el mensaje no habla de descuentos', () => {
+    const msg = mensajeDe(buildOrderWaLink([{ product: mouse, qty: 2 }], settings));
+    expect(msg).not.toContain('Descuento');
+  });
+});

@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 import { getVariant, getUnitPrice } from '../hooks/useCatalog';
 import { buildOrderWaLink } from '../lib/utils';
 import { ajustesDeEnvio, costoDeEnvio, faltaParaPedir } from '../lib/envio';
+import { cuponesDeAjustes, probarCupon } from '../lib/cupones';
 import PrivacyNotice from './PrivacyNotice';
 
 export default function CheckoutModal({ items, settings, onClose, onOrderCreated, showToast }) {
@@ -18,10 +19,15 @@ export default function CheckoutModal({ items, settings, onClose, onOrderCreated
   const [modo, setModo] = useState(() => (!envio.activo ? 'coordinado' : envio.zonas.length ? 'domicilio' : envio.retiroEnTienda ? 'retiro' : 'domicilio'));
   const [zonaId, setZonaId] = useState(() => (envio.zonas.length === 1 ? envio.zonas[0].id : ''));
   const [direccion, setDireccion] = useState('');
+  const [codigoCupon, setCodigoCupon] = useState('');
+  const [cuponAplicado, setCuponAplicado] = useState(null);
+  const [errorCupon, setErrorCupon] = useState('');
+  const hayCupones = cuponesDeAjustes(settings).some((c) => c.activo);
 
   const subtotal = items.reduce((sum, item) => sum + (getUnitPrice(item.product, item.variantId) || 0) * item.qty, 0);
   const costoEnvio = costoDeEnvio(settings, modo, zonaId);
-  const total = subtotal + costoEnvio;
+  const descuento = cuponAplicado ? cuponAplicado.descuento : 0;
+  const total = Math.max(0, subtotal - descuento) + costoEnvio;
   const moneda = (n) => `${settings.currency} ${n.toLocaleString('es-DO')}`;
 
   const submit = async (e) => {
@@ -44,14 +50,14 @@ export default function CheckoutModal({ items, settings, onClose, onOrderCreated
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          source: 'whatsapp_checkout', customerName: name.trim(), phone: cleanPhone, notes,
+          source: 'whatsapp_checkout', customerName: name.trim(), phone: cleanPhone, notes, cupon: codigoCupon.trim() || undefined,
           entrega: modo, zonaId: entrega.zonaId, direccion: entrega.direccion,
           products: items.map((item) => ({ productId: item.product.id, variantId: item.variantId || null, quantity: item.qty })),
         }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.message || 'No se pudo registrar el pedido.');
-      setWaLink(buildOrderWaLink(items, settings, entrega));
+      setWaLink(buildOrderWaLink(items, settings, entrega, data.order && data.order.coupon ? data.order.coupon : cuponAplicado));
       onOrderCreated?.(data.order);
     } catch (error) {
       console.error('checkout order failed', error);
@@ -86,10 +92,11 @@ export default function CheckoutModal({ items, settings, onClose, onOrderCreated
         <div className="checkout-summary">
           <div className="checkout-summary-title">Resumen <span>{items.length} {items.length === 1 ? 'producto' : 'productos'}</span></div>
           {items.map((item) => { const v = getVariant(item.product, item.variantId); const precio = getUnitPrice(item.product, item.variantId) || 0; return <div className="checkout-item" key={`${item.product.id}::${item.variantId || ''}`}><div className="checkout-item-img">{item.product.images?.[0] ? <img src={item.product.images[0]} alt="" /> : '📦'}</div><div className="checkout-item-info"><strong>{item.product.name}</strong><small>{v ? `${item.product.variantAxis}: ${v.label} · ` : ''}Cantidad: {item.qty}</small></div><b>{moneda(precio * item.qty)}</b></div>; })}
-          {envio.activo && (
+          {(envio.activo || descuento > 0) && (
             <div className="checkout-lineas">
               <div><span>Productos</span><b>{moneda(subtotal)}</b></div>
-              <div><span>{modo === 'retiro' ? 'Retiro en tienda' : 'Envío'}</span><b>{costoEnvio ? moneda(costoEnvio) : 'Gratis'}</b></div>
+              {descuento > 0 && <div><span>Descuento {cuponAplicado.codigo}</span><b>−{moneda(descuento)}</b></div>}
+              {envio.activo && <div><span>{modo === 'retiro' ? 'Retiro en tienda' : 'Envío'}</span><b>{costoEnvio ? moneda(costoEnvio) : 'Gratis'}</b></div>}
             </div>
           )}
           <div className="checkout-total"><span>Total del pedido</span><strong>{moneda(total)}</strong></div>
@@ -123,6 +130,23 @@ export default function CheckoutModal({ items, settings, onClose, onOrderCreated
               {envio.pedidoMinimo > 0 && <p className="entrega-minimo">Pedido mínimo: {moneda(envio.pedidoMinimo)}</p>}
             </div>
           </>
+        )}
+
+        {hayCupones && (
+          <div className="cupon-checkout">
+            <label htmlFor={`${uid}-cupon`}>¿Tienes un código de descuento?</label>
+            <div className="cupon-caja">
+              <input id={`${uid}-cupon`} value={codigoCupon} onChange={(e) => { setCodigoCupon(e.target.value.toUpperCase()); setErrorCupon(''); setCuponAplicado(null); }} placeholder="ESCRÍBELO AQUÍ" maxLength={40} />
+              <button type="button" className="btn-secondary" onClick={() => {
+                const r = probarCupon(settings, codigoCupon, subtotal);
+                if (r.error) { setErrorCupon(r.error); setCuponAplicado(null); }
+                else if (r.descuento) { setErrorCupon(''); setCuponAplicado(r); }
+                else { setErrorCupon(''); setCuponAplicado(null); }
+              }}>Aplicar</button>
+            </div>
+            {errorCupon && <p className="cupon-error">{errorCupon}</p>}
+            {cuponAplicado && <p className="cupon-ok">Código {cuponAplicado.codigo} aplicado: −{moneda(cuponAplicado.descuento)}</p>}
+          </div>
         )}
 
         <div className="checkout-form-title">Tus datos</div>

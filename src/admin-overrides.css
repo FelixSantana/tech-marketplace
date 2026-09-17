@@ -135,3 +135,26 @@
 .privacy-note{border-top:1px solid var(--border);padding-top:11px;font-size:11px;font-style:italic}
 .order-entrega{display:block;color:var(--text-muted);font-size:10.5px;margin-top:2px}
 .order-envio{display:block;color:var(--text-muted);font-size:10.5px;font-weight:400;margin-top:2px}
+
+/* --- Cupones --- */
+.cupones-form{border:1px solid var(--border);border-radius:13px;padding:14px 15px;background:var(--surface)}
+.cupon-rows{display:flex;flex-direction:column;gap:12px;margin-bottom:12px}
+.cupon-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,.8fr) minmax(0,.9fr) minmax(0,1fr) auto;gap:9px;align-items:end;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.cupon-row:last-child{border-bottom:0;padding-bottom:0}
+.cupon-row.apagado{opacity:.55}
+.cupon-row label{display:flex;flex-direction:column;gap:6px;font-size:10.5px;font-weight:700;min-width:0}
+.cupon-row input,.cupon-row select{width:100%;border:1px solid var(--border);border-radius:9px;background:var(--bg-elev);color:var(--text);padding:9px 10px;outline:none;font:inherit;font-size:12.5px}
+.cupon-row input:focus,.cupon-row select:focus{border-color:var(--accent)}
+.cupon-acciones{display:flex;align-items:center;gap:8px}
+.cupon-activo{flex-direction:row!important;align-items:center;gap:5px!important;white-space:nowrap}
+.cupon-activo input{width:16px;height:16px;accent-color:var(--accent)}
+@media (max-width:720px){.cupon-row{grid-template-columns:1fr 1fr}.cupon-row label:first-child{grid-column:1/-1}.cupon-acciones{grid-column:1/-1;justify-content:space-between}}
+
+.cupon-checkout{padding:14px 24px 0}
+.cupon-checkout>label{display:block;font-size:11px;font-weight:700;margin-bottom:7px}
+.cupon-caja{display:flex;gap:8px}
+.cupon-caja input{flex:1;min-width:0;height:44px;border:1px solid var(--border);border-radius:11px;background:var(--bg-elev);color:var(--text);padding:0 13px;outline:none;font:inherit;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+.cupon-caja input:focus{border-color:var(--accent)}
+.cupon-caja button{margin:0;min-height:44px;min-width:92px;border-radius:11px}
+.cupon-error{margin:7px 0 0;font-size:11.5px;color:var(--danger)}
+.cupon-ok{margin:7px 0 0;font-size:11.5px;color:var(--whatsapp);font-weight:600}

@@ -23,7 +23,7 @@ export function compressImage(file) {
 export function normalizePhone(raw) { let digits = (raw || '').replace(/\D/g, ''); if (digits.length === 10) digits = '1' + digits; return digits; }
 // Arma el enlace de WhatsApp con el pedido. Funcion pura y probada: es el texto que el
 // cliente termina enviando, asi que no debe depender de nada del navegador.
-export function buildOrderWaLink(items, settings, entrega) {
+export function buildOrderWaLink(items, settings, entrega, cupon) {
   const phone = normalizePhone(settings.whatsapp);
   const lines = [`Hola ${settings.storeName}! Quiero hacer este pedido:`, ``];
   let total = 0;
@@ -45,7 +45,10 @@ export function buildOrderWaLink(items, settings, entrega) {
     lines.push(`Envío: ${costoEnvio ? `${settings.currency} ${costoEnvio.toLocaleString('es-DO')}` : 'gratis'}`);
   }
 
-  lines.push(``, `Total: ${settings.currency} ${(total + costoEnvio).toLocaleString('es-DO')}`, ``, `¿Está todo disponible?`);
+  const descuento = Number(cupon && cupon.descuento) || 0;
+  if (descuento > 0) lines.push(``, `Descuento ${cupon.codigo || ''}: −${settings.currency} ${descuento.toLocaleString('es-DO')}`.replace('  ', ' '));
+
+  lines.push(``, `Total: ${settings.currency} ${(Math.max(0, total - descuento) + costoEnvio).toLocaleString('es-DO')}`, ``, `¿Está todo disponible?`);
   return `https://wa.me/${phone}?text=${encodeURIComponent(lines.join('\n'))}`;
 }
 export function getCategoryEmoji(category, categories) { if (!category) return '📦'; const found = categories.find((c) => c.name.toLowerCase() === category.trim().toLowerCase()); return found ? found.emoji : '📦'; }
