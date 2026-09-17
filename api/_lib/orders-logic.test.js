@@ -107,3 +107,43 @@ describe('applyInventoryDeduction', () => {
     expect(original.products.find((p) => p.id === 'p2').variants.find((v) => v.id === 'v1').stockQty).toBe(3);
   });
 });
+
+describe('applyInventoryDeduction — varias lineas del mismo articulo', () => {
+  it('rechaza dos lineas de la misma variante que juntas superan el stock', () => {
+    // v256 tiene 3: cada linea pasa por separado, la suma no
+    const orden = { products: [
+      { productId: 'p2', variantId: 'v1', quantity: 2 },
+      { productId: 'p2', variantId: 'v1', quantity: 2 },
+    ] };
+    expect(() => applyInventoryDeduction(catalogo(), orden)).toThrow('INSUFFICIENT_STOCK_ON_COMPLETION');
+  });
+
+  it('rechaza dos lineas del mismo producto sin variantes que juntas superan el stock', () => {
+    // p1 tiene 5
+    const orden = { products: [
+      { productId: 'p1', quantity: 3 },
+      { productId: 'p1', quantity: 3 },
+    ] };
+    expect(() => applyInventoryDeduction(catalogo(), orden)).toThrow('INSUFFICIENT_STOCK_ON_COMPLETION');
+  });
+
+  it('acepta dos lineas que juntas caben, y descuenta la suma', () => {
+    const orden = { products: [
+      { productId: 'p2', variantId: 'v1', quantity: 2 },
+      { productId: 'p2', variantId: 'v1', quantity: 1 },
+    ] };
+    const siguiente = applyInventoryDeduction(catalogo(), orden);
+    const laptop = siguiente.products.find((p) => p.id === 'p2');
+    expect(laptop.variants.find((v) => v.id === 'v1').stockQty).toBe(0);
+    expect(laptop.stockQty).toBe(1);
+  });
+
+  it('no mezcla el cupo de dos variantes distintas del mismo producto', () => {
+    const orden = { products: [
+      { productId: 'p2', variantId: 'v1', quantity: 3 },
+      { productId: 'p2', variantId: 'v2', quantity: 1 },
+    ] };
+    const siguiente = applyInventoryDeduction(catalogo(), orden);
+    expect(siguiente.products.find((p) => p.id === 'p2').variants.map((v) => v.stockQty)).toEqual([0, 0]);
+  });
+});

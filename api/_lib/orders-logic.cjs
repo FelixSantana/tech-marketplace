@@ -85,10 +85,21 @@ function applyInventoryDeduction(catalog, order) {
   const map = new Map(products.map((p) => [String(p.id), p]));
   const lines = order.products || [];
 
+  // Se suman las cantidades por articulo: una orden puede traer dos lineas del mismo producto
+  // o de la misma variante, y validarlas por separado dejaba pasar mas de lo que hay.
+  const pedido = new Map();
   for (const item of lines) {
+    const clave = `${item.productId}::${item.variantId || ''}`;
+    const antes = pedido.get(clave);
+    const quantity = Math.max(0, Math.floor(Number(item.quantity || 0)));
+    if (antes) antes.quantity += quantity;
+    else pedido.set(clave, { productId: item.productId, variantId: item.variantId || null, quantity });
+  }
+
+  for (const item of pedido.values()) {
     const product = map.get(String(item.productId));
     if (!product) throw new Error('INVENTORY_PRODUCT_NOT_FOUND');
-    const quantity = Math.max(0, Math.floor(Number(item.quantity || 0)));
+    const quantity = item.quantity;
     if (hasVariants(product)) {
       // Orden vieja de un producto que gano variantes despues: el stockQty del producto ya es
       // solo un espejo, descontar ahi no bajaria el inventario real de ninguna variante.
@@ -103,9 +114,9 @@ function applyInventoryDeduction(catalog, order) {
     }
   }
 
-  for (const item of lines) {
+  for (const item of pedido.values()) {
     const product = map.get(String(item.productId));
-    const quantity = Math.max(0, Math.floor(Number(item.quantity || 0)));
+    const quantity = item.quantity;
     if (hasVariants(product)) {
       const variant = findVariant(product, item.variantId);
       variant.stockQty = variantStock(variant) - quantity;
