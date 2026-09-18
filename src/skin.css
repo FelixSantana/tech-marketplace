@@ -124,3 +124,139 @@ footer{color:var(--text-muted)}
   .card .img-wrap{padding:10px}
   .btn-cart-add{width:34px;height:34px}
 }
+
+/* ============================================================================
+   PROTOTIPO D — "tienda dominicana"
+   ----------------------------------------------------------------------------
+   Parte de la piel A (claro y limpio) y le suma lo que hacen Cecomsa, Data
+   Import y Omega Tech, que es lo que hace que un sitio se lea como negocio y no
+   como el catalogo de alguien:
+
+   barra superior con telefono y horario · buscador en la cabecera · carrito con
+   su total a la vista · barra de categorias en el color de la casa · contador de
+   resultados y orden por precio · sellos de confianza · pie con RNC, direccion,
+   formas de pago y garantia.
+
+   Nada de esto es decoracion: cada pieza responde a una pregunta que el cliente
+   se hace antes de escribir por WhatsApp a un desconocido que vende laptops
+   usadas. Cuanto cuesta, quien eres, donde estas, que pasa si sale mala.
+   ========================================================================== */
+
+:root[data-theme="light"]{
+  --barra:#221a4d;            /* morado oscuro de la casa: el azul marino que usan ellos, en tu color */
+  --barra-alta:#2e2466;
+  --precio:#221a4d;
+}
+
+/* --- Barra superior --- */
+.topbar{background:var(--barra);color:#cfc8ee;font-size:12px}
+.topbar-inner{max-width:1180px;margin:0 auto;padding:7px 24px;display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+.topbar-item{display:flex;align-items:center;gap:6px}
+.topbar-item a{color:#fff;font-weight:600;text-decoration:none}
+.topbar-item a:hover{text-decoration:underline}
+.topbar-cobertura{margin-left:auto}
+/* Hueco de un dato que falta: gris, entre corchetes y evidente. Nadie lo lee como informacion. */
+.falta{opacity:.62;font-style:italic}
+
+/* --- Cabecera: marca, buscador y carrito en una sola fila --- */
+header.hero{padding:16px 24px 14px;border-bottom:1px solid var(--border);background:var(--surface)}
+.brand-row{gap:20px;flex-wrap:nowrap;align-items:center}
+.brand{flex:0 0 auto}
+.header-search{flex:1;max-width:560px;min-width:0;margin:0}
+.header-actions{display:flex;align-items:center;gap:10px;flex:0 0 auto}
+.header-cart{display:flex;align-items:center;gap:9px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:8px 13px;color:var(--text);font-weight:600;font-size:13.5px}
+.header-cart:hover{border-color:var(--accent);color:var(--accent)}
+.header-cart-icono{position:relative;display:flex}
+.header-cart-badge{position:absolute;top:-7px;right:-9px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;min-width:17px;height:17px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.header-cart-total{font-variant-numeric:tabular-nums}
+/* El carrito ya vive en la cabecera: el boton flotante sobra y tapaba precios. */
+.cart-fab{display:none}
+
+/* --- Barra de categorias a todo lo ancho, en el color de la casa --- */
+.chips{position:relative;z-index:1;background:transparent;padding:0 24px;gap:0;max-width:1180px;margin:0 auto;flex-wrap:wrap}
+.chips::before{content:'';position:absolute;inset:0;left:calc(50% - 50vw);width:100vw;background:var(--barra);z-index:-1}
+.chip{background:transparent;border:0;border-radius:0;color:#cfc8ee;font-size:13px;font-weight:600;padding:12px 15px;border-bottom:3px solid transparent}
+.chip:hover{color:#fff;border-color:transparent}
+.chip.active{background:transparent;color:#fff;border-bottom-color:var(--accent-activo,#8f76ff)}
+
+/* --- Sellos de confianza, arriba de la rejilla --- */
+.sellos{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0 4px}
+.sello{display:flex;align-items:flex-start;gap:11px;padding:13px 15px;border:1px solid var(--border);border-radius:11px;background:var(--surface)}
+.sello-icono{width:30px;height:30px;flex:0 0 30px;border-radius:8px;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent);font-size:15px}
+.sello strong{display:block;font-size:13px}
+.sello span{display:block;font-size:11.5px;color:var(--text-muted);line-height:1.4;margin-top:2px}
+
+/* --- Contador de resultados y orden --- */
+.barra-resultados{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:20px 0 2px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.cuenta-resultados{font-size:13px;color:var(--text-muted)}
+.cuenta-resultados strong{color:var(--text)}
+.orden-campo{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-muted)}
+.orden-campo select{border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);padding:8px 11px;font:inherit;font-size:13px;outline:none}
+.orden-campo select:focus{border-color:var(--accent)}
+
+/* --- Tarjeta: las acciones vuelven al cuerpo, con texto --- */
+.card-actions{position:static;display:flex;flex-direction:column;gap:7px;margin-top:11px}
+.card-cat{display:none}
+.card-warranty{display:block;font-size:11.5px;color:var(--text-muted);font-weight:500;text-transform:none;letter-spacing:0;margin-top:2px}
+.card-price{color:var(--precio)}
+.btn-cart-add{width:100%;height:auto;border-radius:10px;background:var(--accent);border:1px solid var(--accent);color:#fff;opacity:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 12px;font-size:13px;font-weight:700;box-shadow:none}
+.btn-cart-add:hover{background:var(--barra-alta);border-color:var(--barra-alta);color:#fff;transform:none}
+.btn-cart-add:disabled{background:var(--surface-2);border-color:var(--border);color:var(--text-muted)}
+.card-actions .btn-wa{display:flex;margin:0;background:transparent;border:1px solid var(--border);color:var(--text-muted);font-size:12px;font-weight:600;padding:9px}
+.card-actions .btn-wa:hover{border-color:var(--whatsapp);color:var(--whatsapp);background:transparent}
+.card-actions .btn-wa.disabled{opacity:.5}
+
+/* --- Pie serio --- */
+.pie{background:var(--barra);color:#cfc8ee;margin-top:48px;padding:34px 24px 0;font-size:13px}
+.pie-inner{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:28px;padding-bottom:28px;text-align:left}
+.pie-col strong{display:block;color:#fff;font-size:13.5px;margin-bottom:9px}
+.pie-col p{margin:0 0 6px;line-height:1.5}
+.pie-linea{font-size:12.5px}
+.pie-pagos{list-style:none;margin:0;padding:0;font-size:12.5px}
+.pie-pagos li{padding:3px 0}
+.pie-pagos li::before{content:'▸ ';opacity:.6}
+.pie-legal{border-top:1px solid rgba(255,255,255,.12);padding:14px 0;text-align:center;font-size:11.5px;color:#a79ed6}
+
+/* --- Telefono --- */
+@media(max-width:560px){
+  .topbar-inner{padding:6px 16px;gap:12px;font-size:11px;justify-content:space-between}
+  .topbar-cobertura{display:none}
+  header.hero{padding:12px 16px 12px}
+  /* Marca y acciones comparten fila; el buscador baja entero debajo. La frase de
+     la tienda se calla en telefono: ya esta en el pie y roba la unica fila util. */
+  .brand-row{flex-wrap:wrap;gap:10px;align-items:center}
+  .brand{flex:1 1 auto;min-width:0}
+  .brand .tagline{display:none}
+  .brand-name{font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .brand .mark{width:34px;height:34px}
+  .header-actions{flex:0 0 auto}
+  .header-search{flex:1 1 100%;max-width:none;order:3}
+  .header-cart-total{display:none}
+  .header-cart{padding:8px 10px}
+  /* Categorias en una sola fila que se arrastra: en dos filas empujaban el
+     primer producto fuera de la pantalla. */
+  .chips{padding:0 16px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto;padding:11px 12px;font-size:12.5px}
+  /* Los sellos pasan a cinta horizontal y sueltan la explicacion: en telefono
+     valen como recordatorio, no como parrafo. Tres bloques apilados costaban
+     media pantalla antes de ver un precio. */
+  .sellos{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:8px;margin:12px 0 2px}
+  .sellos::-webkit-scrollbar{display:none}
+  .sello{flex:0 0 auto;padding:8px 12px;align-items:center;gap:8px}
+  .sello span{display:none}
+  .sello strong{font-size:12px;white-space:nowrap}
+  .sello-icono{width:24px;height:24px;flex-basis:24px;font-size:13px}
+  .barra-resultados{margin:14px 0 2px;padding-bottom:10px}
+  .cuenta-resultados{font-size:12px}
+  .orden-campo span{display:none}
+  /* Dos columnas dejan 134px utiles por boton: el texto tiene que caber en una
+     linea o la tarjeta crece a lo alto sin motivo. */
+  .card-actions{gap:6px;margin-top:9px}
+  .btn-cart-add{padding:9px 8px;font-size:11.5px;gap:6px;white-space:nowrap}
+  .btn-cart-add svg{width:14px;height:14px;flex:0 0 14px}
+  .card-actions .btn-wa{padding:8px;gap:6px;white-space:nowrap;font-size:11.5px}
+  .card-actions .btn-wa svg{width:13px;height:13px;flex:0 0 13px}
+  .pie{padding:26px 16px 0;margin-top:34px}
+  .pie-inner{grid-template-columns:1fr;gap:20px}
+}
