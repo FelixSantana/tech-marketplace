@@ -1,6 +1,13 @@
 const crypto = require('crypto');
-const { kvGet, kvSet, kvConfigured } = require('../_lib/kv.cjs');
+const { kvGet, kvSet, kvSetEx, kvConfigured } = require('../_lib/kv.cjs');
 const { AUTH_KEY, TOKEN_TTL_MS, hashPassword, safeEqual, signToken } = require('../_lib/auth.cjs');
+const { esperaRestante, registrarFallo, limpiar, mensajeDeEspera, OLVIDO_MS } = require('../_lib/login-rate.cjs');
+
+function clientIp(req) {
+  const forwarded = req.headers?.['x-forwarded-for'] || '';
+  return String(forwarded).split(',')[0].trim() || req.socket?.remoteAddress || 'unknown';
+}
+const claveIntentos = (req) => `synaptic_login_rate:${clientIp(req)}`;
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -37,12 +44,25 @@ module.exports = async function handler(req, res) {
     if (action === 'login') {
       const admin = await kvGet(AUTH_KEY);
       if (!admin) return res.status(400).json({ error: 'NOT_SETUP', message: 'Aún no se ha creado una cuenta de administrador.' });
+
+      // El freno va antes de comprobar nada: si esta bloqueado, no se prueba la contraseña.
+      const clave = claveIntentos(req);
+      const ahora = Date.now();
+      const intentos = await kvGet(clave);
+      const espera = esperaRestante(intentos, ahora);
+      if (espera > 0) return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS', message: mensajeDeEspera(espera) });
+
       const email = String(body.email || '').trim().toLowerCase();
       const password = String(body.password || '');
       const hash = hashPassword(password, admin.salt);
       if (!safeEqual(email, admin.email) || !safeEqual(hash, admin.hash)) {
+        const siguiente = registrarFallo(intentos, ahora);
+        await kvSetEx(clave, siguiente, Math.ceil(OLVIDO_MS / 1000) + 60);
+        const ahoraEspera = esperaRestante(siguiente, ahora);
+        if (ahoraEspera > 0) return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS', message: mensajeDeEspera(ahoraEspera) });
         return res.status(401).json({ error: 'INVALID_CREDENTIALS', message: 'Correo o contraseña incorrectos.' });
       }
+      await kvSet(clave, limpiar());
       const token = signToken({ email: admin.email, exp: Date.now() + TOKEN_TTL_MS }, admin.secret);
       return res.status(200).json({ ok: true, token, email: admin.email });
     }
@@ -52,8 +72,18 @@ module.exports = async function handler(req, res) {
       if (!admin) return res.status(400).json({ error: 'NOT_SETUP', message: 'No existe una cuenta de administrador.' });
       const currentPassword = String(body.currentPassword || '');
       if (!currentPassword) return res.status(400).json({ error: 'CURRENT_PASSWORD_REQUIRED', message: 'Ingresa tu contraseña actual.' });
+      const claveCambio = claveIntentos(req);
+      const ahoraCambio = Date.now();
+      const intentosCambio = await kvGet(claveCambio);
+      const esperaCambio = esperaRestante(intentosCambio, ahoraCambio);
+      if (esperaCambio > 0) return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS', message: mensajeDeEspera(esperaCambio) });
+
       const currentHash = hashPassword(currentPassword, admin.salt);
-      if (!safeEqual(currentHash, admin.hash)) return res.status(401).json({ error: 'WRONG_PASSWORD', message: 'La contraseña actual no es correcta.' });
+      if (!safeEqual(currentHash, admin.hash)) {
+        await kvSetEx(claveCambio, registrarFallo(intentosCambio, ahoraCambio), Math.ceil(OLVIDO_MS / 1000) + 60);
+        return res.status(401).json({ error: 'WRONG_PASSWORD', message: 'La contraseña actual no es correcta.' });
+      }
+      await kvSet(claveCambio, limpiar());
 
       const requestedEmail = String(body.newEmail || '').trim().toLowerCase();
       const requestedPassword = String(body.newPassword || '');

@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const AUTH_KEY = 'synaptic_admin';
-const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+// Una semana: el token vive en el navegador, asi que una sesion eterna es una llave olvidada.
+const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 function hashPassword(password, salt) { return crypto.pbkdf2Sync(String(password), salt, 100000, 32, 'sha256').toString('hex'); }
 function safeEqual(a, b) {
   const bufA = Buffer.from(String(a || ''), 'utf8'); const bufB = Buffer.from(String(b || ''), 'utf8');
