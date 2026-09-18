@@ -17,6 +17,7 @@ import { buscarPorSlug, rutaProducto } from './lib/rutas';
 import { registrarEvento } from './lib/eventos';
 import './styles.css';
 import './admin-overrides.css';
+import './skin.css';   // PROTOTIPO: piel estetica C, se carga al final para ganar por orden
 
 export default function App() {
   const { settings, products, categories, setCategories, reservas, loading, loadError, fetchCatalog, saveCatalog } = useCatalog();

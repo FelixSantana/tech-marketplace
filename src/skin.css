@@ -1,0 +1,122 @@
+/* ============================================================================
+   PROTOTIPO ESTETICO C — "boutique oscura premium"
+   ----------------------------------------------------------------------------
+   No es una rama para mergear tal cual: es una piel encima del CSS existente
+   para poder VER la direccion antes de decidir.
+
+   La apuesta contraria a la A: no huir del oscuro, hacerlo a proposito. Hoy el
+   oscuro parece panel de administracion porque tiene cuatro acentos peleando,
+   poco aire y tarjetas con borde. Las tiendas oscuras que si venden —audio,
+   gaming, telefonos de diseno— hacen tres cosas: un solo acento, mucho negro
+   vacio, y el producto apoyado sobre un fondo CLARO para que flote.
+
+   Ese ultimo punto es el truco: en una tienda oscura, la foto no va sobre
+   negro. Va en un bloque claro que hace de mesa iluminada. Ademas empareja de
+   gratis las fotos disparejas del catalogo.
+   ========================================================================== */
+
+:root{
+  --bg:#07080b; --bg-elev:#0d0f14; --surface:#101218; --surface-2:#171a22;
+  --border:#1d212b; --text:#f2f3f7; --text-muted:#878da0;
+  --accent:#45e0c7;                 /* turquesa: el unico acento. El morado sale */
+  --accent-2:#45e0c7;
+  --whatsapp:#25d366; --whatsapp-dark:#1da851; --danger:#ff5c7a;
+  --radius:16px;
+  --foto:#eceef2;                   /* la mesa iluminada donde se apoya el producto */
+  --sombra:0 18px 40px -18px rgba(0,0,0,.9);
+}
+::selection{background:var(--accent);color:#06211c}
+
+/* El lienzo se queda: aqui si pega. Pero mas apagado, de textura y no de dibujo. */
+#synapseCanvas{opacity:.22;height:420px}
+
+/* --- Cabecera con presencia: la marca ocupa sitio, el resto respira --- */
+header.hero{padding:52px 24px 26px}
+.brand .mark{width:46px;height:46px;border-radius:14px;background:var(--accent);color:#06211c}
+.brand-name{font-size:30px;letter-spacing:-.025em;font-family:'Space Grotesk',sans-serif;font-weight:700}
+.tagline{font-size:13.5px;letter-spacing:.01em}
+.hero-sub{margin-top:18px;font-size:14px;max-width:420px}
+.search-box{background:var(--surface);border-color:var(--border);border-radius:999px;padding:12px 18px}
+.search-box input{font-size:14.5px}
+.chip{border-radius:999px;background:transparent;border-color:var(--border);font-size:13px;padding:8px 16px}
+.chip:hover{border-color:var(--accent);color:var(--text)}
+.chip.active{background:var(--accent);border-color:var(--accent);color:#06211c;font-weight:600}
+
+/* --- Rejilla con aire. Tres columnas grandes en vez de cuatro apretadas --- */
+.grid{grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:26px;margin-top:22px}
+
+/* --- Tarjeta: sin borde, separada por vacio, el producto flotando --- */
+.card{background:transparent;border:none;border-radius:0;overflow:visible;position:relative}
+.card:hover{transform:none}
+.card .img-wrap{background:var(--foto);border-radius:var(--radius);padding:22px;box-shadow:var(--sombra);transition:transform .25s ease}
+.card:hover .img-wrap{transform:translateY(-4px)}
+.card .img-wrap img{object-fit:contain;filter:drop-shadow(0 12px 18px rgba(0,0,0,.18))}
+.card-body{padding:14px 2px 0;gap:3px}
+/* La ficha tecnica truncada sale de la tarjeta; la categoria se queda como
+   etiqueta discreta, que aqui ayuda a ordenar la vista. */
+.card-desc,.card-warranty{display:none}
+.card-cat{font-size:10px;color:var(--text-muted);letter-spacing:.14em;font-weight:600}
+.card-name{font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:600;letter-spacing:-.015em;line-height:1.25;margin-top:2px}
+/* El precio deja la fuente de programador: manda, pero en la tipografia de la tienda. */
+.card-price,.detail-price,.variant-option-price,.mono{font-family:'Space Grotesk',sans-serif}
+.card-price{font-size:20px;font-weight:700;letter-spacing:-.02em;margin-top:6px}
+.card-price .currency{font-size:13px;color:var(--text-muted);font-weight:500}
+.price-from{font-size:12.5px;color:var(--text-muted);font-weight:500}
+.card-variants-hint{font-size:11.5px;color:var(--text-muted)}
+
+/* Una sola accion visible: el carrito sobre la foto. Pedir vive en el detalle,
+   donde el cliente ya eligio variante y vio el estado del equipo. */
+.card-actions{position:absolute;top:14px;right:14px;margin:0;z-index:2}
+.card-actions .btn-wa{display:none}
+.btn-cart-add{width:38px;height:38px;border-radius:50%;background:rgba(7,8,11,.82);border:1px solid rgba(255,255,255,.14);color:#fff;backdrop-filter:blur(6px);opacity:0;transition:opacity .2s ease,transform .2s ease}
+.card:hover .btn-cart-add{opacity:1}
+.btn-cart-add:hover{border-color:var(--accent);color:var(--accent);transform:scale(1.06)}
+@media(hover:none){.btn-cart-add{opacity:1}}
+.badge-out{top:14px;left:14px;background:rgba(7,8,11,.86);backdrop-filter:blur(6px)}
+
+/* --- Ficha: la misma mesa iluminada, y dos columnas en escritorio --- */
+.panel{background:var(--bg-elev);border-color:var(--border);border-radius:20px}
+.detail-panel{max-width:520px}
+.detail-carousel{background:var(--foto)}
+.detail-carousel img{object-fit:contain!important;padding:26px}
+.detail-cat{color:var(--text-muted);letter-spacing:.14em;font-size:10.5px}
+.detail-name{font-family:'Space Grotesk',sans-serif;font-size:24px;letter-spacing:-.025em}
+.detail-price{font-size:28px;letter-spacing:-.025em}
+.detail-warranty{color:var(--text-muted)}
+.variant-option{border-radius:12px}
+@media(min-width:900px){
+  .detail-panel{max-width:960px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
+  .detail-carousel{aspect-ratio:1/1;height:100%}
+  .detail-body{padding:34px 34px 36px;max-height:80vh;overflow:auto}
+  .detail-name{font-size:28px}
+}
+
+/* El carrito flotante era morado; aqui el unico acento es el turquesa. */
+.cart-fab{background:var(--accent);color:#06211c}
+.empty-state button{background:var(--accent);color:#06211c}
+
+/* Un producto sin foto no se vende, pero mientras existan hay que taparlos con
+   algo que no parezca un error de carga. */
+.img-wrap .placeholder,.detail-carousel .placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;width:100%;height:100%;font-size:11px;color:#9aa0ae;letter-spacing:.06em;text-transform:uppercase}
+.img-wrap .placeholder::before,.detail-carousel .placeholder::before{content:'';width:46px;height:46px;opacity:.45;background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239aa0ae' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z'/%3E%3Cpath d='m3.3 7 8.7 5 8.7-5M12 22V12'/%3E%3C/svg%3E")}
+
+/* --- Telefono --- */
+@media(max-width:560px){
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}
+  main{padding:14px 16px 90px}
+  header.hero,.controls,.chips{padding-left:16px;padding-right:16px}
+  header.hero{padding-top:30px;padding-bottom:12px}
+  .brand-row{flex-wrap:nowrap;gap:10px}
+  .brand{flex:1;min-width:0}
+  .brand-name{font-size:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tagline{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hero-sub{display:none}
+  .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:10px}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto}
+  .card .img-wrap{padding:14px;border-radius:13px}
+  .card-body{padding:10px 2px 0}
+  .card-name{font-size:14.5px}
+  .card-price{font-size:17px;margin-top:4px}
+  .btn-cart-add{width:34px;height:34px;top:10px;right:10px}
+}
