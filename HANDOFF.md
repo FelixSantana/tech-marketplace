@@ -22,7 +22,7 @@ Catálogo digital de productos para **Synaptic Tech**, una tienda de tecnología
 | Backend | Vercel Serverless Functions (Node.js, carpeta `/api`) |
 | Base de datos | Upstash Redis, vía su REST API (no vía SDK) |
 | Hosting | Vercel (proyecto: `synaptic-tech-catalogo`), conectado por Git — cada push a `main` hace deploy automático |
-| Auth admin | PBKDF2 (100k iteraciones, SHA-256) + tokens HMAC-SHA256, expiran a los 30 días |
+| Auth admin | PBKDF2 (100k iteraciones, SHA-256) + tokens HMAC-SHA256, expiran a los 7 días |
 
 **Patrón de API (`.mjs` + `_handlers/*.cjs`):** el `package.json` tiene `"type": "module"`, así que Vercel trata todo `.js` como ES Module. Las funciones públicas en `/api/*.mjs` son wrappers ESM mínimos que solo hacen `import handler from './_handlers/xxx-handler.cjs'; export default handler;` — la lógica real vive en `api/_handlers/*.cjs`, que sí puede usar `require()` sin problema porque `.cjs` siempre se trata como CommonJS sin importar el `package.json`. **Si agregas un endpoint nuevo, sigue este mismo patrón** (archivo pública `.mjs` de una línea + handler real en `_handlers/*.cjs`) — no pongas lógica directamente en un `.js` en `/api`, causará un 500 silencioso (ver sección 8).
 
@@ -171,9 +171,13 @@ Con `envio.activo` en falso el checkout se comporta como antes: la entrega se co
 
 **Apartados** — key `synaptic_reservas`: `{ "<productId>::<variantId|>": unidades }`. Un pedido en `pending`, `paid` o `shipped` retiene sus unidades; cancelarlo las libera; completarlo las descuenta del stock. Lo recalcula el manejador de órdenes en cada cambio y viaja junto al catálogo en el `GET`, para que la tienda muestre **lo disponible** sin traerse las mil órdenes. El panel sigue viendo el stock real más cuántas hay apartadas.
 
+**Historial del catálogo** — key `synaptic_catalog_bak`: lista de `{ ts, version, data }`, la más nueva primero. El manejador de catálogo copia cada guardado (y el catálogo de antes de restaurar, así que restaurar también se deshace). Se conservan los últimos cinco guardados más el primero de cada día, con tope de 15. **Las fotos incrustadas (`data:`) no se copian**: pesan casi todo el catálogo y multiplicarlas por quince sería impagable; en su lugar va la marca `__foto_omitida__` y al restaurar se toman las fotos que el producto tenga hoy, emparejadas por posición. Las fotos que ya viven en Blob son URLs cortas y esas sí viajan enteras en la copia — otra razón para mover las fotos al almacén. Consecuencia deliberada: `DELETE /api/upload` **no borra** una foto del almacén que alguna copia del historial todavía nombre, para no dejar copias con imágenes rotas; el almacén crece un poco más a cambio. La lógica pura vive en `api/_lib/backup-logic.cjs` y está probada. El panel lo muestra en Ajustes (`BackupsPanel`), pidiendo el historial con `GET /api/catalog?respaldos=1` (solo admin, devuelve fechas y totales, nunca los catálogos enteros) y restaurando con `POST /api/catalog` `{ accion: 'restaurar', ts }`.
+
 **Métricas** — key `synaptic_metricas`: `{ dias: { "YYYY-MM-DD": { visita, producto, checkout, pedido, whatsapp } }, productos: { "<id>": vistas } }`. Contadores propios, sin terceros y sin datos del visitante. Los días se podan a 60. El evento `pedido` lo cuenta el manejador de órdenes y el endpoint lo rechaza si llega de fuera.
 
 **Admin** — key `synaptic_admin`: `{ email, salt, hash, secret }`.
+
+**Freno del login** — key `synaptic_login_rate:<ip>`: `{ fallos, hasta }`. Cuatro intentos libres; a partir del quinto fallo la IP espera 1, 5, 15 y hasta 60 minutos, y el freno se comprueba **antes** de evaluar la contraseña, así que estando bloqueado da lo mismo si la acierta. Una hora sin fallos nuevos borra la cuenta (la key expira sola), y un inicio de sesión correcto la limpia. Protege `login` y `change`. A propósito **no hay bloqueo global**: con uno, cualquiera desde muchas IPs dejaría al dueño fuera de su propio panel. La lógica pura vive en `api/_lib/login-rate.cjs` y está probada.
 
 **Órdenes** — key `synaptic_orders`, array de objetos (más recientes primero, tope de 1000 guardadas):
 ```json
@@ -273,11 +277,15 @@ Para probar el backend en local (Vite no ejecuta `/api` por sí solo):
 - [ ] **WhatsApp Business API** en vez de links `wa.me` — bloqueado por la verificación de negocio en Meta, que hace el dueño. **El aviso de pedido nuevo va aquí**: se decidió esperar a la API en vez de usar correo o Telegram, así que hoy un pedido que el cliente no llega a enviar solo se ve abriendo el panel.
 - [ ] **Cobro con enlace de pago** (AZUL ofrece Link de Pagos, 4–6% de comisión). La afiliación la hace el dueño.
 - [ ] **Contador de usos de los cupones.** Ver la sección 5: hoy no se cuentan a propósito.
-- [ ] **Cabeceras de seguridad y sesión de admin más corta.** Solo se envía HSTS; la sesión dura 30 días en el navegador.
-- [ ] **Límite de intentos en el login del panel.** Los pedidos y los eventos ya tienen límite por IP; el login no.
-- [ ] **Respaldo automático del catálogo.** Vive en una sola clave, sin historial: un guardado malo no tiene vuelta atrás.
 - [ ] **Instalable en el teléfono** (manifiesto web). No existe.
 - [ ] **Comprobante fiscal electrónico (e-CF).** Consultar primero con el contador si aplica.
+
+Hechos el 2026-09-18:
+
+- [x] **Límite de intentos en el login** — ver sección 5, key `synaptic_login_rate:<ip>`.
+- [x] **Cabeceras de seguridad** — `vercel.json` manda política de contenido, nosniff, referrer-policy, permissions-policy y X-Frame-Options, además del HSTS que ya estaba. La política se probó sirviendo el build local con las mismas cabeceras antes de desplegar: tienda, fuentes de Google y página de producto sin una sola violación en consola. Si algún día hay que meter un script o un dominio nuevo, se toca ahí y **se vuelve a mirar la consola**, porque una política mal puesta rompe la tienda en silencio.
+- [x] **Historial del catálogo** — ver sección 5. Una copia por guardado, restaurable desde Ajustes.
+- [x] **Sesión de admin de 30 a 7 días** — el token vive en `localStorage`. Efecto visible: hay que volver a entrar al panel una vez por semana.
 
 Hechos el 2026-09-17:
 

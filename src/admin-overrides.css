@@ -187,3 +187,11 @@
 .vistas-barra{height:7px;border-radius:999px;background:var(--bg-elev);overflow:hidden}
 .vistas-barra>div{height:100%;border-radius:999px;background:var(--accent-2)}
 @media (max-width:560px){.vistas-row{grid-template-columns:minmax(0,1fr) auto}.vistas-barra{display:none}}
+
+/* --- Historial del catalogo --- */
+.backups-panel{margin-top:4px}
+.backup-rows{display:flex;flex-direction:column;gap:8px}
+.backup-row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:11px 14px;border:1px solid var(--border);border-radius:11px;background:var(--surface)}
+.backup-row strong{display:block;font-size:13px}
+.backup-row span{display:block;font-size:11px;color:var(--text-muted);margin-top:2px;font-variant-numeric:tabular-nums}
+.backup-row button{margin:0;flex-shrink:0;padding:7px 14px;font-size:12px}

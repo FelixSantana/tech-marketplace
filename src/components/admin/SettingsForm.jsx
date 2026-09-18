@@ -3,10 +3,11 @@ import { compressImage } from '../../lib/utils';
 import { uploadImage } from '../../lib/uploadImage';
 import ShippingForm from './ShippingForm';
 import CouponsForm from './CouponsForm';
+import BackupsPanel from './BackupsPanel';
 import { cuponesDeAjustes } from '../../lib/cupones';
 import { ajustesDeEnvio } from '../../lib/envio';
 
-export default function SettingsForm({ settings, onSaveSettings, authRequest, adminToken, setAdminToken, onLogout, showToast }) {
+export default function SettingsForm({ settings, onSaveSettings, authRequest, adminToken, setAdminToken, refreshCatalog, onLogout, showToast }) {
   const [storeName, setStoreName] = useState(settings.storeName);
   const [tagline, setTagline] = useState(settings.tagline);
   const [whatsapp, setWhatsapp] = useState(settings.whatsapp);
@@ -85,6 +86,8 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
       <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon">%</span><div><h3>Cupones de descuento</h3><p>Se aplican al precio de los productos, no al envío.</p></div></div>
       <CouponsForm cupones={cupones} setCupones={setCupones} currency={currency} />
       <button className="btn-primary full-action" onClick={handleSaveSettings}>Guardar ajustes</button>
+
+      <BackupsPanel adminToken={adminToken} refreshCatalog={refreshCatalog} showToast={showToast} />
 
       <div className="access-card">
         <div className="access-card-head"><div className="access-icon">♙</div><div><h3>Acceso de administrador</h3><p>Actualiza el correo y/o contraseña. Por seguridad, siempre debes confirmar tu contraseña actual.</p></div></div>

@@ -81,7 +81,7 @@ export default function AdminPanel({ products, reservas, categories, setCategori
           <MetricsPanel adminToken={adminToken} showToast={showToast} />
         )}
         {tab === 'ajustes' && (
-          <SettingsForm settings={settings} onSaveSettings={handleSaveSettings} authRequest={authRequest} adminToken={adminToken} setAdminToken={setAdminToken} onLogout={onLogout} showToast={showToast} />
+          <SettingsForm settings={settings} onSaveSettings={handleSaveSettings} authRequest={authRequest} adminToken={adminToken} setAdminToken={setAdminToken} refreshCatalog={refreshCatalog} onLogout={onLogout} showToast={showToast} />
         )}
       </div>
       {printMode && <PrintCatalog products={products} settings={settings} modo={printMode} onClose={() => setPrintMode(null)} />}
