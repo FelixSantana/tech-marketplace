@@ -53,6 +53,13 @@ synaptic-react/
 ├── vite.config.js
 ├── package.json                        ← OJO: "type": "module"
 ├── .gitignore
+├── public/
+│   ├── icon-180.png                    ← favicon y apple-touch-icon
+│   ├── icon-192.png / icon-512.png     ← iconos del manifiesto (instalar en el teléfono)
+│   ├── icon-maskable-512.png           ← el mismo icono sin esquinas, para el recorte de Android
+│   ├── manifest.webmanifest            ← nombre, colores e iconos de la app instalada
+│   ├── sw.js                           ← trabajador de servicio mínimo, sin caché (ver sección 5)
+│   └── og-image.jpg                    ← imagen de la vista previa al compartir
 ├── src/
 │   ├── main.jsx                        ← entry point, monta <App/>
 │   ├── App.jsx                         ← orquesta todo: estado global, modales, rutas, importa ambos CSS
@@ -86,7 +93,8 @@ synaptic-react/
 │   │       ├── MigrateImages.jsx       ← botón para mover fotos incrustadas al bucket
 │   │       ├── ShippingForm.jsx        ← entrega, retiro y zonas de envío en Ajustes
 │   │       ├── CouponsForm.jsx         ← cupones de descuento en Ajustes
-│   │       └── MetricsPanel.jsx        ← pestaña Métricas: embudo y productos más mirados
+│   │       ├── MetricsPanel.jsx        ← pestaña Métricas: embudo y productos más mirados
+│   │       └── BackupsPanel.jsx        ← historial del catálogo en Ajustes: listar y restaurar
 │   └── assets/                         (vacío, sin usar)
 └── api/
     ├── auth.mjs                        ← wrapper → _handlers/auth-handler.cjs
@@ -112,6 +120,8 @@ synaptic-react/
         ├── envio.cjs                   ← resuelve entrega y costo de envío
         ├── cupones.cjs                 ← resuelve el descuento de un código
         ├── metricas.cjs                ← contadores del embudo y su resumen
+        ├── backup-logic.cjs            ← historial del catálogo: copiar, podar y restaurar
+        ├── login-rate.cjs              ← freno escalonado a los intentos de login
         ├── producto-html.cjs           ← inyecta las etiquetas del producto en el HTML
         └── upload-logic.cjs            ← validación de las imágenes que se suben
 ```
@@ -277,13 +287,13 @@ Para probar el backend en local (Vite no ejecuta `/api` por sí solo):
 - [ ] **WhatsApp Business API** en vez de links `wa.me` — bloqueado por la verificación de negocio en Meta, que hace el dueño. **El aviso de pedido nuevo va aquí**: se decidió esperar a la API en vez de usar correo o Telegram, así que hoy un pedido que el cliente no llega a enviar solo se ve abriendo el panel.
 - [ ] **Cobro con enlace de pago** (AZUL ofrece Link de Pagos, 4–6% de comisión). La afiliación la hace el dueño.
 - [ ] **Contador de usos de los cupones.** Ver la sección 5: hoy no se cuentan a propósito.
-- [ ] **Instalable en el teléfono** (manifiesto web). No existe.
 - [ ] **Comprobante fiscal electrónico (e-CF).** Consultar primero con el contador si aplica.
 
 Hechos el 2026-09-18:
 
 - [x] **Límite de intentos en el login** — ver sección 5, key `synaptic_login_rate:<ip>`.
 - [x] **Cabeceras de seguridad** — `vercel.json` manda política de contenido, nosniff, referrer-policy, permissions-policy y X-Frame-Options, además del HSTS que ya estaba. La política se probó sirviendo el build local con las mismas cabeceras antes de desplegar: tienda, fuentes de Google y página de producto sin una sola violación en consola. Si algún día hay que meter un script o un dominio nuevo, se toca ahí y **se vuelve a mirar la consola**, porque una política mal puesta rompe la tienda en silencio.
+- [x] **Instalable en el teléfono** — manifiesto, iconos 192/512 y uno recortable, más `public/sw.js`. El trabajador de servicio **no cachea nada** a propósito: existe solo porque Chrome no ofrece "Instalar aplicación" sin uno, y un caché mal hecho dejaría al cliente viendo precios viejos. Si algún día se quiere que la tienda abra sin señal, ahí es donde hay que trabajar, con cuidado. El nombre de la tienda en el manifiesto es fijo: si cambia en Ajustes, hay que cambiarlo también en `public/manifest.webmanifest`. **Sin verificar en un teléfono real**: el navegador de pruebas no deja registrar trabajadores de servicio, así que hay que abrir la tienda en Chrome Android después del despliegue y confirmar que aparece "Instalar aplicación".
 - [x] **Historial del catálogo** — ver sección 5. Una copia por guardado, restaurable desde Ajustes.
 - [x] **Sesión de admin de 30 a 7 días** — el token vive en `localStorage`. Efecto visible: hay que volver a entrar al panel una vez por semana.
 
