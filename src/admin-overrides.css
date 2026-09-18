@@ -199,3 +199,12 @@
 /* Cuanto se uso cada cupon: una linea propia debajo de los campos de esa fila. */
 .cupon-uso{grid-column:1/-1;font-size:10.5px;color:var(--text-muted);font-variant-numeric:tabular-nums}
 .cupon-uso:empty{display:none}
+
+/* --- Filas de botones y caja del cupon ---
+   .form-actions se usaba en cuatro sitios pero nunca se definio, asi que los botones caian en
+   bloque y .btn-secondary, que trae width:100%, se comia la fila entera: en el checkout movil el
+   campo del cupon quedaba en 28px al lado de un "Aplicar" de 273px, y Cancelar salia mas ancho
+   que "Pedir por WhatsApp". El ancho de un boton lo decide la fila, no el boton. */
+.form-actions{display:flex;align-items:stretch;gap:10px;margin-top:16px;justify-content:flex-end}
+.form-actions>button{width:auto;margin-top:0}
+.cupon-caja button{width:auto}
