@@ -17,6 +17,7 @@ import { buscarPorSlug, rutaProducto } from './lib/rutas';
 import { registrarEvento } from './lib/eventos';
 import './styles.css';
 import './admin-overrides.css';
+import './skin.css';   // PROTOTIPO: piel estetica A, se carga al final para ganar por orden
 
 export default function App() {
   const { settings, products, categories, setCategories, reservas, loading, loadError, fetchCatalog, saveCatalog } = useCatalog();
@@ -25,7 +26,7 @@ export default function App() {
   const { message, visible, showToast } = useToast();
   const { cart, addToCart, updateCartQty, removeFromCart, clearCart, cartCount } = useCart(disponibles, showToast);
   const { adminToken, setAdminToken, authRequest, authStatus } = useAuth();
-  const [theme, setTheme] = useState(() => { try { return localStorage.getItem('theme') || 'dark'; } catch { return 'dark'; } });
+  const [theme, setTheme] = useState(() => { try { return localStorage.getItem('theme') || 'light'; } catch { return 'light'; } });
   const [activeCategory, setActiveCategory] = useState('Todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [detailProductId, setDetailProductId] = useState(null);

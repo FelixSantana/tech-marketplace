@@ -1,0 +1,126 @@
+/* ============================================================================
+   PROTOTIPO ESTETICO A — "retail claro"
+   ----------------------------------------------------------------------------
+   No es una rama para mergear tal cual: es una piel encima del CSS existente
+   para poder VER la direccion antes de decidir. Por eso vive en un archivo
+   aparte y se carga al final, en vez de reescribir styles.css.
+
+   Apuesta: la tienda vende equipos de segunda mano y servicios. Ahi la
+   confianza es el argumento de venta, y el fondo claro muestra el producto tal
+   como es. Referencia medida: Dawn, el tema por defecto de Shopify.
+
+   Tres decisiones que resumen la direccion:
+   1. Un solo acento. El turquesa decorativo pasa a gris; el color queda para
+      lo que debe interrumpir la vista (boton, oferta, agotado).
+   2. La tarjeta dice foto, nombre y precio. Nada mas. La ficha tecnica vive en
+      el detalle, que es donde el cliente la busca.
+   3. La foto entera sobre fondo uniforme (contain, no cover). Las fotos de la
+      tienda vienen con encuadres distintos; recortarlas al cuadrado descabeza
+      unas si y otras no. Mostrarlas completas empareja lo que no se puede
+      emparejar de origen.
+   ========================================================================== */
+
+:root[data-theme="light"]{
+  --bg:#fafafa; --bg-elev:#ffffff; --surface:#ffffff; --surface-2:#f3f4f6;
+  --border:#e5e7eb; --text:#111827; --text-muted:#6b7280;
+  --accent:#6d4bff; --accent-2:#6b7280;      /* el segundo acento deja de ser color */
+  --whatsapp:#22c25e; --whatsapp-dark:#189249; --danger:#dc2626;
+  --radius:12px;
+  --foto:#f3f4f6;                            /* fondo unico de todas las fotos */
+  --sombra:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.1);
+  --sombra-alta:0 4px 6px -2px rgba(16,24,40,.05),0 12px 16px -4px rgba(16,24,40,.1);
+}
+
+/* El lienzo de sinapsis es lenguaje de landing de software, no de tienda. */
+#synapseCanvas{display:none}
+
+/* --- Cabecera: el cliente vino a ver productos, no a leer --- */
+header.hero{padding:26px 24px 14px}
+.brand-name{font-size:20px}
+.hero-sub{display:none}
+.controls{padding-bottom:14px}
+.search-box{border-radius:10px;padding:11px 14px;box-shadow:var(--sombra)}
+.search-box input{font-size:15px}
+.chip{font-size:13.5px;padding:8px 15px;background:transparent}
+.chip.active{background:var(--text);border-color:var(--text);color:var(--bg)}
+
+/* --- Rejilla: menos columnas y mas grandes. Cuatro tarjetas de 271px en
+       escritorio se leian como una hoja de inventario. --- */
+.grid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:22px;margin-top:18px}
+
+/* --- Tarjeta --- */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--sombra);transition:box-shadow .18s ease,transform .18s ease}
+.card:hover{transform:translateY(-2px);box-shadow:var(--sombra-alta);border-color:var(--border)}
+.card .img-wrap{background:var(--foto);padding:14px}
+.card .img-wrap img{object-fit:contain}
+.card-body{padding:14px 15px 16px;gap:4px}
+/* Categoria, ficha tecnica y garantia salen de la tarjeta: estan en el detalle. */
+.card-cat,.card-desc,.card-warranty{display:none}
+.card-name{font-size:16.5px;font-weight:600;line-height:1.35;letter-spacing:-.01em}
+/* El precio es lo mas importante de la pagina y estaba en fuente de programador. */
+.card-price,.detail-price,.variant-option-price,.cart-row .p,.mono{font-family:'Inter',system-ui,sans-serif}
+.card-price{font-size:19px;font-weight:700;margin-top:6px;letter-spacing:-.02em}
+.card-price .currency{font-size:13px;color:var(--text-muted);font-weight:500}
+.price-from{font-size:12.5px;color:var(--text-muted);font-weight:500}
+.card-variants-hint{font-size:12px;color:var(--text-muted)}
+
+/* Una sola llamada a la accion. La tarjeta entera abre el detalle; el carrito
+   queda como icono sobre la foto, que es donde el cliente ya tiene la mano. */
+.card-actions{position:absolute;top:10px;right:10px;margin:0;gap:0;z-index:2}
+.card{position:relative}
+.card-actions .btn-wa{display:none}
+.btn-cart-add{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.92);border:1px solid var(--border);box-shadow:var(--sombra);color:var(--text);opacity:0;transition:opacity .15s ease,transform .15s ease}
+.card:hover .btn-cart-add{opacity:1}
+.btn-cart-add:hover{border-color:var(--accent);color:var(--accent);transform:scale(1.06)}
+@media(hover:none){.btn-cart-add{opacity:1}}   /* en telefono no hay hover que valga */
+
+.badge-out{background:rgba(255,255,255,.95);color:var(--danger);border-color:var(--danger);top:10px;left:10px}
+
+/* --- Detalle: en escritorio, galeria a la izquierda y compra a la derecha.
+       Antes era el diseno de telefono estirado en una pantalla de 1280. --- */
+.detail-panel{max-width:520px}
+.detail-carousel{background:var(--foto)}
+.detail-carousel img{object-fit:contain!important;padding:18px}
+.detail-name{font-size:22px;letter-spacing:-.02em}
+.detail-price{font-size:26px;letter-spacing:-.02em}
+.detail-cat{color:var(--text-muted)}
+.detail-warranty{color:var(--text-muted)}
+@media(min-width:900px){
+  .detail-panel{max-width:940px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
+  .detail-carousel{aspect-ratio:1/1;height:100%}
+  .detail-body{padding:30px 30px 32px;max-height:80vh;overflow:auto}
+  .detail-name{font-size:26px}
+}
+
+footer{color:var(--text-muted)}
+
+/* Un producto sin foto no se vende, pero mientras existan hay que taparlos con
+   algo que no parezca un error de carga. */
+.img-wrap .placeholder,.detail-carousel .placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;width:100%;height:100%;font-size:11.5px;color:#9ca3af;letter-spacing:.02em}
+.img-wrap .placeholder::before,.detail-carousel .placeholder::before{content:'';width:44px;height:44px;opacity:.5;background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z'/%3E%3Cpath d='m3.3 7 8.7 5 8.7-5M12 22V12'/%3E%3C/svg%3E")}
+
+/* --- Telefono --- */
+@media(max-width:560px){
+  /* Dos columnas, como cualquier tienda en telefono: una sola obliga a recorrer
+     23 productos de arriba abajo. Caben porque la tarjeta ya no lleva ficha
+     tecnica ni botones. */
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+  main{padding:14px 16px 90px}
+  header.hero,.controls,.chips{padding-left:16px;padding-right:16px}
+  header.hero{padding-top:18px;padding-bottom:10px}
+  /* El interruptor de tema se caia a una segunda linea y dejaba un hueco. */
+  .brand-row{flex-wrap:nowrap;gap:10px}
+  .brand{flex:1;min-width:0}
+  .brand-name{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tagline{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* Las categorias ocupaban tres filas antes del primer producto: pasan a una
+     sola fila que se arrastra, como en cualquier tienda en telefono. */
+  .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:10px}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto}
+  .card-body{padding:11px 12px 13px}
+  .card-name{font-size:14px}
+  .card-price{font-size:16px;margin-top:4px}
+  .card .img-wrap{padding:10px}
+  .btn-cart-add{width:34px;height:34px}
+}
