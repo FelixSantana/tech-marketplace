@@ -2,7 +2,7 @@ const { kvGet, kvSet, kvSetEx, kvConfigured } = require('../_lib/kv.cjs');
 const { cleanText, money, buildPublicItems, buildAdminItems, applyInventoryDeduction, reservasDeOrdenes } = require('../_lib/orders-logic.cjs');
 const { bumpVersion } = require('../_lib/catalog-logic.cjs');
 const { resolverEntrega } = require('../_lib/envio.cjs');
-const { resolverCupon } = require('../_lib/cupones.cjs');
+const { resolverCupon, usosDeCupones } = require('../_lib/cupones.cjs');
 const { vacio: metricasVacias, registrarEvento } = require('../_lib/metricas.cjs');
 const { AUTH_KEY, verifyToken, extractBearer } = require('../_lib/auth.cjs');
 const ORDERS_KEY = 'synaptic_orders';
@@ -27,6 +27,9 @@ module.exports = async function handler(req, res) {
     const body = parseBody(req); const isPublicCreate = req.method === 'POST' && body.source === 'whatsapp_checkout';
     if (isPublicCreate) { if (!(await rateLimitPublic(req))) return res.status(429).json({ error: 'RATE_LIMIT', message: 'Demasiados pedidos. Intenta nuevamente en un minuto.' }); const customerName = cleanText(body.customerName || body.name, 120); const phone = cleanPhone(body.phone || body.customerPhone); if (customerName.length < 2 || phone.length < 8) return res.status(400).json({ error: 'INVALID_CUSTOMER', message: 'Nombre y WhatsApp son obligatorios.' }); const catalog = await getCatalog(); const orders = (await kvGet(ORDERS_KEY)) || []; const items = buildPublicItems(body.products, catalog, reservasDeOrdenes(orders)); const subtotal = items.reduce((sum, it) => sum + it.subtotal, 0); const entrega = resolverEntrega(catalog.settings, body, subtotal); const cupon = resolverCupon(catalog.settings, body.cupon, subtotal); const order = makeOrder({ ...body, customerName, phone }, items, 'whatsapp_checkout', entrega, cupon); orders.unshift(order); const guardadas = orders.slice(0, 1000); await kvSet(ORDERS_KEY, guardadas); await kvSet(RESERVED_KEY, reservasDeOrdenes(guardadas)); try { await kvSet(METRICAS_KEY, registrarEvento((await kvGet(METRICAS_KEY)) || metricasVacias(), 'pedido')); } catch (e) { console.error('metricas pedido', e); } return res.status(201).json({ ok: true, order: { id: order.id, total: order.total, status: order.status } }); }
     const auth = await requireAdmin(req); if (!auth.ok) return res.status(auth.status).json({ error: auth.error }); const orders = (await kvGet(ORDERS_KEY)) || [];
+    // El panel de Ajustes solo quiere saber cuanto se uso cada cupon: se le manda el conteo, no
+    // las mil ordenes enteras.
+    if (req.method === 'GET' && req.query && req.query.cupones) return res.status(200).json({ cupones: usosDeCupones(orders) });
     if (req.method === 'GET') return res.status(200).json({ orders });
     if (req.method === 'POST') { const catalog = await getCatalog(); const items = buildAdminItems(body.products, catalog); const customerName = cleanText(body.customerName || body.name, 120); const phone = cleanPhone(body.phone || body.customerPhone); if (customerName.length < 2) return res.status(400).json({ error: 'INVALID_CUSTOMER' }); const order = makeOrder({ ...body, customerName, phone }, items, 'manual'); orders.unshift(order); const guardadas = orders.slice(0, 1000); await kvSet(ORDERS_KEY, guardadas); await kvSet(RESERVED_KEY, reservasDeOrdenes(guardadas)); return res.status(201).json({ ok: true, order }); }
     const id = cleanText(body.id, 100); if (!id) return res.status(400).json({ error: 'ORDER_ID_REQUIRED' }); const index = orders.findIndex((o) => o.id === id); if (index < 0) return res.status(404).json({ error: 'ORDER_NOT_FOUND' });

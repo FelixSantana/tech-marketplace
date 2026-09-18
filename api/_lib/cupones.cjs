@@ -46,4 +46,22 @@ function resolverCupon(settings, codigoEscrito, subtotal, hoy) {
   return { codigo: cupon.codigo, tipo: cupon.tipo, valor: cupon.valor, descuento };
 }
 
-module.exports = { normalizarCupones, normalizarCodigo, resolverCupon, descuentoDe, hoyEnRD };
+// Cuantas veces se uso cada cupon. No hay contador guardado a proposito: contarlo al vuelo desde
+// las ordenes no puede desincronizarse, no obliga al pedido publico a escribir en el catalogo —eso
+// choca con el control de version— y ademas sabe distinguir un pedido cancelado de uno que valio.
+// Limitacion honesta: solo ve las ordenes guardadas, y se guardan las ultimas 1000.
+function usosDeCupones(orders) {
+  const total = {};
+  for (const o of Array.isArray(orders) ? orders : []) {
+    const codigo = normalizarCodigo(o && o.coupon && o.coupon.codigo);
+    if (!codigo) continue;
+    const fila = total[codigo] || (total[codigo] = { usos: 0, cancelados: 0, descontado: 0, ultimo: '' });
+    if (o.status === 'cancelled') { fila.cancelados += 1; continue; }
+    fila.usos += 1;
+    fila.descontado = dinero(fila.descontado + dinero(o.discount));
+    if (!fila.ultimo || String(o.createdAt || '') > fila.ultimo) fila.ultimo = String(o.createdAt || '');
+  }
+  return total;
+}
+
+module.exports = { normalizarCupones, normalizarCodigo, resolverCupon, descuentoDe, hoyEnRD, usosDeCupones };

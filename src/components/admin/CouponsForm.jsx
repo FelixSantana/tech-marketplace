@@ -1,12 +1,29 @@
-import { useId } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import { normalizarCodigo } from '../../lib/cupones';
 
 const nuevoId = () => `c_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 
+const miles = (n) => Number(n || 0).toLocaleString('es-DO');
+
 // Cupones de descuento. El descuento se aplica a los productos, nunca al envio.
-export default function CouponsForm({ cupones, setCupones, currency }) {
+export default function CouponsForm({ cupones, setCupones, currency, adminToken }) {
   const uid = useId();
   const lista = Array.isArray(cupones) ? cupones : [];
+  // Cuanto se uso cada codigo. Lo cuenta el servidor sobre las ordenes guardadas: no hay contador
+  // que mantener y un pedido cancelado no infla la cifra.
+  const [usos, setUsos] = useState({});
+
+  const cargarUsos = useCallback(async () => {
+    try {
+      const r = await fetch('/api/orders?cupones=1', { headers: { Authorization: `Bearer ${adminToken}` } });
+      if (!r.ok) return;
+      const data = await r.json();
+      setUsos(data && data.cupones ? data.cupones : {});
+    } catch { /* sin conteo se sigue pudiendo editar cupones */ }
+  }, [adminToken]);
+
+  // eslint-disable-next-line react/set-state-in-effect
+  useEffect(() => { cargarUsos(); }, [cargarUsos]);
 
   const cambiar = (index, campo, valor) => setCupones(lista.map((c, i) => (i === index ? { ...c, [campo]: valor } : c)));
   const agregar = () => setCupones([...lista, { id: nuevoId(), codigo: '', tipo: 'porcentaje', valor: '', vence: '', minimo: '', activo: true }]);
@@ -37,6 +54,12 @@ export default function CouponsForm({ cupones, setCupones, currency }) {
                 </label>
                 <button type="button" className="icon-btn danger-icon" aria-label={`Eliminar el cupón ${c.codigo || index + 1}`} title="Eliminar cupón" onClick={() => quitar(index)}>✕</button>
               </div>
+              <div className="cupon-uso">{(() => {
+                const u = usos[normalizarCodigo(c.codigo)];
+                if (!u || !u.usos) return c.codigo ? 'Sin usar todavía' : '';
+                const cancel = u.cancelados ? ` · ${u.cancelados} en pedidos cancelados` : '';
+                return `Usado ${u.usos} ${u.usos === 1 ? 'vez' : 'veces'} · ${currency} ${miles(u.descontado)} descontados${cancel}`;
+              })()}</div>
             </div>
           ))}
         </div>

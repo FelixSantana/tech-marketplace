@@ -177,7 +177,7 @@ Al editar un producto, `mergeProductEdit` (`src/lib/catalogMerge.js`) decide el 
               "vence": "", "minimo": 0, "activo": true }]
 ```
 
-Con `envio.activo` en falso el checkout se comporta como antes: la entrega se coordina por WhatsApp y no se le pide nada más al cliente. **El costo del envío y el descuento los calcula siempre el servidor** (`api/_lib/envio.cjs` y `api/_lib/cupones.cjs`) a partir de estos ajustes; el navegador solo manda la zona elegida y el código escrito. Los cupones no llevan contador de usos, a propósito: contarlo obligaría a que el pedido público escriba en el catálogo y eso choca con el control de versión.
+Con `envio.activo` en falso el checkout se comporta como antes: la entrega se coordina por WhatsApp y no se le pide nada más al cliente. **El costo del envío y el descuento los calcula siempre el servidor** (`api/_lib/envio.cjs` y `api/_lib/cupones.cjs`) a partir de estos ajustes; el navegador solo manda la zona elegida y el código escrito. Los cupones **no llevan contador guardado**, a propósito: escribirlo obligaría al pedido público a tocar el catálogo y eso choca con el control de versión. En su lugar el uso se **cuenta al vuelo sobre las órdenes** (`usosDeCupones` en `api/_lib/cupones.cjs`), que ya guardan el cupón aplicado: así no hay contador que se desincronice y un pedido cancelado deja de contar como uso. El panel lo pide con `GET /api/orders?cupones=1` (solo admin) y lo muestra debajo de cada cupón en Ajustes. Limitación: solo ve las últimas 1000 órdenes guardadas.
 
 **Apartados** — key `synaptic_reservas`: `{ "<productId>::<variantId|>": unidades }`. Un pedido en `pending`, `paid` o `shipped` retiene sus unidades; cancelarlo las libera; completarlo las descuenta del stock. Lo recalcula el manejador de órdenes en cada cambio y viaja junto al catálogo en el `GET`, para que la tienda muestre **lo disponible** sin traerse las mil órdenes. El panel sigue viendo el stock real más cuántas hay apartadas.
 
@@ -286,13 +286,13 @@ Para probar el backend en local (Vite no ejecuta `/api` por sí solo):
 - [ ] **Dominio personalizado** — aún corre sobre `*.vercel.app`. Al ponerlo hay que actualizar las URLs absolutas de `index.html` y regenerar `public/og-image.jpg` si cambia el nombre o el lema.
 - [ ] **WhatsApp Business API** en vez de links `wa.me` — bloqueado por la verificación de negocio en Meta, que hace el dueño. **El aviso de pedido nuevo va aquí**: se decidió esperar a la API en vez de usar correo o Telegram, así que hoy un pedido que el cliente no llega a enviar solo se ve abriendo el panel.
 - [ ] **Cobro con enlace de pago** (AZUL ofrece Link de Pagos, 4–6% de comisión). La afiliación la hace el dueño.
-- [ ] **Contador de usos de los cupones.** Ver la sección 5: hoy no se cuentan a propósito.
 - [ ] **Comprobante fiscal electrónico (e-CF).** Consultar primero con el contador si aplica.
 
 Hechos el 2026-09-18:
 
 - [x] **Límite de intentos en el login** — ver sección 5, key `synaptic_login_rate:<ip>`.
 - [x] **Cabeceras de seguridad** — `vercel.json` manda política de contenido, nosniff, referrer-policy, permissions-policy y X-Frame-Options, además del HSTS que ya estaba. La política se probó sirviendo el build local con las mismas cabeceras antes de desplegar: tienda, fuentes de Google y página de producto sin una sola violación en consola. Si algún día hay que meter un script o un dominio nuevo, se toca ahí y **se vuelve a mirar la consola**, porque una política mal puesta rompe la tienda en silencio.
+- [x] **Usos de los cupones** — ver sección 5. Se cuentan sobre las órdenes, sin contador que mantener.
 - [x] **Instalable en el teléfono** — manifiesto, iconos 192/512 y uno recortable, más `public/sw.js`. El trabajador de servicio **no cachea nada** a propósito: existe solo porque Chrome no ofrece "Instalar aplicación" sin uno, y un caché mal hecho dejaría al cliente viendo precios viejos. Si algún día se quiere que la tienda abra sin señal, ahí es donde hay que trabajar, con cuidado. El nombre de la tienda en el manifiesto es fijo: si cambia en Ajustes, hay que cambiarlo también en `public/manifest.webmanifest`. **Sin verificar en un teléfono real**: el navegador de pruebas no deja registrar trabajadores de servicio, así que hay que abrir la tienda en Chrome Android después del despliegue y confirmar que aparece "Instalar aplicación".
 - [x] **Historial del catálogo** — ver sección 5. Una copia por guardado, restaurable desde Ajustes.
 - [x] **Sesión de admin de 30 a 7 días** — el token vive en `localStorage`. Efecto visible: hay que volver a entrar al panel una vez por semana.

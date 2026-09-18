@@ -195,3 +195,7 @@
 .backup-row strong{display:block;font-size:13px}
 .backup-row span{display:block;font-size:11px;color:var(--text-muted);margin-top:2px;font-variant-numeric:tabular-nums}
 .backup-row button{margin:0;flex-shrink:0;padding:7px 14px;font-size:12px}
+
+/* Cuanto se uso cada cupon: una linea propia debajo de los campos de esa fila. */
+.cupon-uso{grid-column:1/-1;font-size:10.5px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+.cupon-uso:empty{display:none}

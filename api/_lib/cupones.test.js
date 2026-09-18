@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { normalizarCupones, normalizarCodigo, resolverCupon, descuentoDe } = require('./cupones.cjs');
+const { normalizarCupones, normalizarCodigo, resolverCupon, descuentoDe, usosDeCupones } = require('./cupones.cjs');
 
 const cupones = [
   { id: 'c1', codigo: 'BIENVENIDO', tipo: 'porcentaje', valor: 10, vence: '', minimo: 0, activo: true },
@@ -78,4 +78,37 @@ describe('resolverCupon', () => {
     const r = resolverCupon(tienda, 'BIENVENIDO', 1000, HOY);
     expect(r.descuento).toBe(100);
   });
+});
+
+describe('usosDeCupones', () => {
+  const orden = (codigo, discount, status = 'completed', createdAt = '2026-09-18T10:00:00.000Z') => ({ coupon: codigo ? { codigo } : null, discount, status, createdAt });
+
+  it('cuenta las veces y suma lo descontado', () => {
+    const r = usosDeCupones([orden('BIENVENIDO', 240), orden('BIENVENIDO', 100)]);
+    expect(r.BIENVENIDO.usos).toBe(2);
+    expect(r.BIENVENIDO.descontado).toBe(340);
+  });
+
+  it('un pedido cancelado no cuenta como uso ni suma descuento', () => {
+    const r = usosDeCupones([orden('MIL', 1000), orden('MIL', 1000, 'cancelled')]);
+    expect(r.MIL).toEqual({ usos: 1, cancelados: 1, descontado: 1000, ultimo: '2026-09-18T10:00:00.000Z' });
+  });
+
+  it('separa un codigo de otro', () => {
+    const r = usosDeCupones([orden('MIL', 1000), orden('BIENVENIDO', 240)]);
+    expect(Object.keys(r).sort()).toEqual(['BIENVENIDO', 'MIL']);
+  });
+
+  it('ignora los pedidos sin cupon', () => expect(usosDeCupones([orden(null, 0), orden('', 0)])).toEqual({}));
+
+  it('normaliza el codigo, para que "mil " y "MIL" sean el mismo cupon', () => {
+    expect(usosDeCupones([orden('mil ', 500), orden('MIL', 500)]).MIL.usos).toBe(2);
+  });
+
+  it('guarda la fecha del uso mas reciente', () => {
+    const r = usosDeCupones([orden('MIL', 1, 'paid', '2026-09-01T00:00:00.000Z'), orden('MIL', 1, 'paid', '2026-09-17T00:00:00.000Z')]);
+    expect(r.MIL.ultimo).toBe('2026-09-17T00:00:00.000Z');
+  });
+
+  it('aguanta que no haya ordenes', () => expect(usosDeCupones(null)).toEqual({}));
 });

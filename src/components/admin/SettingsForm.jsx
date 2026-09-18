@@ -84,7 +84,7 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
       <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon">⛟</span><div><h3>Entrega y envío</h3><p>Qué le pides al cliente al finalizar el pedido y cuánto cobras por llevarlo.</p></div></div>
       <ShippingForm envio={envio} setEnvio={setEnvio} currency={currency} />
       <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon">%</span><div><h3>Cupones de descuento</h3><p>Se aplican al precio de los productos, no al envío.</p></div></div>
-      <CouponsForm cupones={cupones} setCupones={setCupones} currency={currency} />
+      <CouponsForm cupones={cupones} setCupones={setCupones} currency={currency} adminToken={adminToken} />
       <button className="btn-primary full-action" onClick={handleSaveSettings}>Guardar ajustes</button>
 
       <BackupsPanel adminToken={adminToken} refreshCatalog={refreshCatalog} showToast={showToast} />
