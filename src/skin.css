@@ -261,3 +261,21 @@ header.hero{padding:16px 24px 14px;border-bottom:1px solid var(--border);backgro
   .pie{padding:26px 16px 0;margin-top:34px}
   .pie-inner{grid-template-columns:1fr;gap:20px}
 }
+
+/* --- Tarjetas parejas ---------------------------------------------------
+   Los botones de cada tarjeta quedaban a distinta altura dentro de la misma
+   fila, porque unos productos traen garantia, otros aviso de variantes y otros
+   nada. La rejilla ya estira todas las tarjetas de una fila a la misma altura;
+   lo que faltaba era anclar las piezas:
+
+   - el nombre ocupa siempre tres lineas (y se corta ahi si es mas largo), asi
+     que todos los precios arrancan a la misma altura;
+   - el bloque de botones se empuja al fondo, asi que quedan alineados aunque
+     encima haya una linea de garantia o dos.
+
+   Tres lineas y no dos porque los nombres ahora llevan las specs dentro
+   ("Laptop Dell Latitude E7450 Core i7 5ta Gen – 16GB RAM 120GB SSD") y con dos
+   se perdia justo la parte que decide la compra. */
+.card-body{display:flex;flex-direction:column;flex:1}
+.card-name{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:calc(3em * 1.35)}
+.card-actions{margin-top:auto;padding-top:10px}
