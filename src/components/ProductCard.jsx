@@ -20,7 +20,7 @@ export default function ProductCard({ product, settings, onOpenDetail, onAddCart
         <div className="card-name">{product.name}</div>
         {product.description && <div className="card-desc">{product.description}</div>}
         <div className="card-price mono">{conVariantes && <span className="price-from">desde </span>}<span className="currency">{settings.currency}</span>{getMinPrice(product).toLocaleString('es-DO')}</div>
-        {/* PROTOTIPO D: la garantia va debajo del precio, en gris y sin gritar. Es
+        {/* La garantia va debajo del precio, en gris y sin gritar. Es
             la linea que en Data Import ocupa "Impuestos incluidos": una condicion
             de compra, no un adorno. Vendiendo equipos usados, es LA condicion. */}
         {product.warranty && <div className="card-warranty">Garantía: {product.warranty}</div>}

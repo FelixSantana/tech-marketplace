@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Header from './components/Header';
 import CategoryChips from './components/CategoryChips';
-import TopBar from './components/TopBar';                 // PROTOTIPO D
-import TrustBadges from './components/TrustBadges';       // PROTOTIPO D
-import StoreFooter from './components/StoreFooter';       // PROTOTIPO D
+import TopBar from './components/TopBar';
+import TrustBadges from './components/TrustBadges';
+import StoreFooter from './components/StoreFooter';
 import ProductGrid from './components/ProductGrid';
 import ProductDetail from './components/ProductDetail';
 import CartModal from './components/CartModal';
@@ -20,7 +20,7 @@ import { buscarPorSlug, rutaProducto } from './lib/rutas';
 import { registrarEvento } from './lib/eventos';
 import './styles.css';
 import './admin-overrides.css';
-import './skin.css';   // PROTOTIPO: piel estetica A, se carga al final para ganar por orden
+import './skin.css';   // capa estetica de la tienda; va al final para ganar por orden
 
 export default function App() {
   const { settings, products, categories, setCategories, reservas, loading, loadError, fetchCatalog, saveCatalog } = useCatalog();
@@ -28,7 +28,7 @@ export default function App() {
   const disponibles = useMemo(() => netearApartados(products, reservas), [products, reservas]);
   const { message, visible, showToast } = useToast();
   const { cart, addToCart, updateCartQty, removeFromCart, clearCart, cartCount } = useCart(disponibles, showToast);
-  // PROTOTIPO D: el total va en la cabecera, asi que hay que calcularlo aqui.
+  // El total va en la cabecera, asi que hay que calcularlo aqui.
   // Con variante elegida manda el precio de esa variante; sin ella, el del producto.
   const cartTotal = useMemo(() => cart.reduce((suma, ci) => {
     const p = disponibles.find((x) => x.id === ci.productId);

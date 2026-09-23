@@ -1,6 +1,6 @@
-import { NEGOCIO } from '../proto-negocio';
+import { NEGOCIO } from '../lib/negocio';
 
-// PROTOTIPO D — los tres sellos. Ninguna de las tiendas grandes comunica bien
+// Los tres sellos. Ninguna de las tiendas grandes comunica bien
 // el estado de un equipo usado, y es exactamente lo que frena al comprador de
 // segunda mano. Aqui va arriba de la rejilla, donde se lee antes de mirar precios.
 export default function TrustBadges() {

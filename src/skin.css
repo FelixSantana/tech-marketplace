@@ -1,9 +1,10 @@
 /* ============================================================================
-   PROTOTIPO ESTETICO A — "retail claro"
+   TIENDA — capa 1: base clara
    ----------------------------------------------------------------------------
-   No es una rama para mergear tal cual: es una piel encima del CSS existente
-   para poder VER la direccion antes de decidir. Por eso vive en un archivo
-   aparte y se carga al final, en vez de reescribir styles.css.
+   Este archivo se carga DESPUES de styles.css y admin-overrides.css, y gana por
+   orden. Nacio como prototipo para comparar tres direcciones esteticas sin tocar
+   el CSS viejo; se quedo asi al adoptarse porque separa bien "como se ve la
+   tienda" de "como funcionan los componentes".
 
    Apuesta: la tienda vende equipos de segunda mano y servicios. Ahi la
    confianza es el argumento de venta, y el fondo claro muestra el producto tal
@@ -126,11 +127,11 @@ footer{color:var(--text-muted)}
 }
 
 /* ============================================================================
-   PROTOTIPO D — "tienda dominicana"
+   TIENDA — capa 2: confianza
    ----------------------------------------------------------------------------
-   Parte de la piel A (claro y limpio) y le suma lo que hacen Cecomsa, Data
-   Import y Omega Tech, que es lo que hace que un sitio se lea como negocio y no
-   como el catalogo de alguien:
+   Sobre la base clara, lo que hacen Cecomsa, Data Import y Omega Tech —las tres
+   tiendas de tecnologia del pais— y que hace que un sitio se lea como negocio y
+   no como el catalogo de alguien:
 
    barra superior con telefono y horario · buscador en la cabecera · carrito con
    su total a la vista · barra de categorias en el color de la casa · contador de

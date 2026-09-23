@@ -11,9 +11,9 @@ export default function Header({ settings, theme, onToggleTheme, searchTerm, set
             </div>
           </div>
 
-          {/* PROTOTIPO D: el buscador sube a la cabecera, como en las tres tiendas
-              dominicanas que se miraron. Es lo que mas se usa y estaba una fila
-              mas abajo, compitiendo con las categorias. */}
+          {/* El buscador vive en la cabecera, como en las tres tiendas dominicanas
+              que se miraron: es lo que mas se usa, y estaba una fila mas abajo
+              compitiendo con las categorias. */}
           <div className="search-box header-search">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
             <input type="text" placeholder="Buscar producto..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} aria-label="Buscar producto" />

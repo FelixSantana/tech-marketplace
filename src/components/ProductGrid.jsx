@@ -3,7 +3,7 @@ import ProductCard from './ProductCard';
 import { coincideBusqueda } from '../lib/texto';
 import { getMinPrice } from '../hooks/useCatalog';
 
-// PROTOTIPO D: ordenar por precio y decir cuantos resultados hay. Data Import
+// Ordenar por precio y decir cuantos resultados hay. Data Import
 // tiene las dos cosas; en un catalogo de 23 productos, donde el cliente compara
 // equipos parecidos, "de menor a mayor" es el filtro que de verdad se usa.
 const ORDENES = {
