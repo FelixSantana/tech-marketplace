@@ -1,8 +1,18 @@
 import { useState, useCallback } from 'react';
+import { tokenVencido } from '../lib/token';
 
 const AUTH_API = '/api/auth';
 const TOKEN_KEY = 'admin_token';
-function readToken() { try { return localStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; } }
+// Una sesion vencida se tira al arrancar en vez de arrastrarla. Antes el panel abria
+// igual y se portaba con normalidad hasta que una accion fallaba con 401, asi que el
+// dueño creia tener sesion cuando no la tenia.
+function readToken() {
+  try {
+    const guardado = localStorage.getItem(TOKEN_KEY) || '';
+    if (guardado && tokenVencido(guardado)) { localStorage.removeItem(TOKEN_KEY); return ''; }
+    return guardado;
+  } catch { return ''; }
+}
 
 export function useAuth() {
   const [adminToken, setAdminTokenState] = useState(readToken);

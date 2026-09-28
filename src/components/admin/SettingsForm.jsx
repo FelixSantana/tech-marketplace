@@ -6,6 +6,7 @@ import CouponsForm from './CouponsForm';
 import BackupsPanel from './BackupsPanel';
 import { cuponesDeAjustes } from '../../lib/cupones';
 import { ajustesDeEnvio } from '../../lib/envio';
+import { diasQueLeQuedan } from '../../lib/token';
 
 export default function SettingsForm({ settings, onSaveSettings, authRequest, adminToken, setAdminToken, refreshCatalog, onLogout, showToast }) {
   const [storeName, setStoreName] = useState(settings.storeName);
@@ -20,6 +21,7 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
   const [newPassword, setNewPassword] = useState('');
   const [savingAccess, setSavingAccess] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const diasRestantes = diasQueLeQuedan(adminToken);
   const uid = useId();
 
   const currentLogo = pendingLogo !== undefined ? pendingLogo : settings.logo;
@@ -113,7 +115,7 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
         <div className="token-box">
           <div>
             <strong>Token de sesión</strong>
-            <span>Solo para los scripts de mantenimiento, en la terminal de tu computadora. Quien lo tenga puede cambiar precios y leer los datos de tus clientes sin saber tu contraseña: no lo pegues en chats ni en capturas. Caduca a los 7 días.</span>
+            <span>Solo para los scripts de mantenimiento, en la terminal de tu computadora. Quien lo tenga puede cambiar precios y leer los datos de tus clientes sin saber tu contraseña: no lo pegues en chats ni en capturas.{diasRestantes !== null && ` Esta sesión vence ${diasRestantes <= 1 ? 'hoy' : `en ${diasRestantes} días`}.`}</span>
           </div>
           <button type="button" className="btn-secondary" onClick={copiarToken}>{copiado ? 'Copiado ✓' : 'Copiar token'}</button>
         </div>
