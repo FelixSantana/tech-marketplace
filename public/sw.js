@@ -6,4 +6,20 @@
 // la red igual, porque el catalogo y el stock vienen del servidor en cada visita.
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
-self.addEventListener('fetch', (e) => { e.respondWith(fetch(e.request)); });
+
+// Solo se toca lo que sale de este mismo dominio.
+//
+// La version anterior reemitia TODA peticion con fetch(), incluidas las de Google Fonts. Un
+// fetch hecho desde el worker ya no cuenta como carga de hoja de estilo sino como conexion, y
+// nuestra politica de contenido permite conectar solo a 'self': el navegador bloqueaba la
+// peticion, las tipografias no cargaban y la tienda se veia con la fuente del sistema. Solo
+// pasaba a partir de la segunda visita, cuando el worker ya controla la pagina, que es
+// justo por lo que no salto al desplegar.
+//
+// Salir sin llamar a respondWith deja que el navegador haga la peticion como siempre, sin
+// pasar por el worker. El manejador sigue existiendo, que es lo unico que Chrome pide.
+self.addEventListener('fetch', (e) => {
+  const url = new URL(e.request.url);
+  if (url.origin !== self.location.origin) return;
+  e.respondWith(fetch(e.request));
+});
