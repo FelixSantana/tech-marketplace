@@ -19,6 +19,7 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [savingAccess, setSavingAccess] = useState(false);
+  const [copiado, setCopiado] = useState(false);
   const uid = useId();
 
   const currentLogo = pendingLogo !== undefined ? pendingLogo : settings.logo;
@@ -55,6 +56,18 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
     const ok = await onSaveSettings({ cupones: cuponesLimpios, storeName: storeName.trim() || 'Synaptic Tech', tagline: tagline.trim(), whatsapp: whatsapp.trim(), currency: currency.trim() || 'RD$', envio: envioLimpio, ...(pendingLogo !== undefined ? { logo: pendingLogo || '' } : {}) });
     if (ok) { showToast('Ajustes guardados'); setPendingLogo(undefined); }
     else showToast('No se pudieron guardar los ajustes. Verifica tu sesión.');
+  };
+
+  // El token de sesion hace falta para los scripts de mantenimiento del catalogo. Sacarlo a
+  // mano obligaba a abrir la consola del navegador, y ahi Chrome avisa —con razon— de que pegar
+  // codigo que uno no entiende es como darle las llaves a un desconocido. Un boton evita el viaje.
+  const copiarToken = async () => {
+    try {
+      await navigator.clipboard.writeText(adminToken || '');
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 4000);
+      showToast('Token copiado. Pégalo solo en tu terminal.');
+    } catch { showToast('No se pudo copiar. Revisa los permisos del navegador.'); }
   };
 
   const handleSaveCreds = async () => {
@@ -95,7 +108,15 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
         <div className="field email-field"><label htmlFor={`${uid}-newemail`}>Nuevo correo electrónico</label><div className="input-with-icon"><span>✉</span><input id={`${uid}-newemail`} type="email" placeholder="nuevo@correo.com" autoComplete="username" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} /></div><div className="hint">Déjalo vacío si solo quieres cambiar la contraseña.</div></div>
         <div className="field"><label htmlFor={`${uid}-newpass`}>Nueva contraseña</label><input id={`${uid}-newpass`} type="password" placeholder="Mínimo 6 caracteres" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} /></div>
         <button className="btn-primary full-action" onClick={handleSaveCreds} disabled={savingAccess}>{savingAccess ? 'Actualizando…' : 'Actualizar acceso'}</button>
-        <div className="access-note">💡 Al cambiar el acceso, tu sesión se actualizará automáticamente.</div>
+        <div className="access-note">💡 Al cambiar la contraseña se cierran todas las sesiones abiertas; la de este navegador se renueva sola.</div>
+
+        <div className="token-box">
+          <div>
+            <strong>Token de sesión</strong>
+            <span>Solo para los scripts de mantenimiento, en la terminal de tu computadora. Quien lo tenga puede cambiar precios y leer los datos de tus clientes sin saber tu contraseña: no lo pegues en chats ni en capturas. Caduca a los 7 días.</span>
+          </div>
+          <button type="button" className="btn-secondary" onClick={copiarToken}>{copiado ? 'Copiado ✓' : 'Copiar token'}</button>
+        </div>
       </div>
       <button className="btn-secondary logout-action" onClick={onLogout}>Cerrar sesión</button>
     </div>

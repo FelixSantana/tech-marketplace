@@ -208,3 +208,9 @@
 .form-actions{display:flex;align-items:stretch;gap:10px;margin-top:16px;justify-content:flex-end}
 .form-actions>button{width:auto;margin-top:0}
 .cupon-caja button{width:auto}
+
+/* --- Token de sesion para los scripts de mantenimiento --- */
+.token-box{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-top:12px;padding:12px 14px;border:1px solid var(--border);border-radius:11px;background:var(--bg-elev)}
+.token-box strong{display:block;font-size:13px}
+.token-box span{display:block;font-size:11px;color:var(--text-muted);line-height:1.45;margin-top:3px;max-width:56ch}
+.token-box button{margin:0;flex-shrink:0;width:auto}

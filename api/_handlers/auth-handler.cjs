@@ -96,6 +96,13 @@ module.exports = async function handler(req, res) {
         const newSalt = crypto.randomBytes(16).toString('hex');
         admin.salt = newSalt;
         admin.hash = hashPassword(requestedPassword, newSalt);
+        // Cambiar la contraseña tiene que echar a cualquiera que tenga una sesion
+        // abierta: si no se rota el secreto con el que se firman los tokens, un token
+        // filtrado sigue entrando hasta que caduque solo, y cambiar la contraseña da
+        // una sensacion de seguridad que no es cierta. Al rotarlo mueren TODAS las
+        // sesiones, incluida la de este navegador, por eso justo debajo se devuelve
+        // un token nuevo y quien hizo el cambio no nota nada.
+        admin.secret = crypto.randomBytes(32).toString('hex');
       }
       await kvSet(AUTH_KEY, admin);
       const newToken = signToken({ email: admin.email, exp: Date.now() + TOKEN_TTL_MS }, admin.secret);
