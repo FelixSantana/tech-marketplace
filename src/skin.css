@@ -317,3 +317,8 @@ header.hero{padding:16px 24px 14px;border-bottom:1px solid var(--border);backgro
 }
 .theme-toggle:focus-visible,.header-cart:focus-visible,.admin-settings-fab:focus-visible,.icon-btn:focus-visible{outline-offset:3px}
 .chip:focus-visible{outline-color:#fff;outline-offset:-4px}   /* sobre la barra morada, el morado no se ve */
+
+/* El icono del sello, con contraste suficiente para leerse: el fondo tenue y el trazo en el
+   color pleno de la marca, no en una version aguada de el. */
+.sello-icono{background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent);display:grid;place-items:center}
+.sello-icono svg{display:block}

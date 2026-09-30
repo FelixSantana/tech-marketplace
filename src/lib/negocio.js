@@ -17,10 +17,13 @@ export const NEGOCIO = {
   correo: '',
   // Lo que las tiendas grandes del pais no comunican y aqui si se puede decir,
   // porque vendiendo equipos usados es justo lo que el cliente teme.
+  // El icono se nombra, no se escribe: los glifos unicode (⛨, ⛟) los dibuja cada sistema a su
+  // manera y en Windows salian como cajas palidas que no se leian. El dibujo vive en el
+  // componente, en SVG, que se ve igual en todas partes.
   sellos: [
-    { icono: '✓', titulo: 'Equipos probados', nota: 'Cada equipo se revisa antes de publicarse' },
-    { icono: '⛨', titulo: 'Garantía escrita', nota: 'La garantía de cada producto aparece en su ficha' },
-    { icono: '⛟', titulo: 'Entrega coordinada', nota: 'Acordamos entrega o retiro por WhatsApp' },
+    { icono: 'probado', titulo: 'Equipos probados', nota: 'Cada equipo se revisa antes de publicarse' },
+    { icono: 'garantia', titulo: 'Garantía escrita', nota: 'La garantía de cada producto aparece en su ficha' },
+    { icono: 'entrega', titulo: 'Entrega coordinada', nota: 'Acordamos entrega o retiro por WhatsApp' },
   ],
   pagos: ['Efectivo', 'Transferencia', 'Depósito bancario'],
 };
