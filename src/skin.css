@@ -279,3 +279,41 @@ header.hero{padding:16px 24px 14px;border-bottom:1px solid var(--border);backgro
 .card-body{display:flex;flex-direction:column;flex:1}
 .card-name{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;min-height:calc(3em * 1.35)}
 .card-actions{margin-top:auto;padding-top:10px}
+
+/* --- El boton del panel, donde no estorbe --------------------------------
+   Estaba fijo arriba a la derecha, de cuando la cabecera era solo la marca. Con
+   la cabecera nueva se montaba encima de la barra superior y del interruptor de
+   tema. Baja a la esquina inferior derecha, que quedo libre cuando el carrito
+   subio a la cabecera. Su sombra negra al 38% venia del tema oscuro: en claro
+   parecia un sello pegado sobre el papel. */
+.admin-settings-fab{
+  top:auto!important; bottom:20px; right:20px;
+  width:46px!important; height:46px!important;
+  background:var(--surface)!important;
+  border:1px solid var(--border)!important;
+  box-shadow:0 6px 18px rgba(16,24,40,.14)!important;
+}
+.admin-settings-fab svg{color:var(--text-muted)}
+.admin-settings-fab:hover{
+  border-color:var(--accent)!important;
+  box-shadow:0 8px 22px rgba(109,75,255,.22)!important;
+  transform:translateY(-2px) scale(1.03);
+}
+.admin-settings-fab:hover svg{color:var(--accent);filter:none}
+
+/* --- Foco visible, pero nuestro ------------------------------------------
+   El proyecto no definia ningun estilo de foco, asi que cada navegador dibujaba
+   el suyo: en el tema claro, un rectangulo negro sobre botones redondos.
+   Quitarlo no es opcion —quien navega con teclado se queda sin saber donde
+   esta—, asi que se le da forma: un aro del color de la casa, separado del
+   borde, que sigue la curva de cada control.
+
+   :focus-visible y no :focus, para que el aro salga al navegar con teclado y no
+   cada vez que alguien pulsa un boton con el raton. */
+:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+  border-radius:inherit;
+}
+.theme-toggle:focus-visible,.header-cart:focus-visible,.admin-settings-fab:focus-visible,.icon-btn:focus-visible{outline-offset:3px}
+.chip:focus-visible{outline-color:#fff;outline-offset:-4px}   /* sobre la barra morada, el morado no se ve */
