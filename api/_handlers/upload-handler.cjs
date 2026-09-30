@@ -60,6 +60,10 @@ module.exports = async function handler(req, res) {
     const message = MENSAJES[e.message];
     if (message) return res.status(400).json({ error: e.message, message });
     console.error('upload error', e);
-    return res.status(500).json({ error: 'SERVER_ERROR', message: 'No se pudo subir la imagen.' });
+    // A este punto solo se llega con sesion de admin, asi que el detalle va en la respuesta.
+    // Sin el, un fallo del almacen era un "no se pudo" a ciegas: habia que abrir los registros
+    // de Vercel para enterarse de si faltaba una credencial, si el almacen no existia o si era
+    // un problema de red. El dueño ve el motivo y puede actuar.
+    return res.status(500).json({ error: 'SERVER_ERROR', message: 'No se pudo subir la imagen.', detalle: String((e && e.message) || e).slice(0, 300) });
   }
 };
