@@ -1,7 +1,7 @@
 const { put, del } = require('@vercel/blob');
 const { kvGet } = require('../_lib/kv.cjs');
 const { AUTH_KEY, verifyToken, extractBearer } = require('../_lib/auth.cjs');
-const { parseDataUrl, buildPathname, blobConfigured } = require('../_lib/upload-logic.cjs');
+const { parseDataUrl, buildPathname, blobConfigured, blobToken } = require('../_lib/upload-logic.cjs');
 const { urlsDeRespaldos } = require('../_lib/backup-logic.cjs');
 const BACKUP_KEY = 'synaptic_catalog_bak';
 
@@ -43,7 +43,7 @@ module.exports = async function handler(req, res) {
       let borradas = 0;
       for (const url of urls) {
         // Una a una: si una URL no pertenece al almacen, no debe impedir borrar las demas.
-        try { await del(url); borradas += 1; } catch (e) { console.error('no se pudo borrar', url, e && e.message); }
+        try { await del(url, { token: blobToken() }); borradas += 1; } catch (e) { console.error('no se pudo borrar', url, e && e.message); }
       }
       return res.status(200).json({ ok: true, borradas, conservadas: pedidas.length - urls.length });
     }
@@ -53,6 +53,7 @@ module.exports = async function handler(req, res) {
       access: 'public',
       contentType: mime,
       addRandomSuffix: false,
+      token: blobToken(),
     });
     return res.status(201).json({ ok: true, url: blob.url });
   } catch (e) {

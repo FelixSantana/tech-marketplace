@@ -28,6 +28,20 @@ function buildPathname(ext, prefix = 'productos') {
   return `${prefix}/${unico}.${ext}`;
 }
 
-function blobConfigured(env = process.env) { return Boolean(env.BLOB_READ_WRITE_TOKEN); }
+// Vercel deja elegir el prefijo de la variable al conectar un almacen de Blob: el nombre por
+// defecto es BLOB_READ_WRITE_TOKEN, pero un almacen llamado "synaptic-fotos" puede quedar como
+// SYNAPTIC_FOTOS_READ_WRITE_TOKEN. Buscar solo el nombre por defecto dejaba la tienda diciendo
+// "el almacenamiento no esta configurado" con el almacen ya creado y pagado, sin pista de por que.
+//
+// Se prefiere el nombre estandar; si no esta, sirve cualquiera que termine igual. El token se
+// lee UNA vez y se pasa explicito a las llamadas del almacen: la libreria solo mira el nombre
+// por defecto por su cuenta.
+function blobToken(env = process.env) {
+  if (env.BLOB_READ_WRITE_TOKEN) return env.BLOB_READ_WRITE_TOKEN;
+  const clave = Object.keys(env).find((k) => k.endsWith('_READ_WRITE_TOKEN') && env[k]);
+  return clave ? env[clave] : '';
+}
 
-module.exports = { parseDataUrl, buildPathname, blobConfigured, TIPOS_PERMITIDOS, MAX_BYTES };
+function blobConfigured(env = process.env) { return Boolean(blobToken(env)); }
+
+module.exports = { parseDataUrl, buildPathname, blobConfigured, blobToken, TIPOS_PERMITIDOS, MAX_BYTES };

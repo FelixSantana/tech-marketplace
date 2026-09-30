@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { parseDataUrl, buildPathname, blobConfigured, MAX_BYTES } = require('./upload-logic.cjs');
+const { parseDataUrl, buildPathname, blobConfigured, blobToken, MAX_BYTES } = require('./upload-logic.cjs');
 
 const dataUrl = (mime, bytes) => `data:${mime};base64,${Buffer.alloc(bytes, 7).toString('base64')}`;
 
@@ -62,5 +62,33 @@ describe('blobConfigured', () => {
   });
   it('es verdadero con token', () => {
     expect(blobConfigured({ BLOB_READ_WRITE_TOKEN: 'vercel_blob_rw_xxx' })).toBe(true);
+  });
+});
+
+// Vercel deja elegir el prefijo de la variable al conectar el almacen. Buscar solo el nombre por
+// defecto dejaba la tienda diciendo "no esta configurado" con el almacen ya creado.
+describe('de que variable sale el token del almacen', () => {
+  it('usa la estandar de Vercel', () => {
+    expect(blobToken({ BLOB_READ_WRITE_TOKEN: 'abc' })).toBe('abc');
+    expect(blobConfigured({ BLOB_READ_WRITE_TOKEN: 'abc' })).toBe(true);
+  });
+
+  it('acepta un almacen con prefijo propio', () => {
+    expect(blobToken({ SYNAPTIC_FOTOS_READ_WRITE_TOKEN: 'xyz' })).toBe('xyz');
+    expect(blobConfigured({ SYNAPTIC_FOTOS_READ_WRITE_TOKEN: 'xyz' })).toBe(true);
+  });
+
+  it('con las dos, manda la estandar', () => {
+    expect(blobToken({ OTRO_READ_WRITE_TOKEN: 'b', BLOB_READ_WRITE_TOKEN: 'a' })).toBe('a');
+  });
+
+  it('sin ninguna, la tienda sigue funcionando con las fotos dentro del catalogo', () => {
+    expect(blobConfigured({})).toBe(false);
+    expect(blobToken({})).toBe('');
+  });
+
+  it('una variable vacia no cuenta como configurada', () => {
+    expect(blobConfigured({ BLOB_READ_WRITE_TOKEN: '' })).toBe(false);
+    expect(blobConfigured({ ALGO_READ_WRITE_TOKEN: '' })).toBe(false);
   });
 });
