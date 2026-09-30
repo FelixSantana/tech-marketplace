@@ -28,20 +28,33 @@ function buildPathname(ext, prefix = 'productos') {
   return `${prefix}/${unico}.${ext}`;
 }
 
-// Vercel deja elegir el prefijo de la variable al conectar un almacen de Blob: el nombre por
-// defecto es BLOB_READ_WRITE_TOKEN, pero un almacen llamado "synaptic-fotos" puede quedar como
-// SYNAPTIC_FOTOS_READ_WRITE_TOKEN. Buscar solo el nombre por defecto dejaba la tienda diciendo
-// "el almacenamiento no esta configurado" con el almacen ya creado y pagado, sin pista de por que.
+// Como se autentica la tienda contra el almacen de fotos. Hay dos maneras y conviven:
 //
-// Se prefiere el nombre estandar; si no esta, sirve cualquiera que termine igual. El token se
-// lee UNA vez y se pasa explicito a las llamadas del almacen: la libreria solo mira el nombre
-// por defecto por su cuenta.
+// 1. OIDC (lo que Vercel hace hoy al conectar un almacen a un proyecto): no inyecta ningun
+//    token de lectura-escritura, sino BLOB_STORE_ID, y la funcion se identifica con la
+//    identidad del propio despliegue (VERCEL_OIDC_TOKEN). La libreria resuelve esto sola
+//    SIEMPRE QUE NO se le pase un `token`.
+// 2. Token de lectura-escritura clasico, en BLOB_READ_WRITE_TOKEN. Sigue valiendo, y hace
+//    falta para usar el almacen desde fuera de Vercel.
+//
+// El nombre de esa variable ademas no es fijo: Vercel deja elegir el prefijo al conectar el
+// almacen, asi que un almacen "synaptic-fotos" puede quedar como
+// SYNAPTIC_FOTOS_READ_WRITE_TOKEN. Mirar solo el nombre por defecto dejaba la tienda diciendo
+// "el almacenamiento no esta configurado" con el almacen creado y conectado.
 function blobToken(env = process.env) {
   if (env.BLOB_READ_WRITE_TOKEN) return env.BLOB_READ_WRITE_TOKEN;
   const clave = Object.keys(env).find((k) => k.endsWith('_READ_WRITE_TOKEN') && env[k]);
   return clave ? env[clave] : '';
 }
 
-function blobConfigured(env = process.env) { return Boolean(blobToken(env)); }
+function blobConfigured(env = process.env) { return Boolean(blobToken(env) || env.BLOB_STORE_ID); }
 
-module.exports = { parseDataUrl, buildPathname, blobConfigured, blobToken, TIPOS_PERMITIDOS, MAX_BYTES };
+// Lo que se le pasa a put() y del(). Con token, explicito, porque la libreria solo mira el
+// nombre por defecto por su cuenta. Sin token, un objeto vacio: pasarle `token: ''` la haria
+// fallar en vez de dejarla autenticarse por OIDC.
+function opcionesDeAlmacen(env = process.env) {
+  const token = blobToken(env);
+  return token ? { token } : {};
+}
+
+module.exports = { parseDataUrl, buildPathname, blobConfigured, blobToken, opcionesDeAlmacen, TIPOS_PERMITIDOS, MAX_BYTES };

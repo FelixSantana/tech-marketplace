@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { parseDataUrl, buildPathname, blobConfigured, blobToken, MAX_BYTES } = require('./upload-logic.cjs');
+const { parseDataUrl, buildPathname, blobConfigured, blobToken, opcionesDeAlmacen, MAX_BYTES } = require('./upload-logic.cjs');
 
 const dataUrl = (mime, bytes) => `data:${mime};base64,${Buffer.alloc(bytes, 7).toString('base64')}`;
 
@@ -90,5 +90,35 @@ describe('de que variable sale el token del almacen', () => {
   it('una variable vacia no cuenta como configurada', () => {
     expect(blobConfigured({ BLOB_READ_WRITE_TOKEN: '' })).toBe(false);
     expect(blobConfigured({ ALGO_READ_WRITE_TOKEN: '' })).toBe(false);
+  });
+});
+
+// Vercel ya no inyecta un token de lectura-escritura al conectar un almacen: usa OIDC, con
+// BLOB_STORE_ID y la identidad del despliegue. La tienda decia "no hay almacenamiento" con el
+// almacen creado y conectado a los tres entornos, porque solo sabia reconocer el token viejo.
+describe('autenticacion contra el almacen de fotos', () => {
+  it('OIDC: basta con el id del almacen', () => {
+    expect(blobConfigured({ BLOB_STORE_ID: 'store_abc' })).toBe(true);
+  });
+
+  it('OIDC: no se le pasa token a la libreria, o dejaria de autenticarse sola', () => {
+    expect(opcionesDeAlmacen({ BLOB_STORE_ID: 'store_abc' })).toEqual({});
+  });
+
+  it('token clasico: se pasa explicito', () => {
+    expect(opcionesDeAlmacen({ BLOB_READ_WRITE_TOKEN: 'abc' })).toEqual({ token: 'abc' });
+  });
+
+  it('token con prefijo propio: tambien', () => {
+    expect(opcionesDeAlmacen({ SYNAPTIC_FOTOS_READ_WRITE_TOKEN: 'xyz' })).toEqual({ token: 'xyz' });
+  });
+
+  it('con las dos formas, manda el token explicito', () => {
+    expect(opcionesDeAlmacen({ BLOB_STORE_ID: 's', BLOB_READ_WRITE_TOKEN: 'a' })).toEqual({ token: 'a' });
+  });
+
+  it('sin nada, la tienda sigue funcionando con las fotos dentro del catalogo', () => {
+    expect(blobConfigured({})).toBe(false);
+    expect(opcionesDeAlmacen({})).toEqual({});
   });
 });
