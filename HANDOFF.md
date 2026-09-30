@@ -210,7 +210,13 @@ Con `envio.activo` en falso el checkout se comporta como antes: la entrega se co
 
 Las fotos viejas siguen guardadas como base64 inline dentro del JSON y **se muestran igual**: el `<img>` recibe la cadena tal cual venga, sea URL o data URL. No hay migración obligatoria; el botón "Mover fotos" de la pestaña Productos las pasa al bucket cuando se quiera.
 
-Si `BLOB_READ_WRITE_TOKEN` no está configurado, `/api/upload` responde `503` y el panel vuelve a incrustar la foto como antes, avisando al usuario. Por eso desplegar sin bucket no rompe nada.
+Si no hay almacén configurado, `/api/upload` responde `503` y el panel vuelve a incrustar la foto como antes, avisando al usuario. Por eso desplegar sin bucket no rompe nada.
+
+**Cómo se autentica contra el almacén** (`api/_lib/upload-logic.cjs`) — hay dos formas y conviven:
+1. **OIDC**, que es lo que Vercel hace hoy al conectar un almacén a un proyecto: no inyecta ningún token, sino `BLOB_STORE_ID`, y la función se identifica con la identidad del propio despliegue (`VERCEL_OIDC_TOKEN`). La librería lo resuelve sola **siempre que no se le pase un `token`**.
+2. **Token de lectura-escritura** en `BLOB_READ_WRITE_TOKEN`, que sigue valiendo y hace falta para usar el almacén desde fuera de Vercel. Ojo: Vercel deja elegir el prefijo, así que puede llamarse `SYNAPTIC_FOTOS_READ_WRITE_TOKEN`; por eso se acepta cualquier variable terminada en `_READ_WRITE_TOKEN`.
+
+**El almacén tiene que ser público.** El modo de acceso se fija al crearlo y **no se puede cambiar**: en uno privado cada lectura exige autenticación, habría que servir cada foto desde una función (pagando cómputo por miniatura y perdiendo el CDN) y WhatsApp no podría leer la imagen al compartir un producto. Si alguna vez hay que rehacerlo: crear uno nuevo público, conectarlo, desconectar el viejo y **redesplegar** — una variable nueva no llega a un despliegue que ya está corriendo.
 
 `useCatalog.js` sigue rechazando guardar si el payload del catálogo supera 4.5MB — un límite que ya casi no se toca una vez migradas las fotos.
 
@@ -258,7 +264,7 @@ Variables de entorno necesarias en Vercel → Settings → Environment Variables
 - `KV_REST_API_URL` / `UPSTASH_REDIS_REST_URL`
 - `KV_REST_API_TOKEN` / `UPSTASH_REDIS_REST_TOKEN`
 - `ADMIN_RESET_SECRET` (opcional, solo si se quiere habilitar `/api/admin-reset`)
-- `BLOB_READ_WRITE_TOKEN` — lo inyecta solo Vercel al crear un store de Blob en el proyecto. Sin él, las fotos se siguen incrustando en el catálogo.
+- `BLOB_STORE_ID` — lo inyecta Vercel al conectar el store de Blob al proyecto; la autenticación va por OIDC (ver sección 5). Sin almacén, las fotos se incrustan en el catálogo como antes.
 
 ---
 
@@ -282,11 +288,18 @@ Para probar el backend en local (Vite no ejecuta `/api` por sí solo):
 
 ## 11. Pendientes / ideas para continuar
 
-- [ ] **Crear el store de Blob en Vercel y tocar "Mover fotos"** en el panel. El código está desplegado y esperando el token; hasta entonces las fotos siguen viajando dentro del catálogo y las vistas previas por producto muestran la imagen de la tienda. Lo hace el dueño.
 - [ ] **Dominio personalizado** — aún corre sobre `*.vercel.app`. Al ponerlo hay que actualizar las URLs absolutas de `index.html` y regenerar `public/og-image.jpg` si cambia el nombre o el lema.
 - [ ] **WhatsApp Business API** en vez de links `wa.me` — bloqueado por la verificación de negocio en Meta, que hace el dueño. **El aviso de pedido nuevo va aquí**: se decidió esperar a la API en vez de usar correo o Telegram, así que hoy un pedido que el cliente no llega a enviar solo se ve abriendo el panel.
 - [ ] **Cobro con enlace de pago** (AZUL ofrece Link de Pagos, 4–6% de comisión). La afiliación la hace el dueño.
 - [ ] **Comprobante fiscal electrónico (e-CF).** Consultar primero con el contador si aplica.
+
+Hechos el 2026-09-30:
+
+- [x] **Las fotos salieron del catálogo.** Store de Blob público conectado y las 30 fotos movidas: el catálogo pasó de **867 KB a 17 KB** en cada visita, y las vistas previas al compartir un producto ya muestran su foto en vez del logo de la tienda. Tres cosas costaron tiempo y conviene no repetirlas: el código exigía `BLOB_READ_WRITE_TOKEN` cuando Vercel ya autentica por OIDC; el primer store se creó **privado** y eso no se puede cambiar; y una variable nueva no llega a un despliegue viejo, hace falta redesplegar.
+- [x] **Nombres de producto con las specs dentro** — "Laptop Dell Latitude E7450 Core i7 5ta Gen – 16GB RAM 120GB SSD", el patrón con el que Data Import aparece antes en Google. Garantías normalizadas y dos productos que estaban sin categoría. Hecho con `scripts/renombrar-catalogo.mjs`.
+- [x] **Rediseño de la tienda** — ver la sección 12.
+- [x] **Cambiar la contraseña cierra las sesiones abiertas** (rota el secreto de firma).
+- [x] **El panel ya no arrastra sesiones vencidas** y Ajustes tiene botón para copiar el token.
 
 Hechos el 2026-09-18:
 
