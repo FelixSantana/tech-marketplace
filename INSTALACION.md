@@ -57,6 +57,27 @@ olvida su clave, y no caduca nunca: quien lo tenga puede borrar la cuenta de adm
 
 Ahora sí: **Deployments → Redeploy**, para que el despliegue tome las tres variables.
 
+### El dominio de la vista previa, si hace falta
+
+Normalmente **no hay que tocar nada**: el dominio que llevan `og:url`, `og:image` y `canonical`
+lo resuelve el build desde `VERCEL_PROJECT_PRODUCTION_URL`, que Vercel pone solo.
+
+La excepción es el ajuste **Settings → Environment Variables → "Enable access to System
+Environment Variables"**. Si está apagado, esa variable llega vacía y la portada sale sin vista
+previa ni canónica — en el registro del build queda el aviso `[origen-en-html] Sin dominio`. Se
+arregla encendiendo el ajuste, o poniendo la variable a mano:
+
+- `TIENDA_URL` — el dominio de la tienda, con o sin `https://` (`repuestos-lr.com.do`).
+
+Comprobación, con la tienda ya desplegada:
+
+```bash
+curl -s https://<dominio-del-cliente>/ | grep -E 'og:url|canonical'
+```
+
+Tiene que salir el dominio del cliente. Si sale el de otra tienda, el despliegue es viejo:
+redesplegar.
+
 ## 5. Crear la cuenta del cliente
 
 1. Abre `https://<proyecto>.vercel.app/admin`.
@@ -89,10 +110,11 @@ a su nombre.** Te ahorra una discusión incómoda el día que decida irse, y es 
 Mientras estos puntos sigan abiertos, una copia saldría con restos de la tienda original. Ver la
 sección 13 del `HANDOFF.md`:
 
-- `index.html` lleva `og:url` y `canonical` apuntando a `synaptic-tech-catalogo.vercel.app`. Al
-  compartir la tienda del cliente por WhatsApp, la vista previa **nombraría el dominio de
-  Synaptic**. Es el más urgente de todos.
-- `public/og-image.jpg` tiene "Synaptic Tech" dibujado encima.
+- `public/og-image.jpg` tiene "Synaptic Tech" dibujado encima. Es la imagen que sale al compartir
+  la portada, y la de respaldo al compartir un producto que todavía no tiene foto.
+- El **nombre** de la tienda sigue escrito en `index.html` (`<title>`, `og:site_name`,
+  `og:title`). El dominio ya no: ese sale del despliegue. Al compartir un **producto** el nombre
+  sí es el correcto, porque `/p/<slug>` lo lee de Ajustes al servir la página.
 - `public/manifest.webmanifest` y los iconos llevan el nombre de Synaptic: es lo que el cliente
   vería al instalar la tienda en su teléfono.
 - El color de marca está en el CSS.

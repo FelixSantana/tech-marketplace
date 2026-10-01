@@ -48,11 +48,14 @@ Las credenciales de admin viven en Redis (key `synaptic_admin`) y se crean/cambi
 
 ```
 synaptic-react/
-├── index.html                          ← plantilla HTML de Vite (fuentes Google, título)
+├── index.html                          ← plantilla HTML de Vite (fuentes Google, título, vista previa)
 ├── vercel.json                         ← buildCommand, outputDirectory, rewrite /admin
-├── vite.config.js
+├── vite.config.js                      ← plugin que resuelve el dominio de index.html al compilar
 ├── package.json                        ← OJO: "type": "module"
 ├── .gitignore
+├── scripts/
+│   ├── dominio.mjs                     ← de dónde sale el dominio absoluto de index.html
+│   └── renombrar-catalogo.mjs          ← mantenimiento: renombra productos del catálogo en vivo
 ├── public/
 │   ├── icon-180.png                    ← favicon y apple-touch-icon
 │   ├── icon-192.png / icon-512.png     ← iconos del manifiesto (instalar en el teléfono)
@@ -290,8 +293,8 @@ Para probar el backend en local (Vite no ejecuta `/api` por sí solo):
 
 ## 11. Pendientes / ideas para continuar
 
-- [ ] **Vender esto a otros clientes** — ver la sección 13. El primer muro ya cayó: los datos del negocio se editan en el panel. Quedan las URLs absolutas de `index.html`, el manifiesto, `og-image.jpg` con la marca dibujada y el color de marca, todos atados a esta tienda.
-- [ ] **Dominio personalizado** — aún corre sobre `*.vercel.app`. Al ponerlo hay que actualizar las URLs absolutas de `index.html` y regenerar `public/og-image.jpg` si cambia el nombre o el lema.
+- [ ] **Vender esto a otros clientes** — ver la sección 13. Dos muros caídos: los datos del negocio se editan en el panel, y las URLs absolutas de `index.html` salen del dominio del despliegue. Quedan el manifiesto, `og-image.jpg` con la marca dibujada, el nombre de la tienda en el `<title>` y el color de marca, atados a esta tienda.
+- [ ] **Dominio personalizado** — aún corre sobre `*.vercel.app`. Al ponerlo, las URLs absolutas de `index.html` se actualizan solas en el siguiente despliegue (Vercel pasa a dar el dominio propio en `VERCEL_PROJECT_PRODUCTION_URL`); lo que sí hay que regenerar a mano es `public/og-image.jpg` si cambia el nombre o el lema.
 - [ ] **WhatsApp Business API** en vez de links `wa.me` — bloqueado por la verificación de negocio en Meta, que hace el dueño. **El aviso de pedido nuevo va aquí**: se decidió esperar a la API en vez de usar correo o Telegram, así que hoy un pedido que el cliente no llega a enviar solo se ve abriendo el panel.
 - [ ] **Cobro con enlace de pago** (AZUL ofrece Link de Pagos, 4–6% de comisión). La afiliación la hace el dueño.
 - [ ] **Comprobante fiscal electrónico (e-CF).** Consultar primero con el contador si aplica.
@@ -360,7 +363,7 @@ La alternativa —un despliegue multi-cliente con las claves prefijadas por tena
 **Lo que sigue atado a esta tienda y hay que desmontar antes de la segunda copia:**
 
 1. ~~Datos del negocio en el código~~ — hecho, están en `settings.negocio`.
-2. **URLs absolutas de `index.html`** (`og:url`, `canonical`) — apuntan a `synaptic-tech-catalogo.vercel.app`. Deben salir del dominio del despliegue.
+2. ~~URLs absolutas de `index.html`~~ — hecho. `index.html` lleva el marcador `__ORIGEN__` donde iba el dominio, y el plugin `origen-en-html` de `vite.config.js` lo sustituye al compilar por lo que resuelva `scripts/dominio.mjs`: `TIENDA_URL` si está puesta, si no `VERCEL_PROJECT_PRODUCTION_URL` (el dominio propio del cliente, o su `*.vercel.app`), si no `VERCEL_URL`. Sin ninguna de las tres, el build **borra** esas etiquetas y avisa en el registro: una tienda sin vista previa molesta menos que una que anuncia el dominio de otra. Lo que sigue atado es el **texto**: `<title>`, `og:site_name` y `og:title` dicen "Synaptic Tech" (puntos 3 y 4 de esta lista).
 3. **`public/og-image.jpg`** lleva "Synaptic Tech" dibujado encima.
 4. **`manifest.webmanifest` e iconos** — nombre e icono de la app instalada.
 5. **El color de marca** está en el CSS; un cliente de otro rubro querrá el suyo.
