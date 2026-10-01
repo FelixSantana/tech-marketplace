@@ -168,6 +168,8 @@ Por eso **el panel nunca guarda lo que tiene en memoria**: `saveCatalog(token, c
 
 Al editar un producto, `mergeProductEdit` (`src/lib/catalogMerge.js`) decide el stock: si el admin no cambió el número respecto de cuando abrió el formulario, manda el valor fresco del servidor; si lo cambió, manda el del admin. Lo mismo por variante.
 
+**Datos del negocio** — viven dentro de `settings.negocio`: `{ rnc, direccion, horario, cobertura, correo, pagos: [] }`. Se editan desde Ajustes y se muestran en la barra superior y en el pie. `datosDeNegocio(settings)` normaliza al leer y `limpiarNegocio` recorta al guardar (`src/lib/negocio.js`). Dos reglas que las pruebas fijan: **lo vacío no se dibuja** —un RNC inventado es una afirmación falsa sobre la identidad del negocio, no texto de relleno— y **un campo vaciado a propósito no se repone** con el valor por defecto; solo el campo que nunca existió toma el valor de siempre. Los tres sellos de confianza siguen fijos en el código (`SELLOS`): son el argumento de venta de una tienda de equipos usados, y habrá que moverlos a `settings` cuando aparezca un cliente que venda otra cosa.
+
 **Entrega, envío y cupones** — viven dentro de `settings` del catálogo:
 
 ```jsonc
@@ -288,6 +290,7 @@ Para probar el backend en local (Vite no ejecuta `/api` por sí solo):
 
 ## 11. Pendientes / ideas para continuar
 
+- [ ] **Vender esto a otros clientes** — ver la sección 13. El primer muro ya cayó: los datos del negocio se editan en el panel. Quedan las URLs absolutas de `index.html`, el manifiesto, `og-image.jpg` con la marca dibujada y el color de marca, todos atados a esta tienda.
 - [ ] **Dominio personalizado** — aún corre sobre `*.vercel.app`. Al ponerlo hay que actualizar las URLs absolutas de `index.html` y regenerar `public/og-image.jpg` si cambia el nombre o el lema.
 - [ ] **WhatsApp Business API** en vez de links `wa.me` — bloqueado por la verificación de negocio en Meta, que hace el dueño. **El aviso de pedido nuevo va aquí**: se decidió esperar a la API en vez de usar correo o Telegram, así que hoy un pedido que el cliente no llega a enviar solo se ve abriendo el panel.
 - [ ] **Cobro con enlace de pago** (AZUL ofrece Link de Pagos, 4–6% de comisión). La afiliación la hace el dueño.
@@ -345,3 +348,22 @@ Hechos en la sesión del 2026-09-05:
 - **Cada cambio va por commit + push a GitHub**, no por deploy directo — así el repo queda como fuente de verdad y el historial es legible.
 - **Las imágenes van comprimidas a base64** — cuidado con el límite de 4.5MB del payload total del catálogo.
 - **El dueño (Felix) se comunica en español** y prefiere resultado mostrado (capturas, links) antes que explicaciones largas de lo que se hizo.
+
+---
+
+## 13. Si esto se vende a otros clientes
+
+La forma recomendada es **una instalación por cliente**: el mismo repositorio, un proyecto de Vercel por tienda, cada uno con su Redis, su Blob y su dominio. Vercel permite varios proyectos desde un mismo repo, así que un `git push` actualiza a todos, pero los datos viven en bases separadas y es imposible que un cliente vea los pedidos de otro.
+
+La alternativa —un despliegue multi-cliente con las claves prefijadas por tenant— suena más elegante y es una trampa aquí: obliga a tocar cada acceso a datos, cada subida de foto, el login, las métricas y el `/p/`, y un error de prefijo filtra datos entre negocios que compiten. Se plantea cuando la operación de aprovisionar a mano duela de verdad, no antes.
+
+**Lo que sigue atado a esta tienda y hay que desmontar antes de la segunda copia:**
+
+1. ~~Datos del negocio en el código~~ — hecho, están en `settings.negocio`.
+2. **URLs absolutas de `index.html`** (`og:url`, `canonical`) — apuntan a `synaptic-tech-catalogo.vercel.app`. Deben salir del dominio del despliegue.
+3. **`public/og-image.jpg`** lleva "Synaptic Tech" dibujado encima.
+4. **`manifest.webmanifest` e iconos** — nombre e icono de la app instalada.
+5. **El color de marca** está en el CSS; un cliente de otro rubro querrá el suyo.
+6. **Las claves de Redis** (`synaptic_catalog`, etc.) — con bases separadas da igual, pero confunden.
+
+**Nota de costes:** el plan Hobby de Vercel **no permite uso comercial**; en cuanto se cobre hace falta Pro, que es un coste fijo y no por cliente. Upstash y Blob se pagan por uso y una tienda pequeña cabe en lo gratuito. El coste marginal de un cliente más es casi cero: por eso conviene cobrar instalación más mensualidad de mantenimiento, y vender el servicio, no el código.
