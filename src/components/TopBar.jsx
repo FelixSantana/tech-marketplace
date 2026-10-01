@@ -1,4 +1,4 @@
-import { NEGOCIO } from '../lib/negocio';
+import { datosDeNegocio } from '../lib/negocio';
 
 // Barra superior: telefono, horario y cobertura. Es lo primero que ve quien llega
 // desconfiando, y la linea que dice "esto es un negocio". Las tres tiendas de
@@ -13,8 +13,9 @@ const telefonoVisible = (whatsapp) => {
 };
 
 export default function TopBar({ settings }) {
+  const negocio = datosDeNegocio(settings);
   const tel = telefonoVisible(settings.whatsapp);
-  if (!tel && !NEGOCIO.horario && !NEGOCIO.cobertura) return null;
+  if (!tel && !negocio.horario && !negocio.cobertura) return null;
   return (
     <div className="topbar">
       <div className="topbar-inner">
@@ -24,8 +25,8 @@ export default function TopBar({ settings }) {
             <a href={`https://wa.me/${String(settings.whatsapp).replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">{tel}</a>
           </span>
         )}
-        {NEGOCIO.horario && <span className="topbar-item"><span aria-hidden="true">◷</span>{NEGOCIO.horario}</span>}
-        {NEGOCIO.cobertura && <span className="topbar-item topbar-cobertura"><span aria-hidden="true">⛟</span>{NEGOCIO.cobertura}</span>}
+        {negocio.horario && <span className="topbar-item"><span aria-hidden="true">◷</span>{negocio.horario}</span>}
+        {negocio.cobertura && <span className="topbar-item topbar-cobertura"><span aria-hidden="true">⛟</span>{negocio.cobertura}</span>}
       </div>
     </div>
   );

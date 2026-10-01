@@ -7,6 +7,7 @@ import BackupsPanel from './BackupsPanel';
 import { cuponesDeAjustes } from '../../lib/cupones';
 import { ajustesDeEnvio } from '../../lib/envio';
 import { diasQueLeQuedan } from '../../lib/token';
+import { datosDeNegocio, limpiarNegocio } from '../../lib/negocio';
 
 export default function SettingsForm({ settings, onSaveSettings, authRequest, adminToken, setAdminToken, refreshCatalog, onLogout, showToast }) {
   const [storeName, setStoreName] = useState(settings.storeName);
@@ -15,6 +16,9 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
   const [currency, setCurrency] = useState(settings.currency);
   const [envio, setEnvio] = useState(() => ajustesDeEnvio(settings));
   const [cupones, setCupones] = useState(() => cuponesDeAjustes(settings));
+  // Las formas de pago se editan como una linea separada por comas: son tres palabras que se
+  // tocan una vez al año, y no justifican una tabla con botones de agregar y quitar.
+  const [negocio, setNegocio] = useState(() => { const n = datosDeNegocio(settings); return { ...n, pagos: n.pagos.join(', ') }; });
   const [pendingLogo, setPendingLogo] = useState(undefined);
   const [curPassword, setCurPassword] = useState('');
   const [newEmail, setNewEmail] = useState('');
@@ -55,7 +59,7 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
     if (new Set(codigos).size !== codigos.length) return showToast('Hay dos cupones con el mismo código');
     if (cupones.some((c) => !(Number(c.valor) > 0))) return showToast('Cada cupón necesita un valor mayor que cero');
     const cuponesLimpios = cupones.map((c) => ({ id: c.id, codigo: String(c.codigo).toUpperCase().trim(), tipo: c.tipo === 'monto' ? 'monto' : 'porcentaje', valor: Math.max(0, Number(c.valor) || 0), vence: c.vence || '', minimo: Math.max(0, Number(c.minimo) || 0), activo: c.activo !== false }));
-    const ok = await onSaveSettings({ cupones: cuponesLimpios, storeName: storeName.trim() || 'Synaptic Tech', tagline: tagline.trim(), whatsapp: whatsapp.trim(), currency: currency.trim() || 'RD$', envio: envioLimpio, ...(pendingLogo !== undefined ? { logo: pendingLogo || '' } : {}) });
+    const ok = await onSaveSettings({ negocio: limpiarNegocio(negocio), cupones: cuponesLimpios, storeName: storeName.trim() || 'Synaptic Tech', tagline: tagline.trim(), whatsapp: whatsapp.trim(), currency: currency.trim() || 'RD$', envio: envioLimpio, ...(pendingLogo !== undefined ? { logo: pendingLogo || '' } : {}) });
     if (ok) { showToast('Ajustes guardados'); setPendingLogo(undefined); }
     else showToast('No se pudieron guardar los ajustes. Verifica tu sesión.');
   };
@@ -96,6 +100,14 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
       <div className="field"><label htmlFor={`${uid}-tagline`}>Frase corta (tagline)</label><input id={`${uid}-tagline`} type="text" value={tagline} onChange={(e) => setTagline(e.target.value)} /></div>
       <div className="field"><label htmlFor={`${uid}-wa`}>Número de WhatsApp</label><input id={`${uid}-wa`} type="tel" placeholder="8091234567" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} /></div>
       <div className="field"><label htmlFor={`${uid}-currency`}>Moneda</label><input id={`${uid}-currency`} type="text" placeholder="RD$" value={currency} onChange={(e) => setCurrency(e.target.value)} /></div>
+      <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon">◉</span><div><h3>Datos del negocio</h3><p>Se muestran en la barra superior y en el pie. Lo que dejes vacío no se publica.</p></div></div>
+      <div className="field"><label htmlFor={`${uid}-rnc`}>RNC</label><input id={`${uid}-rnc`} type="text" placeholder="1-31-12345-6" value={negocio.rnc} onChange={(e) => setNegocio({ ...negocio, rnc: e.target.value })} /><div className="hint">Aparece en el pie. Déjalo vacío si aún no tienes o si prefieres no publicarlo.</div></div>
+      <div className="field"><label htmlFor={`${uid}-direccion`}>Dirección</label><input id={`${uid}-direccion`} type="text" placeholder="Calle, número, sector, ciudad" value={negocio.direccion} onChange={(e) => setNegocio({ ...negocio, direccion: e.target.value })} /></div>
+      <div className="field"><label htmlFor={`${uid}-horario`}>Horario de atención</label><input id={`${uid}-horario`} type="text" placeholder="Lun a Sáb · 9:00 AM a 6:00 PM" value={negocio.horario} onChange={(e) => setNegocio({ ...negocio, horario: e.target.value })} /><div className="hint">Se muestra arriba del todo, junto al teléfono.</div></div>
+      <div className="field"><label htmlFor={`${uid}-cobertura`}>Cobertura de entrega</label><input id={`${uid}-cobertura`} type="text" placeholder="Entrega en todo el país" value={negocio.cobertura} onChange={(e) => setNegocio({ ...negocio, cobertura: e.target.value })} /></div>
+      <div className="field"><label htmlFor={`${uid}-correo`}>Correo de contacto</label><input id={`${uid}-correo`} type="email" placeholder="ventas@tutienda.com" value={negocio.correo} onChange={(e) => setNegocio({ ...negocio, correo: e.target.value })} /></div>
+      <div className="field"><label htmlFor={`${uid}-pagos`}>Formas de pago</label><input id={`${uid}-pagos`} type="text" placeholder="Efectivo, Transferencia, Depósito bancario" value={negocio.pagos} onChange={(e) => setNegocio({ ...negocio, pagos: e.target.value })} /><div className="hint">Sepáralas con comas. Se listan en el pie.</div></div>
+
       <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon">⛟</span><div><h3>Entrega y envío</h3><p>Qué le pides al cliente al finalizar el pedido y cuánto cobras por llevarlo.</p></div></div>
       <ShippingForm envio={envio} setEnvio={setEnvio} currency={currency} />
       <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon">%</span><div><h3>Cupones de descuento</h3><p>Se aplican al precio de los productos, no al envío.</p></div></div>

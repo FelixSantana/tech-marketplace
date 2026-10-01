@@ -1,4 +1,4 @@
-import { NEGOCIO } from '../lib/negocio';
+import { SELLOS } from '../lib/negocio';
 
 // Los tres sellos. Ninguna de las tiendas grandes del país comunica el estado de un equipo
 // usado, y es exactamente lo que frena al comprador de segunda mano. Van arriba de la rejilla,
@@ -12,7 +12,7 @@ const ICONOS = {
 export default function TrustBadges() {
   return (
     <div className="sellos">
-      {NEGOCIO.sellos.map((s) => (
+      {SELLOS.map((s) => (
         <div className="sello" key={s.titulo}>
           <span className="sello-icono" aria-hidden="true">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
