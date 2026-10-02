@@ -22,10 +22,21 @@ function parseDataUrl(dataUrl) {
   return { buffer, mime, ext };
 }
 
+// Las carpetas del almacen. Es una lista cerrada porque el prefijo llega del cliente y acaba
+// dentro de la ruta del archivo: sin filtro, un `../` o una carpeta inventada en cada subida.
+//
+// `marca` son las imagenes derivadas del logo —la de compartir y los tres iconos—. Faltaba, y el
+// efecto era mudo: Ajustes las subia con prefijo 'marca', el servidor lo cambiaba por 'productos'
+// sin decir nada, y acababan mezcladas con las fotos de los productos.
+const PREFIJOS = ['productos', 'logo', 'marca'];
+const PREFIJO_POR_DEFECTO = 'productos';
+
+const prefijoValido = (p) => (PREFIJOS.includes(p) ? p : PREFIJO_POR_DEFECTO);
+
 // Nombre unico por subida: el bucket nunca sobrescribe una foto que otro producto siga usando.
-function buildPathname(ext, prefix = 'productos') {
+function buildPathname(ext, prefix) {
   const unico = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
-  return `${prefix}/${unico}.${ext}`;
+  return `${prefijoValido(prefix)}/${unico}.${ext}`;
 }
 
 // Como se autentica la tienda contra el almacen de fotos. Hay dos maneras y conviven:
@@ -57,4 +68,4 @@ function opcionesDeAlmacen(env = process.env) {
   return token ? { token } : {};
 }
 
-module.exports = { parseDataUrl, buildPathname, blobConfigured, blobToken, opcionesDeAlmacen, TIPOS_PERMITIDOS, MAX_BYTES };
+module.exports = { parseDataUrl, buildPathname, prefijoValido, blobConfigured, blobToken, opcionesDeAlmacen, TIPOS_PERMITIDOS, MAX_BYTES, PREFIJOS };

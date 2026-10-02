@@ -49,7 +49,7 @@ module.exports = async function handler(req, res) {
     }
 
     const { buffer, mime, ext } = parseDataUrl(body && body.dataUrl);
-    const blob = await put(buildPathname(ext, body.prefix === 'logo' ? 'logo' : 'productos'), buffer, {
+    const blob = await put(buildPathname(ext, body.prefix), buffer, {
       access: 'public',
       contentType: mime,
       addRandomSuffix: false,

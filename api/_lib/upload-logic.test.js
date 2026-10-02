@@ -49,6 +49,20 @@ describe('buildPathname', () => {
     expect(buildPathname('png', 'logo')).toMatch(/^logo\/[a-z0-9_]+\.png$/);
   });
 
+  // Faltaba, y el efecto era mudo: Ajustes subia las imagenes derivadas del logo con prefijo
+  // 'marca', el servidor lo cambiaba por 'productos' sin decir nada, y acababan mezcladas con las
+  // fotos de los productos.
+  it('acepta la carpeta de las imágenes de marca', () => {
+    expect(buildPathname('png', 'marca')).toMatch(/^marca\/[a-z0-9_]+\.png$/);
+  });
+
+  // El prefijo llega del cliente y acaba dentro de la ruta del archivo.
+  it('cualquier carpeta inventada cae en productos', () => {
+    for (const malo of ['../../otro', 'facturas', '', null, undefined, 42, {}, 'LOGO']) {
+      expect(buildPathname('jpg', malo)).toMatch(/^productos\/[a-z0-9_]+\.jpg$/);
+    }
+  });
+
   it('nunca repite nombre, para no pisar una foto en uso', () => {
     const nombres = new Set(Array.from({ length: 500 }, () => buildPathname('jpg')));
     expect(nombres.size).toBe(500);
