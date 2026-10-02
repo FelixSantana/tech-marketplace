@@ -9,6 +9,10 @@
     {
       "source": "/admin",
       "destination": "/index.html"
+    },
+    {
+      "source": "/manifest.webmanifest",
+      "destination": "/api/manifiesto"
     }
   ],
   "headers": [
