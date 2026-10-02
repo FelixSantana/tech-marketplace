@@ -60,9 +60,10 @@ synaptic-react/
 │   ├── icon-180.png                    ← favicon y apple-touch-icon
 │   ├── icon-192.png / icon-512.png     ← iconos del manifiesto (instalar en el teléfono)
 │   ├── icon-maskable-512.png           ← el mismo icono sin esquinas, para el recorte de Android
-│   ├── manifest.webmanifest            ← nombre, colores e iconos de la app instalada
+│   │                                     (los tres, solo si el dueño no subió logo)
 │   ├── sw.js                           ← trabajador de servicio mínimo, sin caché (ver sección 5)
-│   └── og-image.jpg                    ← imagen de la vista previa al compartir
+│   └── og-image.jpg                    ← vista previa de respaldo, mientras no haya logo
+│                                         (el manifiesto ya NO es un archivo: lo sirve api/manifiesto)
 ├── src/
 │   ├── main.jsx                        ← entry point, monta <App/>
 │   ├── App.jsx                         ← orquesta todo: estado global, modales, rutas, importa ambos CSS
@@ -74,7 +75,8 @@ synaptic-react/
 │   │   ├── useAuth.js                  ← token de admin en localStorage + fetch a /api/auth
 │   │   └── useToast.js                 ← notificaciones tipo toast
 │   ├── lib/
-│   │   └── utils.js                    ← compressImage, buildWaLink, buildCartWaLink, EMOJI_PICKS
+│   │   ├── utils.js                    ← compressImage, buildWaLink, buildCartWaLink, EMOJI_PICKS
+│   │   └── marca.js                    ← deriva del logo la imagen de compartir y los tres iconos
 │   ├── components/
 │   │   ├── Header.jsx                  ← logo, nombre tienda, buscador, toggle tema
 │   │   ├── CategoryChips.jsx           ← filtro de categorías
@@ -106,6 +108,8 @@ synaptic-react/
     ├── admin-reset.mjs                 ← wrapper → _handlers/admin-reset-handler.cjs
     ├── upload.mjs                      ← wrapper → _handlers/upload-handler.cjs
     ├── producto.mjs                    ← wrapper → _handlers/producto-handler.cjs
+    ├── manifiesto.mjs                  ← wrapper → _handlers/manifiesto-handler.cjs
+    ├── og.mjs                          ← wrapper → _handlers/og-handler.cjs
     ├── evento.mjs                      ← wrapper → _handlers/evento-handler.cjs
     ├── _handlers/
     │   ├── auth-handler.cjs            ← POST: setup | login | change | status
@@ -114,6 +118,8 @@ synaptic-react/
     │   ├── admin-reset-handler.cjs     ← POST protegido por ADMIN_RESET_SECRET, borra la cuenta admin
     │   ├── upload-handler.cjs          ← POST protegido sube a Blob; DELETE borra fotos sin usar
     │   ├── producto-handler.cjs        ← sirve /p/<slug> con las etiquetas del producto
+    │   ├── manifiesto-handler.cjs      ← sirve /manifest.webmanifest desde Ajustes
+    │   ├── og-handler.cjs              ← sirve /og.jpg: la imagen derivada del logo, o la de respaldo
     │   └── evento-handler.cjs          ← POST público cuenta eventos; GET admin da el resumen
     └── _lib/
         ├── kv.cjs                      ← helper genérico para Upstash Redis REST (kvGet/kvSet/kvDel)
@@ -126,6 +132,7 @@ synaptic-react/
         ├── backup-logic.cjs            ← historial del catálogo: copiar, podar y restaurar
         ├── login-rate.cjs              ← freno escalonado a los intentos de login
         ├── producto-html.cjs           ← inyecta las etiquetas del producto en el HTML
+        ├── manifiesto.cjs              ← arma el manifiesto con el nombre y los iconos de Ajustes
         └── upload-logic.cjs            ← validación de las imágenes que se suben
 ```
 
@@ -293,7 +300,7 @@ Para probar el backend en local (Vite no ejecuta `/api` por sí solo):
 
 ## 11. Pendientes / ideas para continuar
 
-- [ ] **Vender esto a otros clientes** — ver la sección 13. Dos muros caídos: los datos del negocio se editan en el panel, y las URLs absolutas de `index.html` salen del dominio del despliegue. Quedan el manifiesto, `og-image.jpg` con la marca dibujada, el nombre de la tienda en el `<title>` y el color de marca, atados a esta tienda.
+- [ ] **Vender esto a otros clientes** — ver la sección 13. Caídos: los datos del negocio, las URLs absolutas de `index.html`, el manifiesto y las imágenes de marca, que ahora se derivan del logo que el dueño sube en Ajustes. Quedan **el nombre de la tienda** —fijo en `index.html` y como valor por defecto en nueve sitios del código— y **el color de marca**.
 - [ ] **Dominio personalizado** — aún corre sobre `*.vercel.app`. Al ponerlo, las URLs absolutas de `index.html` se actualizan solas en el siguiente despliegue (Vercel pasa a dar el dominio propio en `VERCEL_PROJECT_PRODUCTION_URL`); lo que sí hay que regenerar a mano es `public/og-image.jpg` si cambia el nombre o el lema.
 - [ ] **WhatsApp Business API** en vez de links `wa.me` — bloqueado por la verificación de negocio en Meta, que hace el dueño. **El aviso de pedido nuevo va aquí**: se decidió esperar a la API en vez de usar correo o Telegram, así que hoy un pedido que el cliente no llega a enviar solo se ve abriendo el panel.
 - [ ] **Cobro con enlace de pago** (AZUL ofrece Link de Pagos, 4–6% de comisión). La afiliación la hace el dueño.
@@ -364,9 +371,10 @@ La alternativa —un despliegue multi-cliente con las claves prefijadas por tena
 
 1. ~~Datos del negocio en el código~~ — hecho, están en `settings.negocio`.
 2. ~~URLs absolutas de `index.html`~~ — hecho. `index.html` lleva el marcador `__ORIGEN__` donde iba el dominio, y el plugin `origen-en-html` de `vite.config.js` lo sustituye al compilar por lo que resuelva `scripts/dominio.mjs`: `TIENDA_URL` si está puesta, si no `VERCEL_PROJECT_PRODUCTION_URL` (el dominio propio del cliente, o su `*.vercel.app`), si no `VERCEL_URL`. Sin ninguna de las tres, el build **borra** esas etiquetas y avisa en el registro: una tienda sin vista previa molesta menos que una que anuncia el dominio de otra. Lo que sigue atado es el **texto**: `<title>`, `og:site_name` y `og:title` dicen "Synaptic Tech" (puntos 3 y 4 de esta lista).
-3. **`public/og-image.jpg`** lleva "Synaptic Tech" dibujado encima.
-4. **`manifest.webmanifest` e iconos** — nombre e icono de la app instalada.
-5. **El color de marca** está en el CSS; un cliente de otro rubro querrá el suyo.
+3. ~~`public/og-image.jpg` lleva "Synaptic Tech" dibujado encima~~ — hecho. Al subir el logo en Ajustes, el navegador deriva la imagen de compartir (1200×630) y los tres iconos, los sube al almacén y los guarda en `settings.marca` (`src/lib/marca.js`). `og:image` apunta a `/og.jpg`, que **no es un archivo**: lo sirve `api/og`, que devuelve la imagen derivada si la hay y si no `public/og-image.jpg`. Ese rodeo hace falta porque la etiqueta se resuelve al compilar y la imagen del cliente solo se conoce al ejecutar. **Mientras el dueño no suba un logo, sigue saliendo la imagen de Synaptic.**
+4. ~~`manifest.webmanifest` e iconos~~ — hecho. Lo sirve `api/manifiesto` leyendo `settings`: el nombre, el nombre corto y la descripción salen de Ajustes, y los iconos de `settings.marca` si el dueño subió logo. El archivo estático se borró porque en Vercel el sistema de archivos tiene precedencia sobre las reescrituras y la ruta nunca habría llegado a la función.
+5. **El color de marca** está en el CSS; un cliente de otro rubro querrá el suyo. También el fondo de las imágenes derivadas (`FONDO` en `src/lib/marca.js`) y el del manifiesto están fijos en ese mismo negro: cuando el color sea configurable, los tres salen de ahí.
 6. **Las claves de Redis** (`synaptic_catalog`, etc.) — con bases separadas da igual, pero confunden.
+7. **El nombre de la tienda como valor por defecto en el código.** Cuando `settings.storeName` está vacío, nueve sitios ponen `'Synaptic Tech'` — y `catalog-handler.cjs` llega a **sembrar** ese nombre en la base de datos de una tienda recién creada. En la portada (`index.html`) el `<title>`, `og:site_name` y `og:title` también lo llevan fijo, y esos no pueden salir de Ajustes porque se resuelven al compilar; al compartir un **producto** no pasa, porque `/p/<slug>` reescribe esas etiquetas con el nombre real.
 
 **Nota de costes:** el plan Hobby de Vercel **no permite uso comercial**; en cuanto se cobre hace falta Pro, que es un coste fijo y no por cliente. Upstash y Blob se pagan por uso y una tienda pequeña cabe en lo gratuito. El coste marginal de un cliente más es casi cero: por eso conviene cobrar instalación más mensualidad de mantenimiento, y vender el servicio, no el código.

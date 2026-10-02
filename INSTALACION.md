@@ -89,7 +89,11 @@ redesplegar.
 
 Todo esto se hace desde **Ajustes**, sin tocar código:
 
-- Logo, nombre de la tienda, frase corta, número de WhatsApp y moneda.
+- Logo, nombre de la tienda, frase corta, número de WhatsApp y moneda. **Sube el logo aunque sea
+  provisional**: de él salen la imagen que se ve al compartir la tienda por WhatsApp y los iconos
+  de la aplicación instalable. Sin logo, ahí sigue saliendo la imagen de Synaptic. Ajustes enseña
+  una vista previa de cómo queda antes de guardar; si cambias el nombre de la tienda, vuelve a
+  subir el logo para que la imagen lo recoja.
 - **Datos del negocio**: RNC, dirección, horario, cobertura, correo y formas de pago.
 - **Entrega y envío**: zonas y precios, o retiro en tienda.
 - Cupones, si los quiere.
@@ -110,14 +114,11 @@ a su nombre.** Te ahorra una discusión incómoda el día que decida irse, y es 
 Mientras estos puntos sigan abiertos, una copia saldría con restos de la tienda original. Ver la
 sección 13 del `HANDOFF.md`:
 
-- `public/og-image.jpg` tiene "Synaptic Tech" dibujado encima. Es la imagen que sale al compartir
-  la portada, y la de respaldo al compartir un producto que todavía no tiene foto.
 - El **nombre** de la tienda sigue escrito en `index.html` (`<title>`, `og:site_name`,
-  `og:title`). El dominio ya no: ese sale del despliegue. Al compartir un **producto** el nombre
-  sí es el correcto, porque `/p/<slug>` lo lee de Ajustes al servir la página.
-- `public/manifest.webmanifest` y los iconos llevan el nombre de Synaptic: es lo que el cliente
-  vería al instalar la tienda en su teléfono.
-- El color de marca está en el CSS.
+  `og:title`), y es el valor por defecto en el código cuando Ajustes está vacío. El dominio ya no:
+  ese sale del despliegue. Al compartir un **producto** el nombre sí es el correcto, porque
+  `/p/<slug>` lo lee de Ajustes al servir la página.
+- El color de marca está en el CSS, y con él el fondo de las imágenes que se derivan del logo.
 
 ## Costes
 
