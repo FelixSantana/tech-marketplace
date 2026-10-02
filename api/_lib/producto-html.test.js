@@ -38,11 +38,13 @@ describe('precioDesde y stockTotal', () => {
 
 describe('imagenDe', () => {
   it('usa la foto del producto si es una URL', () => expect(imagenDe(laptop, BASE)).toBe(`${BASE}/blob/foto.jpg`));
+  // El respaldo es /og.jpg, que sirve api/og: asi un producto sin foto se comparte con la marca de
+  // SU tienda —la derivada del logo del dueño— y no con el archivo de Synaptic.
   it('cae a la imagen de la tienda si la foto esta incrustada en el catalogo', () => {
-    expect(imagenDe(conFotoIncrustada, BASE)).toBe(`${BASE}/og-image.jpg`);
+    expect(imagenDe(conFotoIncrustada, BASE)).toBe(`${BASE}/og.jpg`);
   });
   it('cae a la imagen de la tienda si el producto no tiene fotos', () => {
-    expect(imagenDe(conVariantes, BASE)).toBe(`${BASE}/og-image.jpg`);
+    expect(imagenDe(conVariantes, BASE)).toBe(`${BASE}/og.jpg`);
   });
 });
 

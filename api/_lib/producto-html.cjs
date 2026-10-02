@@ -28,11 +28,15 @@ function stockTotal(producto) {
 
 // Una foto incrustada (data:) no sirve como og:image: hay que dar una URL que el rastreador
 // pueda descargar. Mientras las fotos vivan dentro del catalogo, se usa la imagen de la tienda.
+//
+// El respaldo es /og.jpg, no el archivo /og-image.jpg: esa ruta la sirve api/og y devuelve la
+// imagen derivada del logo del dueño. Asi un producto sin foto se comparte con la marca de SU
+// tienda, no con la de Synaptic.
 function imagenDe(producto, base) {
   const fotos = Array.isArray(producto.images) ? producto.images : [];
   const idx = typeof producto.primaryImage === 'number' && producto.primaryImage < fotos.length ? producto.primaryImage : 0;
   const elegida = fotos[idx] || fotos[0] || '';
-  return /^https?:\/\//.test(elegida) ? elegida : `${base}/og-image.jpg`;
+  return /^https?:\/\//.test(elegida) ? elegida : `${base}/og.jpg`;
 }
 
 function descripcionDe(producto, settings) {

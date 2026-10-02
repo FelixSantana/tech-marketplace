@@ -1,6 +1,7 @@
 import { useId, useState } from 'react';
 import { compressImage } from '../../lib/utils';
 import { uploadImage } from '../../lib/uploadImage';
+import { derivarDeLogo, CAMPOS_DE_MARCA } from '../../lib/marca';
 import ShippingForm from './ShippingForm';
 import CouponsForm from './CouponsForm';
 import BackupsPanel from './BackupsPanel';
@@ -20,6 +21,10 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
   // tocan una vez al año, y no justifican una tabla con botones de agregar y quitar.
   const [negocio, setNegocio] = useState(() => { const n = datosDeNegocio(settings); return { ...n, pagos: n.pagos.join(', ') }; });
   const [pendingLogo, setPendingLogo] = useState(undefined);
+  // Las imagenes derivadas del logo viajan aparte del logo, con la misma convencion: `undefined`
+  // es "no se toco en esta sesion", `null` es "quitalas".
+  const [pendingMarca, setPendingMarca] = useState(undefined);
+  const [derivando, setDerivando] = useState(false);
   const [curPassword, setCurPassword] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -29,18 +34,47 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
   const uid = useId();
 
   const currentLogo = pendingLogo !== undefined ? pendingLogo : settings.logo;
+  const marcaActual = pendingMarca !== undefined ? pendingMarca : settings.marca;
+
+  // Del logo se derivan la imagen que sale al compartir la tienda (1200x630) y los tres iconos de
+  // la aplicacion instalable. Asi el cliente sube UNA imagen y no cuatro: nadie tiene a mano un
+  // archivo de 1200x630 con su logo centrado, y pedirselo deja la tienda a medio montar.
+  //
+  // Si alguna no llega al almacen se descartan las cuatro. uploadImage, cuando no puede subir,
+  // devuelve la imagen incrustada para que el panel siga funcionando; eso vale para un logo de
+  // 520px, pero meter en el catalogo una imagen de 1200x630 y tres iconos lo engordaria para todos
+  // los visitantes, y el catalogo bajo de 867 KB a 17 KB justamente sacando las fotos de ahi.
+  const subirMarca = async (file) => {
+    const derivadas = await derivarDeLogo(file, storeName.trim());
+    const subidas = await Promise.all(CAMPOS_DE_MARCA.map(async (campo) => {
+      const r = await uploadImage(derivadas[campo], adminToken, 'marca');
+      return [campo, r.error || r.incrustada ? '' : r.url];
+    }));
+    if (subidas.some(([, url]) => !url)) {
+      showToast('El logo se guardó, pero las imágenes de marca necesitan el almacén de fotos.');
+      return null;
+    }
+    return Object.fromEntries(subidas);
+  };
 
   const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
+    setDerivando(true);
     try {
       const subida = await uploadImage(await compressImage(file), adminToken, 'logo');
-      if (subida.error) { showToast(subida.error); e.target.value = ''; return; }
+      if (subida.error) { showToast(subida.error); return; }
       setPendingLogo(subida.url);
       if (subida.incrustada) showToast('El logo quedó dentro del catálogo: el almacén de imágenes no está disponible.');
+      // Se parte del archivo original, no del logo ya comprimido a 520px: la imagen de compartir
+      // mide 1200 de ancho y agrandar desde 520 se nota.
+      setPendingMarca(await subirMarca(file));
     } catch { showToast('No se pudo procesar el logo'); }
-    e.target.value = '';
+    finally { setDerivando(false); }
   };
+
+  const quitarLogo = () => { setPendingLogo(null); setPendingMarca(null); };
 
   const handleSaveSettings = async () => {
     if (!whatsapp.trim()) return showToast('El número de WhatsApp no puede estar vacío');
@@ -59,8 +93,8 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
     if (new Set(codigos).size !== codigos.length) return showToast('Hay dos cupones con el mismo código');
     if (cupones.some((c) => !(Number(c.valor) > 0))) return showToast('Cada cupón necesita un valor mayor que cero');
     const cuponesLimpios = cupones.map((c) => ({ id: c.id, codigo: String(c.codigo).toUpperCase().trim(), tipo: c.tipo === 'monto' ? 'monto' : 'porcentaje', valor: Math.max(0, Number(c.valor) || 0), vence: c.vence || '', minimo: Math.max(0, Number(c.minimo) || 0), activo: c.activo !== false }));
-    const ok = await onSaveSettings({ negocio: limpiarNegocio(negocio), cupones: cuponesLimpios, storeName: storeName.trim() || 'Synaptic Tech', tagline: tagline.trim(), whatsapp: whatsapp.trim(), currency: currency.trim() || 'RD$', envio: envioLimpio, ...(pendingLogo !== undefined ? { logo: pendingLogo || '' } : {}) });
-    if (ok) { showToast('Ajustes guardados'); setPendingLogo(undefined); }
+    const ok = await onSaveSettings({ negocio: limpiarNegocio(negocio), cupones: cuponesLimpios, storeName: storeName.trim() || 'Synaptic Tech', tagline: tagline.trim(), whatsapp: whatsapp.trim(), currency: currency.trim() || 'RD$', envio: envioLimpio, ...(pendingLogo !== undefined ? { logo: pendingLogo || '' } : {}), ...(pendingMarca !== undefined ? { marca: pendingMarca || {} } : {}) });
+    if (ok) { showToast('Ajustes guardados'); setPendingLogo(undefined); setPendingMarca(undefined); }
     else showToast('No se pudieron guardar los ajustes. Verifica tu sesión.');
   };
 
@@ -95,7 +129,19 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
   return (
     <div className="settings-form">
       <div className="form-section-title"><span className="section-icon">⚙</span><div><h3>Configuración de la tienda</h3><p>Estos datos se muestran en el catálogo y en los pedidos.</p></div></div>
-      <div className="field"><label htmlFor={`${uid}-logo`}>Logo de la tienda</label><div className="img-upload"><div className="img-preview">{currentLogo ? <img src={currentLogo} alt="Logo" /> : 'ST'}</div><label className="upload-btn">Subir logo<input id={`${uid}-logo`} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleLogoUpload} /></label>{currentLogo && <button type="button" className="icon-btn" title="Quitar logo" onClick={() => setPendingLogo(null)}>✕</button>}</div></div>
+      <div className="field"><label htmlFor={`${uid}-logo`}>Logo de la tienda</label><div className="img-upload"><div className="img-preview">{currentLogo ? <img src={currentLogo} alt="Logo" /> : 'ST'}</div><label className="upload-btn">{derivando ? 'Procesando…' : 'Subir logo'}<input id={`${uid}-logo`} type="file" accept="image/*" disabled={derivando} style={{ display: 'none' }} onChange={handleLogoUpload} /></label>{currentLogo && <button type="button" className="icon-btn" title="Quitar logo" onClick={quitarLogo}>✕</button>}</div></div>
+      {/* La vista previa existe porque lo que se comparte por WhatsApp no se puede comprobar de
+          otra forma: la imagen se dibuja en el navegador a partir del logo, y hasta que alguien la
+          mira nadie sabe si el logo quedo centrado o el nombre cabe. Aqui se ve antes de guardar. */}
+      {marcaActual && marcaActual.ogImage && (
+        <div className="field marca-preview">
+          {/* Un <span> y no un <label>: aqui no hay ningun control que etiquetar, y la revision de
+              accesibilidad dejo todas las etiquetas asociadas a su campo a proposito. */}
+          <span className="marca-preview-title">Así se verá al compartir la tienda</span>
+          <img src={marcaActual.ogImage} alt="Vista previa de la tienda al compartirla" />
+          <p className="hint">Se genera del logo. Vuelve a subirlo si cambias el nombre de la tienda.</p>
+        </div>
+      )}
       <div className="field"><label htmlFor={`${uid}-store`}>Nombre de la tienda</label><input id={`${uid}-store`} type="text" value={storeName} onChange={(e) => setStoreName(e.target.value)} /></div>
       <div className="field"><label htmlFor={`${uid}-tagline`}>Frase corta (tagline)</label><input id={`${uid}-tagline`} type="text" value={tagline} onChange={(e) => setTagline(e.target.value)} /></div>
       <div className="field"><label htmlFor={`${uid}-wa`}>Número de WhatsApp</label><input id={`${uid}-wa`} type="tel" placeholder="8091234567" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} /></div>

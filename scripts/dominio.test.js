@@ -147,7 +147,8 @@ describe('index.html', () => {
   const sinComentarios = (s) => s.replace(/<!--[\s\S]*?-->/g, '');
 
   it('compila con dominio y sin dominio', () => {
-    expect(aplicarOrigen(html, 'https://tienda.com.do')).toContain('content="https://tienda.com.do/og-image.jpg"');
+    // /og.jpg no es un archivo: lo sirve api/og con la imagen derivada del logo del dueño.
+    expect(aplicarOrigen(html, 'https://tienda.com.do')).toContain('content="https://tienda.com.do/og.jpg"');
     // Sin dominio no queda ninguna etiqueta a medio resolver (el comentario sí lo nombra).
     expect(sinComentarios(aplicarOrigen(html, ''))).not.toContain(MARCADOR);
     expect(aplicarOrigen(html, '')).not.toContain('canonical');

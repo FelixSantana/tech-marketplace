@@ -13,6 +13,10 @@
     {
       "source": "/manifest.webmanifest",
       "destination": "/api/manifiesto"
+    },
+    {
+      "source": "/og.jpg",
+      "destination": "/api/og"
     }
   ],
   "headers": [

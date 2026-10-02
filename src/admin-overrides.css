@@ -214,3 +214,9 @@
 .token-box strong{display:block;font-size:13px}
 .token-box span{display:block;font-size:11px;color:var(--text-muted);line-height:1.45;margin-top:3px;max-width:56ch}
 .token-box button{margin:0;flex-shrink:0;width:auto}
+
+/* --- Vista previa de la imagen con la que se comparte la tienda --- */
+/* Se dibuja en el navegador a partir del logo, asi que esta es la unica forma de ver como quedo
+   antes de publicarla. */
+.marca-preview-title{display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:6px;font-weight:500}
+.marca-preview img{display:block;width:100%;max-width:400px;border-radius:9px;border:1px solid var(--border)}

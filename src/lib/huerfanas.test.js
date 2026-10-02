@@ -40,4 +40,46 @@ describe('fotosQueSobran', () => {
     expect(fotosQueSobran({ products: [] }, { products: [] })).toEqual([]);
     expect(fotosQueSobran({}, {})).toEqual([]);
   });
+
+  describe('imágenes derivadas del logo', () => {
+    const conMarca = (sufijo) => ({
+      products: [],
+      settings: {
+        logo: `https://blob.example/logo${sufijo}.jpg`,
+        marca: {
+          ogImage: `https://blob.example/og${sufijo}.jpg`,
+          icon192: `https://blob.example/i192${sufijo}.png`,
+          icon512: `https://blob.example/i512${sufijo}.png`,
+          iconMaskable: `https://blob.example/imask${sufijo}.png`,
+        },
+      },
+    });
+
+    // Sin esto las derivadas no se borrarian nunca: cada cambio de logo dejaria cuatro imagenes
+    // pagandose para siempre en el almacen.
+    it('al cambiar el logo, sobran también sus cuatro derivadas', () => {
+      const sobran = fotosQueSobran(conMarca('-viejo'), conMarca('-nuevo'));
+      expect(sobran.sort()).toEqual([
+        'https://blob.example/i192-viejo.png',
+        'https://blob.example/i512-viejo.png',
+        'https://blob.example/imask-viejo.png',
+        'https://blob.example/logo-viejo.jpg',
+        'https://blob.example/og-viejo.jpg',
+      ]);
+    });
+
+    it('al quitar el logo, sobran sus derivadas', () => {
+      const sobran = fotosQueSobran(conMarca('-x'), { products: [], settings: { logo: '', marca: {} } });
+      expect(sobran.length).toBe(5);
+    });
+
+    it('no propone borrar las derivadas que siguen en uso', () => {
+      expect(fotosQueSobran(conMarca('-x'), conMarca('-x'))).toEqual([]);
+    });
+
+    it('tolera un catálogo sin el campo marca', () => {
+      expect(fotosQueSobran(cat([], C), { products: [], settings: { logo: C } })).toEqual([]);
+      expect(fotosQueSobran({ products: [], settings: { marca: null } }, { products: [], settings: {} })).toEqual([]);
+    });
+  });
 });
