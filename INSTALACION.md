@@ -57,6 +57,19 @@ olvida su clave, y no caduca nunca: quien lo tenga puede borrar la cuenta de adm
 
 Ahora sí: **Deployments → Redeploy**, para que el despliegue tome las tres variables.
 
+### Nombre de la tienda para la portada
+
+Añade también, en **Production**:
+
+- `TIENDA_NOMBRE` — el nombre del negocio, tal cual (`Repuestos La Romana`).
+
+El `<title>` y la vista previa de la **portada** se resuelven al compilar, y Ajustes vive en la
+base de datos, que solo se lee al ejecutar. Sin esta variable la portada sale como "Mi tienda", y
+el registro del build lo avisa. Al compartir un **producto** no hace falta: esa página la sirve una
+función que lee el nombre real de Ajustes.
+
+Si cambias el nombre de la tienda más adelante, cambia también esta variable y vuelve a desplegar.
+
 ### El dominio de la vista previa, si hace falta
 
 Normalmente **no hay que tocar nada**: el dominio que llevan `og:url`, `og:image` y `canonical`
@@ -89,6 +102,10 @@ redesplegar.
 
 Todo esto se hace desde **Ajustes**, sin tocar código:
 
+- **Color de marca**: el color de los botones, la barra superior, la barra de categorías y el pie.
+  Pega el hexadecimal del cliente o elígelo con el selector. Déjalo vacío para el de la plantilla.
+  El color del texto encima se calcula solo, para que se lea tanto si el color es claro como si es
+  oscuro.
 - Logo, nombre de la tienda, frase corta, número de WhatsApp y moneda. **Sube el logo aunque sea
   provisional**: de él salen la imagen que se ve al compartir la tienda por WhatsApp y los iconos
   de la aplicación instalable. Sin logo, ahí sigue saliendo la imagen de Synaptic. Ajustes enseña
@@ -111,14 +128,20 @@ a su nombre.** Te ahorra una discusión incómoda el día que decida irse, y es 
 
 ## Lo que todavía está atado a la tienda de Synaptic
 
-Mientras estos puntos sigan abiertos, una copia saldría con restos de la tienda original. Ver la
-sección 13 del `HANDOFF.md`:
+Nada que se vea. Montar una tienda nueva no toca el repositorio: todo sale de Ajustes y de las dos
+variables del proyecto en Vercel.
 
-- El **nombre** de la tienda sigue escrito en `index.html` (`<title>`, `og:site_name`,
-  `og:title`), y es el valor por defecto en el código cuando Ajustes está vacío. El dominio ya no:
-  ese sale del despliegue. Al compartir un **producto** el nombre sí es el correcto, porque
-  `/p/<slug>` lo lee de Ajustes al servir la página.
-- El color de marca está en el CSS, y con él el fondo de las imágenes que se derivan del logo.
+Lo único que queda es que las claves de Redis llevan el prefijo `synaptic_`
+(`synaptic_catalog`, `synaptic_admin`…). Como cada cliente tiene su propia base de datos, no mezcla
+nada con nadie: solo confunde al leerlo. Ver la sección 13 del `HANDOFF.md`.
+
+Dos detalles que conviene saber, y que son decisiones, no olvidos:
+
+- El fondo de la imagen con la que se comparte la tienda, y el del manifiesto, siguen en negro sea
+  cual sea el color de marca. Son superficie, no marca: una vista previa pintada del color de la
+  casa se ve peor, no mejor.
+- Si el logo del cliente es oscuro y está pensado para fondo blanco, se verá mal sobre ese negro.
+  En ese caso, pídele una versión clara del logo.
 
 ## Costes
 

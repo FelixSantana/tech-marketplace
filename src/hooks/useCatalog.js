@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react';
 import { fotosQueSobran } from '../lib/huerfanas';
 
-export const defaultSettings = { storeName: 'Synaptic Tech', tagline: 'Tecnología al alcance de tu WhatsApp', whatsapp: '', currency: 'RD$', logo: '', configured: false };
+// Lo que se enseña mientras el catalogo viaja. Sin nombre a proposito: es un instante, y poner
+// aqui el nombre de una tienda concreta lo haria parpadear en la de todas las demas.
+export const defaultSettings = { storeName: '', tagline: '', whatsapp: '', currency: 'RD$', logo: '', configured: false };
 export const defaultCategories = [
   { name: 'Laptops', emoji: '💻' }, { name: 'Celulares', emoji: '📱' }, { name: 'Accesorios', emoji: '🎧' }, { name: 'Servicios', emoji: '🛠️' },
 ];

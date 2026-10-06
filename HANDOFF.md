@@ -76,7 +76,9 @@ synaptic-react/
 │   │   └── useToast.js                 ← notificaciones tipo toast
 │   ├── lib/
 │   │   ├── utils.js                    ← compressImage, buildWaLink, buildCartWaLink, EMOJI_PICKS
-│   │   └── marca.js                    ← deriva del logo la imagen de compartir y los tres iconos
+│   │   ├── marca.js                    ← deriva del logo la imagen de compartir y los tres iconos
+│   │   ├── color.js                    ← el color de marca de Ajustes y los tonos que salen de él
+│   │   └── tienda.js                   ← el nombre por defecto mientras el dueño no ponga el suyo
 │   ├── components/
 │   │   ├── Header.jsx                  ← logo, nombre tienda, buscador, toggle tema
 │   │   ├── CategoryChips.jsx           ← filtro de categorías
@@ -133,6 +135,7 @@ synaptic-react/
         ├── login-rate.cjs              ← freno escalonado a los intentos de login
         ├── producto-html.cjs           ← inyecta las etiquetas del producto en el HTML
         ├── manifiesto.cjs              ← arma el manifiesto con el nombre y los iconos de Ajustes
+        ├── tienda.cjs                  ← el nombre por defecto, copia de src/lib/tienda.js
         └── upload-logic.cjs            ← validación de las imágenes que se suben
 ```
 
@@ -300,7 +303,7 @@ Para probar el backend en local (Vite no ejecuta `/api` por sí solo):
 
 ## 11. Pendientes / ideas para continuar
 
-- [ ] **Vender esto a otros clientes** — ver la sección 13. Caídos: los datos del negocio, las URLs absolutas de `index.html`, el manifiesto y las imágenes de marca, que ahora se derivan del logo que el dueño sube en Ajustes. Quedan **el nombre de la tienda** —fijo en `index.html` y como valor por defecto en nueve sitios del código— y **el color de marca**.
+- [x] **Vender esto a otros clientes** — ver la sección 13. Caídos los seis: datos del negocio, URLs absolutas, manifiesto, imágenes de marca, color de marca y nombre de la tienda. Solo queda el prefijo `synaptic_` de las claves de Redis, que es cosmético porque cada cliente tiene su propia base. Montar una tienda nueva ya no toca el repositorio: se hace desde Ajustes y dos variables del proyecto en Vercel (`TIENDA_NOMBRE`, y `TIENDA_URL` solo si hiciera falta).
 - [ ] **Dominio personalizado** — aún corre sobre `*.vercel.app`. Al ponerlo, las URLs absolutas de `index.html` se actualizan solas en el siguiente despliegue (Vercel pasa a dar el dominio propio en `VERCEL_PROJECT_PRODUCTION_URL`); lo que sí hay que regenerar a mano es `public/og-image.jpg` si cambia el nombre o el lema.
 - [ ] **WhatsApp Business API** en vez de links `wa.me` — bloqueado por la verificación de negocio en Meta, que hace el dueño. **El aviso de pedido nuevo va aquí**: se decidió esperar a la API en vez de usar correo o Telegram, así que hoy un pedido que el cliente no llega a enviar solo se ve abriendo el panel.
 - [ ] **Cobro con enlace de pago** (AZUL ofrece Link de Pagos, 4–6% de comisión). La afiliación la hace el dueño.
@@ -373,8 +376,12 @@ La alternativa —un despliegue multi-cliente con las claves prefijadas por tena
 2. ~~URLs absolutas de `index.html`~~ — hecho. `index.html` lleva el marcador `__ORIGEN__` donde iba el dominio, y el plugin `origen-en-html` de `vite.config.js` lo sustituye al compilar por lo que resuelva `scripts/dominio.mjs`: `TIENDA_URL` si está puesta, si no `VERCEL_PROJECT_PRODUCTION_URL` (el dominio propio del cliente, o su `*.vercel.app`), si no `VERCEL_URL`. Sin ninguna de las tres, el build **borra** esas etiquetas y avisa en el registro: una tienda sin vista previa molesta menos que una que anuncia el dominio de otra. Lo que sigue atado es el **texto**: `<title>`, `og:site_name` y `og:title` dicen "Synaptic Tech" (puntos 3 y 4 de esta lista).
 3. ~~`public/og-image.jpg` lleva "Synaptic Tech" dibujado encima~~ — hecho. Al subir el logo en Ajustes, el navegador deriva la imagen de compartir (1200×630) y los tres iconos, los sube al almacén y los guarda en `settings.marca` (`src/lib/marca.js`). `og:image` apunta a `/og.jpg`, que **no es un archivo**: lo sirve `api/og`, que devuelve la imagen derivada si la hay y si no `public/og-image.jpg`. Ese rodeo hace falta porque la etiqueta se resuelve al compilar y la imagen del cliente solo se conoce al ejecutar. **Mientras el dueño no suba un logo, sigue saliendo la imagen de Synaptic.**
 4. ~~`manifest.webmanifest` e iconos~~ — hecho. Lo sirve `api/manifiesto` leyendo `settings`: el nombre, el nombre corto y la descripción salen de Ajustes, y los iconos de `settings.marca` si el dueño subió logo. El archivo estático se borró porque en Vercel el sistema de archivos tiene precedencia sobre las reescrituras y la ruta nunca habría llegado a la función.
-5. **El color de marca** está en el CSS; un cliente de otro rubro querrá el suyo. También el fondo de las imágenes derivadas (`FONDO` en `src/lib/marca.js`) y el del manifiesto están fijos en ese mismo negro: cuando el color sea configurable, los tres salen de ahí.
+5. ~~El color de marca está en el CSS~~ — hecho. Se elige en Ajustes (`settings.colorMarca`) y `src/lib/color.js` lo aplica en caliente sobre la raíz del documento. No basta con `--accent`: el color que de verdad se ve es `--barra` (barra superior, barra de categorías y pie), que se deriva bajándole la luz, y con él el precio y el subrayado de la categoría activa. El **color del texto encima del acento** se calcula por contraste medido: con blanco fijo, un color de marca claro dejaba el botón de pedir blanco sobre blanco.
+
+   **Corrige una nota anterior de este documento:** se dijo que el fondo del manifiesto y el de las imágenes derivadas del logo saldrían del mismo color. No se hizo, a propósito: son *superficie*, no marca, y pintar una vista previa de WhatsApp de amarillo fuerte se ve peor, no mejor. Siguen en el negro de siempre.
 6. **Las claves de Redis** (`synaptic_catalog`, etc.) — con bases separadas da igual, pero confunden.
-7. **El nombre de la tienda como valor por defecto en el código.** Cuando `settings.storeName` está vacío, nueve sitios ponen `'Synaptic Tech'` — y `catalog-handler.cjs` llega a **sembrar** ese nombre en la base de datos de una tienda recién creada. En la portada (`index.html`) el `<title>`, `og:site_name` y `og:title` también lo llevan fijo, y esos no pueden salir de Ajustes porque se resuelven al compilar; al compartir un **producto** no pasa, porque `/p/<slug>` reescribe esas etiquetas con el nombre real.
+7. ~~El nombre de la tienda como valor por defecto en el código~~ — hecho. El respaldo es `'Mi tienda'`, un marcador de posición, y sale de `src/lib/tienda.js` (navegador), `api/_lib/tienda.cjs` (funciones) y `scripts/dominio.mjs` (build); una prueba comprueba que las tres copias digan lo mismo. Una tienda nueva ya **no nace con ningún nombre guardado**: `catalog-handler.cjs` sembraba `'Synaptic Tech'` en su base de datos.
+
+   En `index.html` el `<title>`, `og:site_name` y `og:title` llevan el marcador `__NOMBRE__`, que el build sustituye por la variable **`TIENDA_NOMBRE`** del proyecto en Vercel. No puede salir de Ajustes: se resuelve al compilar y Ajustes vive en la base de datos. Sin esa variable sale el marcador de posición, y el build lo avisa en su registro.
 
 **Nota de costes:** el plan Hobby de Vercel **no permite uso comercial**; en cuanto se cobre hace falta Pro, que es un coste fijo y no por cliente. Upstash y Blob se pagan por uso y una tienda pequeña cabe en lo gratuito. El coste marginal de un cliente más es casi cero: por eso conviene cobrar instalación más mensualidad de mantenimiento, y vender el servicio, no el código.

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { construirManifiesto, NOMBRE_POR_DEFECTO, ICONOS_POR_DEFECTO } from './manifiesto.cjs';
+import { construirManifiesto, ICONOS_POR_DEFECTO } from './manifiesto.cjs';
+import { NOMBRE_POR_DEFECTO } from './tienda.cjs';
 
 const MARCA_COMPLETA = {
   icon192: 'https://blob.example.com/marca/i192.png',
@@ -16,26 +17,21 @@ describe('construirManifiesto', () => {
     expect(m.description).toContain('Repuestos La Romana');
   });
 
-  // Una tienda recien instalada no tiene nombre todavia. Antes heredaba "Synaptic Tech".
+  // Una tienda recien instalada no tiene nombre todavia. Antes heredaba "Synaptic Tech"; ahora
+  // enseña el mismo marcador de posicion que el resto de la tienda, para que la aplicacion
+  // instalada y la cabecera no se llamen de dos formas distintas.
   it('una tienda sin nombre no hereda el de nadie', () => {
     for (const settings of [{}, undefined, null, { storeName: '' }, { storeName: '   ' }]) {
       const m = construirManifiesto(settings);
-      expect(m.name).toBe(NOMBRE_POR_DEFECTO);
+      expect(m.name).toBe(`${NOMBRE_POR_DEFECTO} — Catálogo`);
+      expect(m.short_name).toBe(NOMBRE_POR_DEFECTO);
       expect(JSON.stringify(m)).not.toContain('Synaptic');
     }
   });
 
-  // El sufijo " — Catálogo" sobre el nombre de respaldo daba "Catálogo — Catálogo", y la
-  // descripción "Catálogo de Catálogo".
-  it('sin nombre no se repite la palabra Catálogo', () => {
-    const m = construirManifiesto({});
-    expect(m.name).toBe('Catálogo');
-    expect(m.description).toBe('Mira los productos y haz tu pedido por WhatsApp.');
-    expect(m.description).not.toContain('Catálogo de Catálogo');
-  });
-
-  it('con lema pero sin nombre, el lema se sostiene solo', () => {
-    expect(construirManifiesto({ tagline: 'Todo para tu moto' }).description).toBe('Todo para tu moto');
+  it('con lema pero sin nombre, el lema acompaña al marcador', () => {
+    expect(construirManifiesto({ tagline: 'Todo para tu moto' }).description)
+      .toBe(`${NOMBRE_POR_DEFECTO}: Todo para tu moto`);
   });
 
   it('el lema de Ajustes se usa como descripción', () => {

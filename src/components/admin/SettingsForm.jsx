@@ -95,7 +95,7 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
     if (new Set(codigos).size !== codigos.length) return showToast('Hay dos cupones con el mismo código');
     if (cupones.some((c) => !(Number(c.valor) > 0))) return showToast('Cada cupón necesita un valor mayor que cero');
     const cuponesLimpios = cupones.map((c) => ({ id: c.id, codigo: String(c.codigo).toUpperCase().trim(), tipo: c.tipo === 'monto' ? 'monto' : 'porcentaje', valor: Math.max(0, Number(c.valor) || 0), vence: c.vence || '', minimo: Math.max(0, Number(c.minimo) || 0), activo: c.activo !== false }));
-    const ok = await onSaveSettings({ negocio: limpiarNegocio(negocio), cupones: cuponesLimpios, storeName: storeName.trim() || 'Synaptic Tech', tagline: tagline.trim(), whatsapp: whatsapp.trim(), currency: currency.trim() || 'RD$', envio: envioLimpio, colorMarca: normalizarColor(colorMarca), ...(pendingLogo !== undefined ? { logo: pendingLogo || '' } : {}), ...(pendingMarca !== undefined ? { marca: pendingMarca || {} } : {}) });
+    const ok = await onSaveSettings({ negocio: limpiarNegocio(negocio), cupones: cuponesLimpios, storeName: storeName.trim(), tagline: tagline.trim(), whatsapp: whatsapp.trim(), currency: currency.trim() || 'RD$', envio: envioLimpio, colorMarca: normalizarColor(colorMarca), ...(pendingLogo !== undefined ? { logo: pendingLogo || '' } : {}), ...(pendingMarca !== undefined ? { marca: pendingMarca || {} } : {}) });
     if (ok) { showToast('Ajustes guardados'); setPendingLogo(undefined); setPendingMarca(undefined); }
     else showToast('No se pudieron guardar los ajustes. Verifica tu sesión.');
   };

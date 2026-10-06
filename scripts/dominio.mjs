@@ -84,3 +84,36 @@ export function aplicarOrigen(html, origen) {
   }
   return trozos.join('');
 }
+
+// --- el nombre de la tienda en index.html ---
+//
+// Mismo problema que el dominio y la misma solucion, pero con una diferencia que importa: el
+// nombre SI vive en Ajustes, y aun asi aqui no sirve de nada. El titulo, og:site_name y og:title
+// de la portada se resuelven al COMPILAR, y Ajustes esta en la base de datos, que solo se lee al
+// EJECUTAR. Un rastreador que no ejecuta JavaScript —WhatsApp, y Google en la primera pasada— ve
+// lo que diga el HTML y nada mas.
+//
+// Al compartir un PRODUCTO no pasa: /p/<slug> lo sirve una funcion que reescribe esas etiquetas
+// con el nombre real. Es solo la portada la que necesita saberlo antes de tiempo.
+//
+// Por eso hay una variable de entorno. Es configuracion del proyecto en Vercel, no codigo: montar
+// la tienda de un cliente sigue sin tocar el repositorio.
+export const MARCADOR_NOMBRE = '__NOMBRE__';
+
+// El mismo marcador de posicion que usa el resto de la tienda (src/lib/tienda.js). Duplicado por
+// lo mismo: esto corre en el build, no en el navegador.
+export const NOMBRE_POR_DEFECTO = 'Mi tienda';
+
+export function resolverNombre(env = {}) {
+  return String(env.TIENDA_NOMBRE == null ? '' : env.TIENDA_NOMBRE).trim() || NOMBRE_POR_DEFECTO;
+}
+
+// El nombre lo escribe una persona en un panel de Vercel y acaba dentro de atributos HTML. Un
+// apostrofo en "Casa D'Alba" o un & en "Perez & Hijos" romperian la etiqueta sin escapar.
+const escaparHtml = (v) => String(v)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+export function aplicarNombre(html, nombre) {
+  return html.replaceAll(MARCADOR_NOMBRE, escaparHtml(nombre || NOMBRE_POR_DEFECTO));
+}

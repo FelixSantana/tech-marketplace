@@ -22,6 +22,7 @@ import { variablesDeMarca, VARIABLES } from './lib/color';
 import './styles.css';
 import './admin-overrides.css';
 import './skin.css';   // capa estetica de la tienda; va al final para ganar por orden
+import { nombreDeTienda } from './lib/tienda';
 
 export default function App() {
   const { settings, products, categories, setCategories, reservas, loading, loadError, fetchCatalog, saveCatalog } = useCatalog();
@@ -69,7 +70,7 @@ export default function App() {
   // El titulo de la pestana sigue al producto abierto. Al compartir el enlace lo pone el
   // servidor; esto lo mantiene al navegar dentro de la aplicacion.
   useEffect(() => {
-    const tienda = settings.storeName || 'Synaptic Tech';
+    const tienda = nombreDeTienda({ storeName: settings.storeName });
     const abierto = detailProductId ? products.find((p) => p.id === detailProductId) : null;
     document.title = abierto ? `${abierto.name} — ${tienda}` : `${tienda} — Catálogo`;
   }, [detailProductId, products, settings.storeName]);

@@ -1,7 +1,9 @@
 // Aviso de privacidad del checkout. Texto de partida, pensado para la Ley 172-13 de
 // Republica Dominicana: conviene que lo revise un abogado antes de darlo por definitivo.
+import { nombreDeTienda } from '../lib/tienda';
+
 export default function PrivacyNotice({ settings, onClose }) {
-  const tienda = settings.storeName || 'Synaptic Tech';
+  const tienda = nombreDeTienda(settings);
   return (
     <div className="overlay" onClick={(e) => { if (e.target.classList.contains('overlay')) onClose(); }}>
       <div className="panel privacy-panel">

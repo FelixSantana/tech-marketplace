@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom';
 import { getPrimaryImage, getStockQty, hasVariants, getVariants, getMinPrice } from '../../hooks/useCatalog';
+import { nombreDeTienda } from '../../lib/tienda';
 
 const variantStock = (v) => Math.max(0, Math.floor(Number(v?.stockQty) || 0));
 const precio = (n, currency) => `${currency} ${Number(n || 0).toLocaleString('es-DO')}`;
@@ -49,7 +50,7 @@ export default function PrintCatalog({ products, settings, modo, onClose }) {
         <header className="print-head">
           {settings.logo && <img className="print-logo" src={settings.logo} alt="" />}
           <div>
-            <h1>{settings.storeName || 'Synaptic Tech'}</h1>
+            <h1>{nombreDeTienda(settings)}</h1>
             {settings.tagline && <p>{settings.tagline}</p>}
           </div>
           <div className="print-meta">
@@ -108,7 +109,7 @@ export default function PrintCatalog({ products, settings, modo, onClose }) {
 
         <footer className="print-foot">
           {esInventario
-            ? `Documento interno · ${settings.storeName || 'Synaptic Tech'} · ${fecha}`
+            ? `Documento interno · ${nombreDeTienda(settings)} · ${fecha}`
             : `Pide por WhatsApp${settings.whatsapp ? ` al ${settings.whatsapp}` : ''} · Precios sujetos a cambio sin previo aviso · ${fecha}`}
         </footer>
       </div>

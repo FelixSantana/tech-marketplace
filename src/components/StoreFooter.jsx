@@ -1,4 +1,5 @@
 import { datosDeNegocio } from '../lib/negocio';
+import { nombreDeTienda } from '../lib/tienda';
 
 // El pie. Es la parte mas aburrida de la tienda y la que mas separa "tienda real"
 // de "catalogo de alguien": RNC, direccion, horario, como se paga y que cubre la
@@ -7,7 +8,7 @@ import { datosDeNegocio } from '../lib/negocio';
 // Cada dato vacio se calla: mejor un pie corto y cierto que uno lleno e inventado.
 export default function StoreFooter({ settings }) {
   const negocio = datosDeNegocio(settings);
-  const nombre = settings.storeName || 'Synaptic Tech';
+  const nombre = nombreDeTienda(settings);
   const hayUbicacion = negocio.direccion || negocio.horario || negocio.cobertura;
   return (
     <footer className="pie">

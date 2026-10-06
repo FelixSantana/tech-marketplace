@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Synaptic Tech — Catálogo</title>
-    <meta name="description" content="Tecnología al alcance de tu bolsillo. Mira el catálogo de Synaptic Tech y haz tu pedido por WhatsApp." />
+    <title>__NOMBRE__ — Catálogo</title>
+    <meta name="description" content="Mira el catálogo de __NOMBRE__ y haz tu pedido por WhatsApp." />
     <meta name="theme-color" content="#0a0c12" />
     <link rel="icon" type="image/png" sizes="180x180" href="/icon-180.png" />
     <link rel="apple-touch-icon" href="/icon-180.png" />
@@ -16,7 +16,7 @@
     <!-- La de Apple quedo obsoleta pero se conserva: iOS viejo solo entiende esa. -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Synaptic" />
+    <meta name="apple-mobile-web-app-title" content="__NOMBRE__" />
 
     <!-- Vista previa al compartir el enlace (WhatsApp, Facebook, Instagram, X).
          WhatsApp no ejecuta JavaScript: estas etiquetas tienen que venir en el HTML inicial,
@@ -27,16 +27,17 @@
          /og.jpg NO es un archivo: lo sirve api/og, que devuelve la imagen derivada del logo del
          dueño si subio uno, y si no la de public/og-image.jpg. Por eso la etiqueta puede ser fija
          aunque la imagen cambie.
-         OJO: el titulo, el nombre y la descripcion de aqui abajo SI son fijos y siguen diciendo
-         Synaptic Tech. No se pueden sacar de Ajustes porque esto se resuelve al compilar y el
-         nombre vive en la base de datos. Al compartir un PRODUCTO no pasa: /p/<slug> lo sirve una
-         funcion que reescribe estas etiquetas con el nombre real de la tienda. -->
+         __NOMBRE__ lo pone el build desde la variable TIENDA_NOMBRE del proyecto en Vercel. No
+         puede salir de Ajustes: esto se resuelve al compilar y Ajustes vive en la base de datos,
+         que solo se lee al ejecutar. Sin esa variable sale el marcador de posicion. Al compartir
+         un PRODUCTO no hace falta: /p/<slug> lo sirve una funcion que reescribe estas etiquetas
+         con el nombre real de la tienda. -->
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Synaptic Tech" />
+    <meta property="og:site_name" content="__NOMBRE__" />
     <meta property="og:locale" content="es_DO" />
     <meta property="og:url" content="__ORIGEN__/" />
-    <meta property="og:title" content="Synaptic Tech — Catálogo" />
-    <meta property="og:description" content="Tecnología al alcance de tu bolsillo. Mira el catálogo y haz tu pedido por WhatsApp." />
+    <meta property="og:title" content="__NOMBRE__ — Catálogo" />
+    <meta property="og:description" content="Mira el catálogo de __NOMBRE__ y haz tu pedido por WhatsApp." />
     <meta property="og:image" content="__ORIGEN__/og.jpg" />
     <meta property="og:image:secure_url" content="__ORIGEN__/og.jpg" />
     <meta property="og:image:type" content="image/jpeg" />
@@ -46,8 +47,8 @@
          la tienda, y un texto alternativo que nombre a otro negocio seria sencillamente falso. -->
     <meta property="og:image:alt" content="Logo de la tienda" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Synaptic Tech — Catálogo" />
-    <meta name="twitter:description" content="Tecnología al alcance de tu bolsillo. Mira el catálogo y haz tu pedido por WhatsApp." />
+    <meta name="twitter:title" content="__NOMBRE__ — Catálogo" />
+    <meta name="twitter:description" content="Mira el catálogo de __NOMBRE__ y haz tu pedido por WhatsApp." />
     <meta name="twitter:image" content="__ORIGEN__/og.jpg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

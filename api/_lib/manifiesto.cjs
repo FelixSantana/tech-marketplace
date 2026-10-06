@@ -13,9 +13,8 @@
 // Ajustes; cuando lo este, salen de ahi y este valor pasa a ser solo el de respaldo.
 const FONDO = '#0a0c12';
 
-// Lo que ve una tienda recien instalada, que todavia no tiene nombre puesto. Deliberadamente
-// generico: antes decia "Synaptic Tech" y la copia de un cliente arrancaba con el nombre ajeno.
-const NOMBRE_POR_DEFECTO = 'Catálogo';
+// El nombre por defecto sale de tienda.cjs, el mismo que usa el resto de la tienda: antes habia
+// dos distintos y la aplicacion instalada podia llamarse de una forma y la cabecera de otra.
 
 // Android recorta el nombre bajo el icono alrededor de los 12 caracteres. Si el nombre completo
 // no cabe se prueba con la primera palabra, que casi siempre es la que identifica al negocio
@@ -36,6 +35,8 @@ const ICONOS_POR_DEFECTO = [
   { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
   { src: '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
 ];
+
+const { nombreDeTienda } = require('./tienda.cjs');
 
 const texto = (v, max) => String(v == null ? '' : v).trim().slice(0, max);
 
@@ -60,23 +61,19 @@ function iconosDe(settings) {
   return derivados.length === 3 ? derivados : ICONOS_POR_DEFECTO;
 }
 
-// Con nombre, "Repuestos La Romana — Catálogo". Sin nombre, solo "Catálogo": pegarle el sufijo a
-// un nombre que ya era el de respaldo daba "Catálogo — Catálogo", y la descripcion "Catálogo de
-// Catálogo". Por eso se distingue el nombre que puso el dueño del que se inventa este archivo.
+// "Repuestos La Romana — Catálogo", o "Mi tienda — Catálogo" mientras el dueño no ponga el suyo.
+//
+// El caso de "sin nombre" ya no se trata aqui: nombreDeTienda() nunca devuelve vacio, asi que no
+// hay forma de llegar al "Catálogo — Catálogo" que habia que esquivar cuando este archivo tenia su
+// propio nombre por defecto.
 function construirManifiesto(settings) {
   const s = settings || {};
-  const nombre = texto(s.storeName, 60);
+  const nombre = texto(nombreDeTienda(s), 60);
   const lema = texto(s.tagline, 120);
-  const descripcion = [
-    lema && nombre && `${nombre}: ${lema}`,
-    lema && !nombre && lema,
-    !lema && nombre && `Catálogo de ${nombre}: mira los productos y haz tu pedido por WhatsApp.`,
-    'Mira los productos y haz tu pedido por WhatsApp.',
-  ].find(Boolean);
   return {
-    name: nombre ? `${nombre} — Catálogo` : NOMBRE_POR_DEFECTO,
-    short_name: nombreCorto(nombre || NOMBRE_POR_DEFECTO),
-    description: descripcion,
+    name: `${nombre} — Catálogo`,
+    short_name: nombreCorto(nombre),
+    description: lema ? `${nombre}: ${lema}` : `Catálogo de ${nombre}: mira los productos y haz tu pedido por WhatsApp.`,
     lang: 'es-DO',
     dir: 'ltr',
     start_url: '/',
@@ -89,4 +86,4 @@ function construirManifiesto(settings) {
   };
 }
 
-module.exports = { construirManifiesto, NOMBRE_POR_DEFECTO, ICONOS_POR_DEFECTO, FONDO, MAX_CORTO };
+module.exports = { construirManifiesto, ICONOS_POR_DEFECTO, FONDO, MAX_CORTO };

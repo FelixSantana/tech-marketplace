@@ -6,7 +6,9 @@ const CATALOG_KEY = 'synaptic_catalog';
 const RESERVED_KEY = 'synaptic_reservas';
 const BACKUP_KEY = 'synaptic_catalog_bak';
 const DEFAULT_DATA = {
-  settings: { storeName: 'Synaptic Tech', tagline: 'Tecnología al alcance de tu WhatsApp', whatsapp: '', currency: 'RD$', logo: '', configured: false },
+  // Una tienda nueva nace SIN nombre, no con el de otra. El vacio es lo que hace que la
+  // cabecera enseñe el marcador de posicion y el dueño sepa que le toca escribir el suyo.
+  settings: { storeName: '', tagline: '', whatsapp: '', currency: 'RD$', logo: '', configured: false },
   products: [],
   categories: [{ name: 'Laptops', emoji: '💻' }, { name: 'Celulares', emoji: '📱' }, { name: 'Accesorios', emoji: '🎧' }, { name: 'Servicios', emoji: '🛠️' }]
 };

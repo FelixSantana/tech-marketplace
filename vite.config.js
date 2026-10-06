@@ -1,9 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { resolverOrigen, aplicarOrigen } from './scripts/dominio.mjs'
+import { resolverOrigen, aplicarOrigen, resolverNombre, aplicarNombre } from './scripts/dominio.mjs'
 
-// Resuelve el dominio absoluto de index.html al compilar. El por que y el orden de las variables
-// estan explicados en scripts/dominio.mjs.
+// Resuelve al compilar lo que index.html no puede saber de otra forma: el dominio del despliegue
+// y el nombre de la tienda. El por que de cada uno esta en scripts/dominio.mjs.
 function origenEnHtml() {
   return {
     name: 'origen-en-html',
@@ -19,7 +19,13 @@ function origenEnHtml() {
           '                 La portada sale sin og:url, og:image ni canonical.',
         )
       }
-      return aplicarOrigen(html, origen)
+      if (!String(process.env.TIENDA_NOMBRE || '').trim() && process.env.VERCEL) {
+        console.warn(
+          '[origen-en-html] Sin TIENDA_NOMBRE: el titulo y la vista previa de la portada saldran\n' +
+          '                 con el marcador de posicion en vez del nombre de la tienda.',
+        )
+      }
+      return aplicarNombre(aplicarOrigen(html, origen), resolverNombre(process.env))
     },
   }
 }

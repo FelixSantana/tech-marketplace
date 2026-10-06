@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { resolverOrigen, aplicarOrigen, MARCADOR } from './dominio.mjs';
+import { resolverOrigen, aplicarOrigen, MARCADOR, resolverNombre, aplicarNombre, MARCADOR_NOMBRE, NOMBRE_POR_DEFECTO } from './dominio.mjs';
 
 describe('resolverOrigen', () => {
   // El caso que justifica todo esto: dos tiendas distintas compilando del mismo repositorio
@@ -153,5 +153,67 @@ describe('index.html', () => {
     expect(sinComentarios(aplicarOrigen(html, ''))).not.toContain(MARCADOR);
     expect(aplicarOrigen(html, '')).not.toContain('canonical');
     expect(aplicarOrigen(html, '')).not.toContain('og:url');
+  });
+});
+
+describe('resolverNombre', () => {
+  it('sale de la variable del proyecto', () => {
+    expect(resolverNombre({ TIENDA_NOMBRE: 'Repuestos La Romana' })).toBe('Repuestos La Romana');
+  });
+
+  it('limpia los espacios', () => {
+    expect(resolverNombre({ TIENDA_NOMBRE: '  Tienda Ana  ' })).toBe('Tienda Ana');
+  });
+
+  // Sin la variable no se hereda el nombre de otra tienda: sale el mismo marcador de posicion que
+  // usa el resto de la aplicacion.
+  it('sin variable, el marcador de posición', () => {
+    for (const env of [{}, undefined, { TIENDA_NOMBRE: '' }, { TIENDA_NOMBRE: '   ' }]) {
+      expect(resolverNombre(env)).toBe(NOMBRE_POR_DEFECTO);
+    }
+    expect(NOMBRE_POR_DEFECTO).not.toContain('Synaptic');
+  });
+});
+
+describe('aplicarNombre', () => {
+  it('pone el nombre en todas las etiquetas', () => {
+    const html = `<title>${MARCADOR_NOMBRE} — Catálogo</title><meta content="${MARCADOR_NOMBRE}" />`;
+    const salida = aplicarNombre(html, 'Tienda Ana');
+    expect(salida).toBe('<title>Tienda Ana — Catálogo</title><meta content="Tienda Ana" />');
+  });
+
+  // El nombre lo escribe una persona en un panel de Vercel y acaba dentro de atributos HTML.
+  it('escapa lo que rompería la etiqueta', () => {
+    expect(aplicarNombre(`<meta content="${MARCADOR_NOMBRE}" />`, 'Casa D\'Alba & Hijos "La Original"'))
+      .toBe('<meta content="Casa D&#39;Alba &amp; Hijos &quot;La Original&quot;" />');
+    expect(aplicarNombre(`<title>${MARCADOR_NOMBRE}</title>`, '<script>alert(1)</script>'))
+      .toBe('<title>&lt;script&gt;alert(1)&lt;/script&gt;</title>');
+  });
+
+  it('sin nombre usa el marcador de posición', () => {
+    expect(aplicarNombre(`<title>${MARCADOR_NOMBRE}</title>`, '')).toBe(`<title>${NOMBRE_POR_DEFECTO}</title>`);
+  });
+});
+
+describe('index.html: el nombre', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+
+  it('no lleva ningún nombre de tienda escrito a mano', () => {
+    const sinComentarios = html.replace(/<!--[\s\S]*?-->/g, '');
+    expect(sinComentarios).not.toContain('Synaptic');
+  });
+
+  it('el título y la vista previa salen del marcador', () => {
+    for (const etiqueta of ['<title>', 'og:site_name', 'og:title', 'og:description', 'twitter:title', 'name="description"']) {
+      const linea = html.split('\n').find((l) => l.includes(etiqueta));
+      expect(linea).toContain(MARCADOR_NOMBRE);
+    }
+  });
+
+  it('compila entero, con nombre y sin él', () => {
+    const conAmbos = aplicarNombre(aplicarOrigen(html, 'https://tienda.com.do'), 'Repuestos La Romana');
+    expect(conAmbos).toContain('<title>Repuestos La Romana — Catálogo</title>');
+    expect(conAmbos).toContain('content="https://tienda.com.do/og.jpg"');
+    expect(conAmbos.replace(/<!--[\s\S]*?-->/g, '')).not.toContain('__');
   });
 });

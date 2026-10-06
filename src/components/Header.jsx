@@ -1,3 +1,5 @@
+import { nombreDeTienda } from '../lib/tienda';
+
 export default function Header({ settings, theme, onToggleTheme, searchTerm, setSearchTerm, cartCount = 0, cartTotal = 0, onOpenCart }) {
   return (
     <>
@@ -6,7 +8,7 @@ export default function Header({ settings, theme, onToggleTheme, searchTerm, set
           <div className="brand">
             <div className="mark">{settings.logo ? <img src={settings.logo} alt="Logo" /> : 'ST'}</div>
             <div>
-              <div className="brand-name">{settings.storeName || 'Synaptic Tech'}</div>
+              <div className="brand-name">{nombreDeTienda(settings)}</div>
               <div className="tagline">{settings.tagline || ''}</div>
             </div>
           </div>

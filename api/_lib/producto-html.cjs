@@ -2,6 +2,8 @@
 // su foto, su nombre y su precio al compartir el enlace. WhatsApp no ejecuta JavaScript, asi
 // que esto tiene que venir resuelto desde el servidor.
 
+const { nombreDeTienda } = require('./tienda.cjs');
+
 const escapar = (v) => String(v == null ? '' : v)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -50,7 +52,7 @@ function descripcionDe(producto, settings) {
 
 function inyectarMetaProducto(html, { producto, settings, base, ruta }) {
   const url = `${base}${ruta}`;
-  const titulo = `${producto.name} — ${settings.storeName || 'Synaptic Tech'}`;
+  const titulo = `${producto.name} — ${nombreDeTienda(settings)}`;
   const descripcion = descripcionDe(producto, settings);
   const imagen = imagenDe(producto, base);
   const disponible = stockTotal(producto) > 0;
@@ -74,7 +76,7 @@ function inyectarMetaProducto(html, { producto, settings, base, ruta }) {
     `<meta name="description" content="${escapar(descripcion)}" />`,
     `<link rel="canonical" href="${escapar(url)}" />`,
     `<meta property="og:type" content="product" />`,
-    `<meta property="og:site_name" content="${escapar(settings.storeName || 'Synaptic Tech')}" />`,
+    `<meta property="og:site_name" content="${escapar(nombreDeTienda(settings))}" />`,
     `<meta property="og:locale" content="es_DO" />`,
     `<meta property="og:url" content="${escapar(url)}" />`,
     `<meta property="og:title" content="${escapar(titulo)}" />`,
