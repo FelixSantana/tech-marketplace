@@ -18,6 +18,7 @@ import { useToast } from './hooks/useToast';
 import { netearApartados } from './lib/apartados';
 import { buscarPorSlug, rutaProducto } from './lib/rutas';
 import { registrarEvento } from './lib/eventos';
+import { variablesDeMarca, VARIABLES } from './lib/color';
 import './styles.css';
 import './admin-overrides.css';
 import './skin.css';   // capa estetica de la tienda; va al final para ganar por orden
@@ -91,6 +92,18 @@ export default function App() {
   const [adminConfigured, setAdminConfigured] = useState(null);
 
   useEffect(() => { document.documentElement.setAttribute('data-theme', theme === 'light' ? 'light' : 'dark'); try { localStorage.setItem('theme', theme); } catch {} }, [theme]);
+
+  const colorMarca = settings.colorMarca;
+  // El color de marca del dueño, puesto sobre la raiz del documento. Una propiedad escrita en el
+  // elemento gana a cualquier regla de hoja de estilo, asi que con esto manda en los dos temas sin
+  // duplicar nada en el CSS. Al borrarlo en Ajustes se quitan las propiedades y vuelve a mandar el
+  // CSS de la plantilla, sin recargar.
+  useEffect(() => {
+    const raiz = document.documentElement;
+    const vars = variablesDeMarca({ colorMarca });
+    if (!vars) { VARIABLES.forEach((v) => raiz.style.removeProperty(v)); return; }
+    Object.entries(vars).forEach(([v, valor]) => raiz.style.setProperty(v, valor));
+  }, [colorMarca]);
 
   useEffect(() => { fetchCatalog(); }, [fetchCatalog]);
 

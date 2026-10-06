@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 import { compressImage } from '../../lib/utils';
 import { uploadImage } from '../../lib/uploadImage';
 import { derivarDeLogo, CAMPOS_DE_MARCA } from '../../lib/marca';
+import { normalizarColor, colorDeMarca, tintaSobre, COLOR_POR_DEFECTO } from '../../lib/color';
 import ShippingForm from './ShippingForm';
 import CouponsForm from './CouponsForm';
 import BackupsPanel from './BackupsPanel';
@@ -15,6 +16,7 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
   const [tagline, setTagline] = useState(settings.tagline);
   const [whatsapp, setWhatsapp] = useState(settings.whatsapp);
   const [currency, setCurrency] = useState(settings.currency);
+  const [colorMarca, setColorMarca] = useState(() => colorDeMarca(settings));
   const [envio, setEnvio] = useState(() => ajustesDeEnvio(settings));
   const [cupones, setCupones] = useState(() => cuponesDeAjustes(settings));
   // Las formas de pago se editan como una linea separada por comas: son tres palabras que se
@@ -93,7 +95,7 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
     if (new Set(codigos).size !== codigos.length) return showToast('Hay dos cupones con el mismo código');
     if (cupones.some((c) => !(Number(c.valor) > 0))) return showToast('Cada cupón necesita un valor mayor que cero');
     const cuponesLimpios = cupones.map((c) => ({ id: c.id, codigo: String(c.codigo).toUpperCase().trim(), tipo: c.tipo === 'monto' ? 'monto' : 'porcentaje', valor: Math.max(0, Number(c.valor) || 0), vence: c.vence || '', minimo: Math.max(0, Number(c.minimo) || 0), activo: c.activo !== false }));
-    const ok = await onSaveSettings({ negocio: limpiarNegocio(negocio), cupones: cuponesLimpios, storeName: storeName.trim() || 'Synaptic Tech', tagline: tagline.trim(), whatsapp: whatsapp.trim(), currency: currency.trim() || 'RD$', envio: envioLimpio, ...(pendingLogo !== undefined ? { logo: pendingLogo || '' } : {}), ...(pendingMarca !== undefined ? { marca: pendingMarca || {} } : {}) });
+    const ok = await onSaveSettings({ negocio: limpiarNegocio(negocio), cupones: cuponesLimpios, storeName: storeName.trim() || 'Synaptic Tech', tagline: tagline.trim(), whatsapp: whatsapp.trim(), currency: currency.trim() || 'RD$', envio: envioLimpio, colorMarca: normalizarColor(colorMarca), ...(pendingLogo !== undefined ? { logo: pendingLogo || '' } : {}), ...(pendingMarca !== undefined ? { marca: pendingMarca || {} } : {}) });
     if (ok) { showToast('Ajustes guardados'); setPendingLogo(undefined); setPendingMarca(undefined); }
     else showToast('No se pudieron guardar los ajustes. Verifica tu sesión.');
   };
@@ -146,6 +148,21 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
       <div className="field"><label htmlFor={`${uid}-tagline`}>Frase corta (tagline)</label><input id={`${uid}-tagline`} type="text" value={tagline} onChange={(e) => setTagline(e.target.value)} /></div>
       <div className="field"><label htmlFor={`${uid}-wa`}>Número de WhatsApp</label><input id={`${uid}-wa`} type="tel" placeholder="8091234567" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} /></div>
       <div className="field"><label htmlFor={`${uid}-currency`}>Moneda</label><input id={`${uid}-currency`} type="text" placeholder="RD$" value={currency} onChange={(e) => setCurrency(e.target.value)} /></div>
+      {/* El color de marca. El selector nativo del navegador solo entiende #aabbcc, asi que se le
+          pasa el normalizado y, si todavia no hay color, el de la plantilla. El campo de texto va
+          al lado porque un cliente suele traer su color escrito de su disenador, no a ojo. */}
+      <div className="field">
+        <label htmlFor={`${uid}-color`}>Color de marca</label>
+        <div className="color-pick">
+          <input id={`${uid}-color`} type="color" value={colorDeMarca({ colorMarca }) || COLOR_POR_DEFECTO} onChange={(e) => setColorMarca(e.target.value)} />
+          <input type="text" aria-label="Color de marca en hexadecimal" placeholder={COLOR_POR_DEFECTO} value={colorMarca} onChange={(e) => setColorMarca(e.target.value)} />
+          {colorMarca && <button type="button" className="icon-btn" title="Volver al color de siempre" onClick={() => setColorMarca('')}>✕</button>}
+        </div>
+        <p className="hint">
+          Es el color de los botones y lo que resalta. Vacío deja el de siempre.
+          {normalizarColor(colorMarca) && <> El texto encima saldrá {tintaSobre(normalizarColor(colorMarca)) === '#ffffff' ? 'blanco' : 'oscuro'}, lo que se lea mejor.</>}
+        </p>
+      </div>
       <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon">◉</span><div><h3>Datos del negocio</h3><p>Se muestran en la barra superior y en el pie. Lo que dejes vacío no se publica.</p></div></div>
       <div className="field"><label htmlFor={`${uid}-rnc`}>RNC</label><input id={`${uid}-rnc`} type="text" placeholder="1-31-12345-6" value={negocio.rnc} onChange={(e) => setNegocio({ ...negocio, rnc: e.target.value })} /><div className="hint">Aparece en el pie. Déjalo vacío si aún no tienes o si prefieres no publicarlo.</div></div>
       <div className="field"><label htmlFor={`${uid}-direccion`}>Dirección</label><input id={`${uid}-direccion`} type="text" placeholder="Calle, número, sector, ciudad" value={negocio.direccion} onChange={(e) => setNegocio({ ...negocio, direccion: e.target.value })} /></div>
