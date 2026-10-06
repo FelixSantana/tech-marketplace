@@ -191,7 +191,7 @@ header.hero{padding:16px 24px 14px;border-bottom:1px solid var(--border);backgro
 .sello{display:flex;align-items:flex-start;gap:11px;padding:13px 15px;border:1px solid var(--border);border-radius:11px;background:var(--surface)}
 .sello-icono{width:30px;height:30px;flex:0 0 30px;border-radius:8px;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent);font-size:15px}
 .sello strong{display:block;font-size:13px}
-.sello span{display:block;font-size:11.5px;color:var(--text-muted);line-height:1.4;margin-top:2px}
+.sello-texto span{display:block;font-size:11.5px;color:var(--text-muted);line-height:1.4;margin-top:2px}
 
 /* --- Contador de resultados y orden --- */
 .barra-resultados{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:20px 0 2px;padding-bottom:12px;border-bottom:1px solid var(--border)}
@@ -251,7 +251,7 @@ header.hero{padding:16px 24px 14px;border-bottom:1px solid var(--border);backgro
   .sellos{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:8px;margin:12px 0 2px}
   .sellos::-webkit-scrollbar{display:none}
   .sello{flex:0 0 auto;padding:8px 12px;align-items:center;gap:8px}
-  .sello span{display:none}
+  .sello-texto span{display:none}
   .sello strong{font-size:12px;white-space:nowrap}
   .sello-icono{width:24px;height:24px;flex-basis:24px;font-size:13px}
   .barra-resultados{margin:14px 0 2px;padding-bottom:10px}
