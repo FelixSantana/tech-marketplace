@@ -68,8 +68,15 @@
   .login-badge{width:56px;height:56px;border-radius:16px;margin:4px auto 16px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 8px 20px rgba(0,0,0,.25);}
   .login-title{font-size:19px;font-weight:700;margin:0 0 4px;} .login-sub{font-size:13px;color:var(--text-muted);margin:0 0 22px;}
   .login-panel .field{text-align:left;} .login-submit{display:flex;align-items:center;justify-content:center;gap:7px;}
+  /* Los campos se estilan por EXCLUSION, no enumerando tipos. Antes la regla listaba text,
+     number, tel y password, y cualquier otro tipo salia con la pinta cruda del navegador: un
+     recuadro blanco y pequeño en medio de un formulario oscuro. Paso con type=email, que es el
+     correo de contacto del negocio en Ajustes. Dos señales de que enumerar fue un descuido y no
+     una decision: la regla de foco de aqui abajo ya era generica, y la de los cupones
+     (.cupon-row input, en admin-overrides.css) tambien. Se excluyen solo los tipos que deben
+     conservar su aspecto nativo. */
   .field{margin-bottom:14px;} .field label{display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:6px;font-weight:500;}
-  .field input[type=text],.field input[type=number],.field input[type=tel],.field input[type=password],.field textarea,.field select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;outline:none;transition:border-color .15s ease;}
+  .field input:not([type=checkbox],[type=radio],[type=file],[type=color],[type=range],[type=submit],[type=button]),.field textarea,.field select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;outline:none;transition:border-color .15s ease;}
   .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--accent);}
   .field input:-webkit-autofill,.field input:-webkit-autofill:hover,.field input:-webkit-autofill:focus,.field input:-webkit-autofill:active{-webkit-text-fill-color:var(--text);caret-color:var(--text);-webkit-box-shadow:0 0 0px 1000px var(--surface) inset;box-shadow:0 0 0px 1000px var(--surface) inset;transition:background-color 9999s ease-in-out 0s, color 9999s ease-in-out 0s;}
   .field textarea{resize:vertical;min-height:64px;} .field-row{display:flex;gap:10px;} .field-row .field{flex:1;}
