@@ -155,18 +155,25 @@ footer{color:var(--text-muted)}
   --precio:#221a4d;
 }
 
-/* --- Barra superior --- */
-.topbar{background:var(--barra);color:var(--barra-ink);font-size:12px}
+/* --- Barra superior ---
+   Va sobre el fondo claro, no sobre el color de la casa. Dos franjas de borde a borde separadas
+   por una banda blanca acaparaban la pantalla y empujaban los productos hacia abajo; ahora la
+   barra de datos y la cabecera son un solo bloque y el color queda solo en las categorias. */
+.topbar{background:var(--surface);color:var(--text-muted);font-size:12px;border-bottom:1px solid var(--border)}
 .topbar-inner{max-width:1180px;margin:0 auto;padding:7px 24px;display:flex;gap:22px;align-items:center;flex-wrap:wrap}
 .topbar-item{display:flex;align-items:center;gap:6px}
-.topbar-item a{color:#fff;font-weight:600;text-decoration:none}
+.topbar-item a{color:var(--text);font-weight:600;text-decoration:none}
 .topbar-item a:hover{text-decoration:underline}
 .topbar-cobertura{margin-left:auto}
 /* Hueco de un dato que falta: gris, entre corchetes y evidente. Nadie lo lee como informacion. */
 .falta{opacity:.62;font-style:italic}
 
-/* --- Cabecera: marca, buscador y carrito en una sola fila --- */
-header.hero{padding:16px 24px 14px;border-bottom:1px solid var(--border);background:var(--surface)}
+/* --- Cabecera: marca, buscador y carrito en una sola fila ---
+   El fondo se pinta con un ::before a 100vw y no con `background`, porque el elemento esta
+   limitado a 1180px: al darle un color propio asomaba el de la pagina por los lados. Es el mismo
+   truco que ya usa la barra de categorias. No se nota hoy solo porque es blanco sobre casi blanco. */
+header.hero{position:relative;z-index:1;padding:16px 24px 14px;background:transparent}
+header.hero::before{content:'';position:absolute;inset:0;left:calc(50% - 50vw);width:100vw;background:var(--surface);z-index:-1}
 .brand-row{gap:20px;flex-wrap:nowrap;align-items:center}
 .brand{flex:0 0 auto}
 .header-search{flex:1;max-width:560px;min-width:0;margin:0}
@@ -179,12 +186,18 @@ header.hero{padding:16px 24px 14px;border-bottom:1px solid var(--border);backgro
 /* El carrito ya vive en la cabecera: el boton flotante sobra y tapaba precios. */
 .cart-fab{display:none}
 
-/* --- Barra de categorias a todo lo ancho, en el color de la casa --- */
+/* --- Barra de categorias a todo lo ancho, en el color de la casa ---
+   Es la unica franja de color que queda, asi que carga ella sola con la presencia de marca y el
+   texto tiene que sostenerla: 15px y peso 700, en blanco. El contraste nunca fue el problema —el
+   lavanda de antes ya iba a 9.94:1— sino el peso: 13px en un tono suave no se lee como un menu.
+   El blanco es fijo a proposito: la franja se deriva del color de marca con poca luz (20%), asi
+   que siempre es oscura y el blanco siempre gana. */
 .chips{position:relative;z-index:1;background:transparent;padding:0 24px;gap:0;max-width:1180px;margin:0 auto;flex-wrap:wrap}
 .chips::before{content:'';position:absolute;inset:0;left:calc(50% - 50vw);width:100vw;background:var(--barra);z-index:-1}
-.chip{background:transparent;border:0;border-radius:0;color:var(--barra-ink);font-size:13px;font-weight:600;padding:12px 15px;border-bottom:3px solid transparent}
-.chip:hover{color:#fff;border-color:transparent}
-.chip.active{background:transparent;color:var(--barra-ink);border-bottom-color:var(--accent-activo)}
+.chip{background:transparent;border:0;border-radius:0;color:#fff;font-size:15px;font-weight:700;padding:14px 18px;border-bottom:3px solid transparent}
+/* El texto ya es blanco, asi que el hover necesita otra señal: un fondo apenas insinuado. */
+.chip:hover{background:rgba(255,255,255,.09);border-color:transparent}
+.chip.active{background:transparent;color:#fff;border-bottom-color:var(--accent-activo)}
 
 /* --- Sellos de confianza, arriba de la rejilla --- */
 .sellos{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0 4px}
