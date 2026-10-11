@@ -25,9 +25,21 @@ function origenEnHtml() {
           '                 con el marcador de posicion en vez del nombre de la tienda.',
         )
       }
+      // Un codigo que no tiene la forma que usa Google se descarta, y descartarlo sin decir nada
+      // deja al dueño pulsando "Verificar" en Search Console sin entender por que falla. El error
+      // tipico es pegar la etiqueta entera en vez de solo el content.
+      const verificacion = resolverVerificacion(process.env)
+      const codigoCrudo = String(process.env.GOOGLE_SITE_VERIFICATION || '').trim()
+      if (codigoCrudo && !verificacion) {
+        console.warn(
+          '[origen-en-html] GOOGLE_SITE_VERIFICATION no tiene forma de codigo de Google y se\n' +
+          '                 descarta. Se espera solo el valor de content="...", no la etiqueta\n' +
+          '                 entera: letras, numeros, guion y guion bajo, entre 10 y 100.',
+        )
+      }
       const conOrigen = aplicarOrigen(html, origen)
       const conNombre = aplicarNombre(conOrigen, resolverNombre(process.env))
-      return aplicarVerificacion(conNombre, resolverVerificacion(process.env))
+      return aplicarVerificacion(conNombre, verificacion)
     },
   }
 }
