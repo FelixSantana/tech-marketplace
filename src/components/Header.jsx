@@ -8,7 +8,9 @@ export default function Header({ settings, theme, onToggleTheme, searchTerm, set
           <div className="brand">
             <div className="mark">{settings.logo ? <img src={settings.logo} alt="Logo" /> : 'ST'}</div>
             <div>
-              <div className="brand-name">{nombreDeTienda(settings)}</div>
+              {/* El h1 de la tienda. No habia ninguno: la pagina entera no declaraba de que
+                  trata. El nombre del negocio es lo que corresponde en una portada de catalogo. */}
+              <h1 className="brand-name">{nombreDeTienda(settings)}</h1>
               <div className="tagline">{settings.tagline || ''}</div>
             </div>
           </div>

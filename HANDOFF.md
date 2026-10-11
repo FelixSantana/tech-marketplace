@@ -78,6 +78,7 @@ synaptic-react/
 │   │   ├── utils.js                    ← compressImage, buildWaLink, buildCartWaLink, EMOJI_PICKS
 │   │   ├── marca.js                    ← deriva del logo la imagen de compartir y los tres iconos
 │   │   ├── color.js                    ← el color de marca de Ajustes y los tonos que salen de él
+│   │   ├── negocioSchema.js            ← los datos del negocio en schema.org, para Google
 │   │   └── tienda.js                   ← el nombre por defecto mientras el dueño no ponga el suyo
 │   ├── components/
 │   │   ├── Header.jsx                  ← logo, nombre tienda, buscador, toggle tema
@@ -112,6 +113,8 @@ synaptic-react/
     ├── producto.mjs                    ← wrapper → _handlers/producto-handler.cjs
     ├── manifiesto.mjs                  ← wrapper → _handlers/manifiesto-handler.cjs
     ├── og.mjs                          ← wrapper → _handlers/og-handler.cjs
+    ├── sitemap.mjs                     ← wrapper → _handlers/sitemap-handler.cjs
+    ├── robots.mjs                      ← wrapper → _handlers/robots-handler.cjs
     ├── evento.mjs                      ← wrapper → _handlers/evento-handler.cjs
     ├── _handlers/
     │   ├── auth-handler.cjs            ← POST: setup | login | change | status
@@ -122,6 +125,8 @@ synaptic-react/
     │   ├── producto-handler.cjs        ← sirve /p/<slug> con las etiquetas del producto
     │   ├── manifiesto-handler.cjs      ← sirve /manifest.webmanifest desde Ajustes
     │   ├── og-handler.cjs              ← sirve /og.jpg: la imagen derivada del logo, o la de respaldo
+    │   ├── sitemap-handler.cjs         ← sirve /sitemap.xml desde el catálogo
+    │   └── robots-handler.cjs          ← sirve /robots.txt apuntando al mapa
     │   └── evento-handler.cjs          ← POST público cuenta eventos; GET admin da el resumen
     └── _lib/
         ├── kv.cjs                      ← helper genérico para Upstash Redis REST (kvGet/kvSet/kvDel)
@@ -136,6 +141,9 @@ synaptic-react/
         ├── producto-html.cjs           ← inyecta las etiquetas del producto en el HTML
         ├── manifiesto.cjs              ← arma el manifiesto con el nombre y los iconos de Ajustes
         ├── tienda.cjs                  ← el nombre por defecto, copia de src/lib/tienda.js
+        ├── rutas.cjs                   ← el slug de /p/, copia de src/lib/rutas.js
+        ├── origen.cjs                  ← el dominio desde el que se sirve la petición
+        ├── sitemap.cjs                 ← arma sitemap.xml y robots.txt
         └── upload-logic.cjs            ← validación de las imágenes que se suben
 ```
 
@@ -305,6 +313,8 @@ Para probar el backend en local (Vite no ejecuta `/api` por sí solo):
 
 - [x] **Vender esto a otros clientes** — ver la sección 13. Caídos los seis: datos del negocio, URLs absolutas, manifiesto, imágenes de marca, color de marca y nombre de la tienda. Solo queda el prefijo `synaptic_` de las claves de Redis, que es cosmético porque cada cliente tiene su propia base. Montar una tienda nueva ya no toca el repositorio: se hace desde Ajustes y dos variables del proyecto en Vercel (`TIENDA_NOMBRE`, y `TIENDA_URL` solo si hiciera falta).
 - [ ] **Dominio personalizado** — aún corre sobre `*.vercel.app`. Al ponerlo, las URLs absolutas de `index.html` se actualizan solas en el siguiente despliegue (Vercel pasa a dar el dominio propio en `VERCEL_PROJECT_PRODUCTION_URL`); lo que sí hay que regenerar a mano es `public/og-image.jpg` si cambia el nombre o el lema.
+- [x] **SEO: las páginas de producto eran invisibles.** `/p/<slug>` estaba bien hecho —título, precio, foto y datos estructurados servidos desde el servidor— pero **nada las enlazaba**: la tarjeta era un `<div onClick>` y la URL solo aparecía con `pushState` una vez dentro. Un rastreador que llegaba a la portada no tenía ningún `<a href>` que seguir, así que para Google esas páginas no existían. Ahora el nombre del producto es un enlace de verdad (sigue abriendo el detalle sin recargar, y Ctrl/Cmd+clic abre pestaña), hay `sitemap.xml` y `robots.txt` generados desde el catálogo, y la portada declara `h1`/`h2` y un bloque `Store` con los datos del negocio.
+- [ ] **SEO, lo que queda.** La portada se pinta con JavaScript: Google lo ejecuta, pero en una segunda pasada más lenta, y otros rastreadores no. Servirla con los productos ya escritos en el HTML pediría pasar `/` por una función, y en Vercel el sistema de archivos gana a las reescrituras, así que habría que renombrar el HTML del build. Se plantea si al medir resulta que hace falta, no antes.
 - [ ] **WhatsApp Business API** en vez de links `wa.me` — bloqueado por la verificación de negocio en Meta, que hace el dueño. **El aviso de pedido nuevo va aquí**: se decidió esperar a la API en vez de usar correo o Telegram, así que hoy un pedido que el cliente no llega a enviar solo se ve abriendo el panel.
 - [ ] **Cobro con enlace de pago** (AZUL ofrece Link de Pagos, 4–6% de comisión). La afiliación la hace el dueño.
 - [ ] **Comprobante fiscal electrónico (e-CF).** Consultar primero con el contador si aplica.

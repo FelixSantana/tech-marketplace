@@ -1,4 +1,5 @@
 import { getStockQty, getPrimaryImage, hasVariants, getMinPrice, getVariants } from '../hooks/useCatalog';
+import { rutaProducto } from '../lib/rutas';
 
 export default function ProductCard({ product, settings, onOpenDetail, onAddCart, onOrderWhatsApp }) {
   const stockQty = getStockQty(product);
@@ -9,6 +10,24 @@ export default function ProductCard({ product, settings, onOpenDetail, onAddCart
   const conVariantes = hasVariants(product);
   const openDetail = () => onOpenDetail(product.id);
 
+  // El nombre es un enlace de verdad, no un div que escucha clics.
+  //
+  // Las paginas /p/<slug> estaban montadas y bien hechas —titulo, precio, foto y datos
+  // estructurados servidos desde el servidor— pero NADA las enlazaba: la URL solo aparecia con
+  // history.pushState una vez dentro. Un rastreador que llega a la portada no tenia ningun
+  // <a href> que seguir, asi que para Google esas paginas no existian.
+  //
+  // Al hacer clic se sigue abriendo el detalle sin recargar, como siempre. Lo que no se toca es
+  // el clic con Ctrl, Cmd o rueda: ahi se deja al navegador abrir su pestaña, que es lo que la
+  // gente espera de un enlace. El texto del enlace es el nombre del producto, que ademas es la
+  // señal que Google lee para saber de que va la pagina de destino.
+  const irAlDetalle = (e) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    openDetail();
+  };
+
   return (
     <div className="card" onClick={() => onOpenDetail(product.id)}>
       <div className="img-wrap">
@@ -17,7 +36,7 @@ export default function ProductCard({ product, settings, onOpenDetail, onAddCart
       </div>
       <div className="card-body">
         {product.category && <div className="card-cat">{product.category}</div>}
-        <div className="card-name">{product.name}</div>
+        <h2 className="card-name"><a href={rutaProducto(product)} onClick={irAlDetalle}>{product.name}</a></h2>
         {product.description && <div className="card-desc">{product.description}</div>}
         <div className="card-price mono">{conVariantes && <span className="price-from">desde </span>}<span className="currency">{settings.currency}</span>{getMinPrice(product).toLocaleString('es-DO')}</div>
         {/* La garantia va debajo del precio, en gris y sin gritar. Es

@@ -19,6 +19,7 @@ import { netearApartados } from './lib/apartados';
 import { buscarPorSlug, rutaProducto } from './lib/rutas';
 import { registrarEvento } from './lib/eventos';
 import { variablesDeMarca, VARIABLES } from './lib/color';
+import { negocioSchema, valeLaPenaPublicar } from './lib/negocioSchema';
 import './styles.css';
 import './admin-overrides.css';
 import './skin.css';   // capa estetica de la tienda; va al final para ganar por orden
@@ -93,6 +94,25 @@ export default function App() {
   const [adminConfigured, setAdminConfigured] = useState(null);
 
   useEffect(() => { document.documentElement.setAttribute('data-theme', theme === 'light' ? 'light' : 'dark'); try { localStorage.setItem('theme', theme); } catch {} }, [theme]);
+
+  // Los datos del negocio para Google, en la portada. Se escriben en un <script> del head y se
+  // quitan al desmontar: si el dueño cambia algo en Ajustes, lo que queda publicado es lo nuevo,
+  // no los dos a la vez.
+  //
+  // Solo en la portada. En /p/<slug> los pone el servidor, y ahi mandan los del producto.
+  useEffect(() => {
+    const ID = 'negocio-schema';
+    document.getElementById(ID)?.remove();
+    if (!valeLaPenaPublicar(settings)) return;
+    const el = document.createElement('script');
+    el.id = ID;
+    el.type = 'application/ld+json';
+    // El mismo escape que usa el servidor: un '<' dentro del JSON cerraria el <script> antes de
+    // tiempo y el resto del bloque acabaria como texto suelto en la pagina.
+    el.textContent = JSON.stringify(negocioSchema(settings, window.location.origin)).replace(/</g, '\\u003c');
+    document.head.appendChild(el);
+    return () => el.remove();
+  }, [settings]);
 
   const colorMarca = settings.colorMarca;
   // El color de marca del dueño, puesto sobre la raiz del documento. Una propiedad escrita en el
