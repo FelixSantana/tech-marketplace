@@ -262,3 +262,42 @@ describe('aplicarVerificacion', () => {
     expect(aplicarVerificacion(`<head>\n${linea}</head>`, '')).toBe('<head>\n</head>');
   });
 });
+
+describe('resolverVerificacion: la etiqueta pegada entera', () => {
+  const CODIGO = 'B4AhOd9jEVTRqrvBMmQMSYHJZ67h8qnwT56Hrtrm4cE';
+
+  // Search Console enseña la etiqueta completa, lista para copiar; pegarla tal cual es lo que
+  // hace cualquiera. Paso de verdad al montar la tienda de Synaptic.
+  it('saca el código de la etiqueta que enseña Google', () => {
+    const tal_cual = `<meta name="google-site-verification" content="${CODIGO}" />`;
+    expect(resolverVerificacion({ GOOGLE_SITE_VERIFICATION: tal_cual })).toBe(CODIGO);
+  });
+
+  it('aguanta las variantes de como pueda venir pegada', () => {
+    for (const v of [
+      `<meta name='google-site-verification' content='${CODIGO}'>`,
+      // El orden de los atributos en HTML es arbitrario; las dos formas son validas.
+      `<meta content="${CODIGO}" name="google-site-verification" />`,
+      `  <meta name="google-site-verification" content="${CODIGO}" />  `,
+      `<META NAME="GOOGLE-SITE-VERIFICATION" CONTENT="${CODIGO}" />`,
+    ]) {
+      expect(resolverVerificacion({ GOOGLE_SITE_VERIFICATION: v })).toBe(CODIGO);
+    }
+  });
+
+  it('el código suelto sigue funcionando igual', () => {
+    expect(resolverVerificacion({ GOOGLE_SITE_VERIFICATION: CODIGO })).toBe(CODIGO);
+  });
+
+  // Sacar el content no afloja la validacion: lo que salga tiene que seguir siendo un codigo.
+  it('lo que saca de la etiqueta también se valida', () => {
+    for (const malo of [
+      '<meta name="google-site-verification" content="corto" />',
+      '<meta name="google-site-verification" content="con espacios dentro" />',
+      '<meta name="otra-cosa" content="B4AhOd9jEVTRqrvBMmQMSYHJZ67h8qnw" />',
+      '<script>alert(1)</script>',
+    ]) {
+      expect(resolverVerificacion({ GOOGLE_SITE_VERIFICATION: malo })).toBe('');
+    }
+  });
+});

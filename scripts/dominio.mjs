@@ -135,9 +135,23 @@ export const MARCADOR_VERIFICACION = '__VERIFICACION_GOOGLE__';
 // El codigo de Google es alfanumerico con guiones y guiones bajos. En vez de escapar lo que
 // venga, se descarta todo lo que no tenga esa forma: el valor acaba dentro de un atributo del
 // head y no hay ningun caso legitimo en que lleve otra cosa.
+const CODIGO = /^[A-Za-z0-9_-]{10,100}$/;
+
+// Search Console no enseña el codigo suelto: enseña la etiqueta entera, lista para copiar. Pegarla
+// tal cual en la variable es lo que hace cualquiera, y antes se descartaba por no tener forma de
+// codigo. Si lo que llega es esa etiqueta, se saca el content y se valida igual: la intencion no
+// tiene ninguna ambiguedad, y fallar aqui manda a alguien a mirar registros de build por nada.
+// En dos pasos y no en una expresion sola, porque el orden de los atributos en HTML es
+// arbitrario: name antes de content o al reves, las dos son validas y Google ha usado ambas.
+const ES_LA_ETIQUETA = /<meta\b[^>]*google-site-verification[^>]*>/i;
+const EL_CONTENT = /content=["']([^"']+)["']/i;
+
 export function resolverVerificacion(env = {}) {
   const crudo = String(env.GOOGLE_SITE_VERIFICATION == null ? '' : env.GOOGLE_SITE_VERIFICATION).trim();
-  return /^[A-Za-z0-9_-]{10,100}$/.test(crudo) ? crudo : '';
+  const etiqueta = crudo.match(ES_LA_ETIQUETA);
+  const content = etiqueta && etiqueta[0].match(EL_CONTENT);
+  const codigo = content ? content[1].trim() : crudo;
+  return CODIGO.test(codigo) ? codigo : '';
 }
 
 export const aplicarVerificacion = (html, codigo) => sustituirOQuitar(html, MARCADOR_VERIFICACION, codigo);
