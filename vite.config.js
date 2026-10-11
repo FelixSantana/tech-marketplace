@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { resolverOrigen, aplicarOrigen, resolverNombre, aplicarNombre } from './scripts/dominio.mjs'
+import { resolverOrigen, aplicarOrigen, resolverNombre, aplicarNombre, resolverVerificacion, aplicarVerificacion } from './scripts/dominio.mjs'
 
 // Resuelve al compilar lo que index.html no puede saber de otra forma: el dominio del despliegue
 // y el nombre de la tienda. El por que de cada uno esta en scripts/dominio.mjs.
@@ -25,7 +25,9 @@ function origenEnHtml() {
           '                 con el marcador de posicion en vez del nombre de la tienda.',
         )
       }
-      return aplicarNombre(aplicarOrigen(html, origen), resolverNombre(process.env))
+      const conOrigen = aplicarOrigen(html, origen)
+      const conNombre = aplicarNombre(conOrigen, resolverNombre(process.env))
+      return aplicarVerificacion(conNombre, resolverVerificacion(process.env))
     },
   }
 }

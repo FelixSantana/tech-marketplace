@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { resolverOrigen, aplicarOrigen, MARCADOR, resolverNombre, aplicarNombre, MARCADOR_NOMBRE, NOMBRE_POR_DEFECTO } from './dominio.mjs';
+import { resolverOrigen, aplicarOrigen, MARCADOR, resolverNombre, aplicarNombre, MARCADOR_NOMBRE, NOMBRE_POR_DEFECTO, resolverVerificacion, aplicarVerificacion, MARCADOR_VERIFICACION } from './dominio.mjs';
 
 describe('resolverOrigen', () => {
   // El caso que justifica todo esto: dos tiendas distintas compilando del mismo repositorio
@@ -210,10 +210,55 @@ describe('index.html: el nombre', () => {
     }
   });
 
-  it('compila entero, con nombre y sin él', () => {
-    const conAmbos = aplicarNombre(aplicarOrigen(html, 'https://tienda.com.do'), 'Repuestos La Romana');
-    expect(conAmbos).toContain('<title>Repuestos La Romana — Catálogo</title>');
-    expect(conAmbos).toContain('content="https://tienda.com.do/og.jpg"');
-    expect(conAmbos.replace(/<!--[\s\S]*?-->/g, '')).not.toContain('__');
+  // El build aplica los tres marcadores en cadena; esta prueba imita esa cadena entera, porque
+  // olvidar uno dejaria un "__LOQUESEA__" literal publicado en el head.
+  it('compila entero, sin dejar ningún marcador', () => {
+    const paso1 = aplicarOrigen(html, 'https://tienda.com.do');
+    const paso2 = aplicarNombre(paso1, 'Repuestos La Romana');
+    const conTodo = aplicarVerificacion(paso2, 'aBc123_xyz-DEF456ghi');
+    expect(conTodo).toContain('<title>Repuestos La Romana — Catálogo</title>');
+    expect(conTodo).toContain('content="https://tienda.com.do/og.jpg"');
+    expect(conTodo).toContain('content="aBc123_xyz-DEF456ghi"');
+    expect(conTodo.replace(/<!--[\s\S]*?-->/g, '')).not.toContain('__');
+
+    // Y sin ninguno de los tres: las lineas que los necesitaban se van, el nombre cae al marcador
+    // de posicion, y no queda nada a medias.
+    const sinNada = aplicarVerificacion(aplicarNombre(aplicarOrigen(html, ''), ''), '');
+    expect(sinNada.replace(/<!--[\s\S]*?-->/g, '')).not.toContain('__');
+    expect(sinNada).not.toContain('google-site-verification');
+  });
+});
+
+describe('resolverVerificacion', () => {
+  it('acepta un código con la forma que usa Google', () => {
+    expect(resolverVerificacion({ GOOGLE_SITE_VERIFICATION: 'aBc123_xyz-DEF456ghi' })).toBe('aBc123_xyz-DEF456ghi');
+  });
+
+  it('limpia los espacios de los lados', () => {
+    expect(resolverVerificacion({ GOOGLE_SITE_VERIFICATION: '  aBc123_xyz-DEF456ghi  ' })).toBe('aBc123_xyz-DEF456ghi');
+  });
+
+  // El valor acaba dentro de un atributo del head. En vez de escapar lo que venga, se descarta
+  // todo lo que no tenga forma de codigo: no hay ningun caso legitimo en que lleve otra cosa.
+  it('descarta cualquier cosa que no tenga esa forma', () => {
+    for (const malo of ['', '   ', 'corto', '"><script>alert(1)</script>', 'con espacios dentro', 'á'.repeat(20), null, undefined, 42]) {
+      expect(resolverVerificacion({ GOOGLE_SITE_VERIFICATION: malo })).toBe('');
+    }
+    expect(resolverVerificacion({})).toBe('');
+  });
+});
+
+describe('aplicarVerificacion', () => {
+  const linea = `  <meta name="google-site-verification" content="${MARCADOR_VERIFICACION}" />\n`;
+
+  it('pone el código cuando lo hay', () => {
+    expect(aplicarVerificacion(`<head>\n${linea}</head>`, 'aBc123_xyz-DEF456ghi'))
+      .toContain('content="aBc123_xyz-DEF456ghi"');
+  });
+
+  // Una etiqueta de verificacion vacia no es neutra: le dice a Google que alguien intento
+  // verificar y no pudo.
+  it('sin código, la etiqueta no se publica', () => {
+    expect(aplicarVerificacion(`<head>\n${linea}</head>`, '')).toBe('<head>\n</head>');
   });
 });

@@ -70,6 +70,24 @@ función que lee el nombre real de Ajustes.
 
 Si cambias el nombre de la tienda más adelante, cambia también esta variable y vuelve a desplegar.
 
+### Que Google encuentre la tienda
+
+Una vez desplegada, date de alta en **Google Search Console** y envíale el mapa del sitio. Sin
+eso Google acaba encontrándola igual, pero tarda semanas en vez de días.
+
+1. Entra en `search.google.com/search-console` y **añade una propiedad** del tipo *Prefijo de URL*
+   con el dominio de la tienda.
+2. Elige verificar con **etiqueta HTML**. Google te da algo como
+   `<meta name="google-site-verification" content="aBc123_xyz..." />`. **Copia solo el `content`**,
+   no la etiqueta entera.
+3. En Vercel → Settings → Environment Variables, en **Production**, añade:
+   - `GOOGLE_SITE_VERIFICATION` — ese código.
+4. **Redesplegar**, y luego pulsar *Verificar* en Search Console.
+5. Ya verificado: **Sitemaps** → escribe `sitemap.xml` → Enviar.
+
+Si la variable no está, la etiqueta no se publica: una de verificación vacía le dice a Google que
+alguien lo intentó y no pudo.
+
 ### El dominio de la vista previa, si hace falta
 
 Normalmente **no hay que tocar nada**: el dominio que llevan `og:url`, `og:image` y `canonical`

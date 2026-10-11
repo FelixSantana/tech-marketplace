@@ -55,9 +55,9 @@ export function resolverOrigen(env = {}) {
 export const MARCADOR = '__ORIGEN__';
 
 // Una etiqueta <link> o <meta> con el marcador dentro, ella sola en su linea. Cada una de esas
-// etiquetas en index.html ocupa una linea completa, asi que al no conocerse el dominio se quita
+// etiquetas en index.html ocupa una linea completa, asi que cuando el valor no se conoce se quita
 // la linea entera —salto incluido— y no queda un hueco en blanco en el HTML.
-const LINEA_CON_MARCADOR = new RegExp(`^[ \\t]*<(?:link|meta)\\b[^>]*${MARCADOR}[^>]*>[ \\t]*\\r?\\n`, 'gm');
+const lineaConMarcador = (marcador) => new RegExp(`^[ \\t]*<(?:link|meta)\\b[^>]*${marcador}[^>]*>[ \\t]*\\r?\\n`, 'gm');
 
 // Parte el HTML en trozos alternos: los pares son HTML de verdad, los impares comentarios. El
 // grupo de captura de la expresion es lo que hace que split conserve los comentarios en medio.
@@ -67,23 +67,26 @@ const LINEA_CON_MARCADOR = new RegExp(`^[ \\t]*<(?:link|meta)\\b[^>]*${MARCADOR}
 // publicado: "https://la-tienda.com lo sustituye el build por el dominio del despliegue".
 const trozosDeHtml = (html) => html.split(/(<!--[\s\S]*?-->)/);
 
-// Deja el HTML listo: con dominio, lo sustituye; sin dominio, borra las etiquetas que lo
-// necesitaban. Si al terminar queda algun marcador fuera de un comentario es que una etiqueta
-// nueva no sigue el formato de una por linea: se corta el build en vez de publicar un
-// "__ORIGEN__" literal, que WhatsApp mostraria tal cual en la vista previa.
-export function aplicarOrigen(html, origen) {
+// Con valor, lo sustituye; sin valor, borra las etiquetas que lo necesitaban. Si al terminar
+// queda algun marcador fuera de un comentario es que una etiqueta nueva no sigue el formato de
+// una por linea: se corta el build en vez de publicar un "__ORIGEN__" literal, que WhatsApp
+// mostraria tal cual en la vista previa.
+function sustituirOQuitar(html, marcador, valor) {
+  const linea = lineaConMarcador(marcador);
   const trozos = trozosDeHtml(html).map((trozo, i) => {
     if (i % 2) return trozo;
-    return origen ? trozo.replaceAll(MARCADOR, origen) : trozo.replace(LINEA_CON_MARCADOR, '');
+    return valor ? trozo.replaceAll(marcador, valor) : trozo.replace(linea, '');
   });
   const sinComentarios = trozos.filter((_, i) => i % 2 === 0).join('');
-  if (sinComentarios.includes(MARCADOR)) {
+  if (sinComentarios.includes(marcador)) {
     throw new Error(
-      `index.html: quedo un ${MARCADOR} sin resolver. Cada etiqueta que lo use tiene que ir sola en su linea.`,
+      `index.html: quedo un ${marcador} sin resolver. Cada etiqueta que lo use tiene que ir sola en su linea.`,
     );
   }
   return trozos.join('');
 }
+
+export const aplicarOrigen = (html, origen) => sustituirOQuitar(html, MARCADOR, origen);
 
 // --- el nombre de la tienda en index.html ---
 //
@@ -117,3 +120,24 @@ const escaparHtml = (v) => String(v)
 export function aplicarNombre(html, nombre) {
   return html.replaceAll(MARCADOR_NOMBRE, escaparHtml(nombre || NOMBRE_POR_DEFECTO));
 }
+
+// --- la verificacion de Google Search Console ---
+//
+// Para enviarle el mapa del sitio a Google hay que demostrarle antes que la tienda es tuya. De
+// las formas que acepta, la del dominio no sirve en un *.vercel.app —no se tocan sus DNS— y
+// subir un archivo obliga a pasar por el repositorio cada vez. Queda la etiqueta, que se resuelve
+// con una variable del proyecto, igual que el nombre: el dueño pega el codigo en Vercel y ya.
+//
+// Sin variable, la etiqueta no se publica: una etiqueta de verificacion vacia no es neutra, le
+// dice a Google que alguien intento verificar y no pudo.
+export const MARCADOR_VERIFICACION = '__VERIFICACION_GOOGLE__';
+
+// El codigo de Google es alfanumerico con guiones y guiones bajos. En vez de escapar lo que
+// venga, se descarta todo lo que no tenga esa forma: el valor acaba dentro de un atributo del
+// head y no hay ningun caso legitimo en que lleve otra cosa.
+export function resolverVerificacion(env = {}) {
+  const crudo = String(env.GOOGLE_SITE_VERIFICATION == null ? '' : env.GOOGLE_SITE_VERIFICATION).trim();
+  return /^[A-Za-z0-9_-]{10,100}$/.test(crudo) ? crudo : '';
+}
+
+export const aplicarVerificacion = (html, codigo) => sustituirOQuitar(html, MARCADOR_VERIFICACION, codigo);
