@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { IconoGrafico } from '../Iconos';
 
 const PERIODOS = [7, 30, 90];
 
@@ -57,7 +58,7 @@ export default function MetricsPanel({ adminToken, showToast }) {
       ) : cargando ? (
         <div className="empty-state" style={{ padding: 30 }}><p>Cargando métricas…</p></div>
       ) : datos.totales.visita === 0 && datos.totales.pedido === 0 ? (
-        <div className="empty-state" style={{ padding: 30 }}><div className="glyph">📈</div><h3>Todavía no hay datos</h3><p>Los contadores empiezan desde que se publicó esta versión. Vuelve en unos días.</p></div>
+        <div className="empty-state" style={{ padding: 30 }}><div className="glyph"><IconoGrafico size={34} /></div><h3>Todavía no hay datos</h3><p>Los contadores empiezan desde que se publicó esta versión. Vuelve en unos días.</p></div>
       ) : (
         <>
           <div className="funnel">

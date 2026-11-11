@@ -5,6 +5,7 @@ import { ajustesDeEnvio, costoDeEnvio, faltaParaPedir } from '../lib/envio';
 import { cuponesDeAjustes, probarCupon } from '../lib/cupones';
 import PrivacyNotice from './PrivacyNotice';
 import { registrarEvento } from '../lib/eventos';
+import { IconoCaja, IconoCandado, IconoCamion, IconoPersona } from './Iconos';
 
 export default function CheckoutModal({ items, settings, onClose, onOrderCreated, showToast }) {
   const [name, setName] = useState('');
@@ -92,7 +93,7 @@ export default function CheckoutModal({ items, settings, onClose, onOrderCreated
 
         <div className="checkout-summary">
           <div className="checkout-summary-title">Resumen <span>{items.length} {items.length === 1 ? 'producto' : 'productos'}</span></div>
-          {items.map((item) => { const v = getVariant(item.product, item.variantId); const precio = getUnitPrice(item.product, item.variantId) || 0; return <div className="checkout-item" key={`${item.product.id}::${item.variantId || ''}`}><div className="checkout-item-img">{item.product.images?.[0] ? <img src={item.product.images[0]} alt="" /> : '📦'}</div><div className="checkout-item-info"><strong>{item.product.name}</strong><small>{v ? `${item.product.variantAxis}: ${v.label} · ` : ''}Cantidad: {item.qty}</small></div><b>{moneda(precio * item.qty)}</b></div>; })}
+          {items.map((item) => { const v = getVariant(item.product, item.variantId); const precio = getUnitPrice(item.product, item.variantId) || 0; return <div className="checkout-item" key={`${item.product.id}::${item.variantId || ''}`}><div className="checkout-item-img">{item.product.images?.[0] ? <img src={item.product.images[0]} alt="" /> : <IconoCaja size={18} />}</div><div className="checkout-item-info"><strong>{item.product.name}</strong><small>{v ? `${item.product.variantAxis}: ${v.label} · ` : ''}Cantidad: {item.qty}</small></div><b>{moneda(precio * item.qty)}</b></div>; })}
           {(envio.activo || descuento > 0) && (
             <div className="checkout-lineas">
               <div><span>Productos</span><b>{moneda(subtotal)}</b></div>
@@ -105,7 +106,7 @@ export default function CheckoutModal({ items, settings, onClose, onOrderCreated
 
         {envio.activo && (
           <>
-            <div className="checkout-form-title checkout-form-title--entrega">Cómo lo recibes</div>
+            <div className="checkout-form-title"><span className="titulo-icono"><IconoCamion /></span>Cómo lo recibes</div>
             <div className="entrega-block">
               {envio.retiroEnTienda && envio.zonas.length > 0 && (
                 <div className="entrega-modos" role="group" aria-label="Forma de entrega">
@@ -150,10 +151,10 @@ export default function CheckoutModal({ items, settings, onClose, onOrderCreated
           </div>
         )}
 
-        <div className="checkout-form-title">Tus datos</div>
+        <div className="checkout-form-title"><span className="titulo-icono"><IconoPersona /></span>Tus datos</div>
         <div className="form-grid"><label htmlFor={`${uid}-name`}>Nombre completo<input id={`${uid}-name`} value={name} onChange={(e) => setName(e.target.value)} placeholder="Tu nombre" autoFocus maxLength={120} /></label><label htmlFor={`${uid}-phone`}>WhatsApp<input id={`${uid}-phone`} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="809 555 1234" inputMode="tel" maxLength={20} /></label><label className="checkout-notes" htmlFor={`${uid}-notes`}>Notas <span>(opcional)</span><textarea id={`${uid}-notes`} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Color, horario de entrega, etc." maxLength={1000} rows={3} /></label></div>
 
-        <div className="checkout-security">🔒 <span>Usamos tu nombre, tu WhatsApp y tu dirección solo para coordinar este pedido. <button type="button" className="link-btn" onClick={() => setVerPrivacidad(true)}>Ver aviso de privacidad</button></span></div>
+        <div className="checkout-security"><IconoCandado size={13} /> <span>Usamos tu nombre, tu WhatsApp y tu dirección solo para coordinar este pedido. <button type="button" className="link-btn" onClick={() => setVerPrivacidad(true)}>Ver aviso de privacidad</button></span></div>
 
         <div className="form-actions checkout-actions"><button type="button" className="btn-secondary" onClick={onClose} disabled={saving}>Cancelar</button><button type="submit" className="btn-wa checkout-submit" disabled={saving}>{saving ? 'Registrando…' : 'Pedir por WhatsApp'}<span>→</span></button></div>
       </form>

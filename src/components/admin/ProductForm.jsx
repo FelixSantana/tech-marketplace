@@ -3,6 +3,7 @@ import { getStockQty, getProductImages, getVariants } from '../../hooks/useCatal
 import VariantTable from './VariantTable';
 import { compressImage, EMOJI_PICKS } from '../../lib/utils';
 import { uploadImage } from '../../lib/uploadImage';
+import { IconoEtiqueta, IconoControles } from '../Iconos';
 
 const MAX_IMAGES = 6;
 
@@ -102,7 +103,7 @@ export default function ProductForm({ editingProduct, categories, setCategories,
 
   return (
     <div className="product-form">
-      <div className="form-section-title"><span className="section-icon">▣</span><div><h3>Información del producto</h3><p>Completa los datos que verá el cliente.</p></div></div>
+      <div className="form-section-title"><span className="section-icon"><IconoEtiqueta /></span><div><h3>Información del producto</h3><p>Completa los datos que verá el cliente.</p></div></div>
       <div className="field">
         <label htmlFor={`${uid}-photos`}>Fotos del producto</label>
         <div className="img-thumbs">
@@ -114,7 +115,7 @@ export default function ProductForm({ editingProduct, categories, setCategories,
       <div className="field"><label htmlFor={`${uid}-name`}>Nombre del producto</label><input id={`${uid}-name`} type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Audífonos Bluetooth X200" /></div>
       <div className="field-row"><div className="field"><label htmlFor={`${uid}-price`}>Precio ({settings.currency})</label><input id={`${uid}-price`} type="number" min="0" placeholder="0" value={conVariantes ? Math.min(...variants.map((v) => Number(v.price) || 0)) : price} onChange={(e) => setPrice(e.target.value)} disabled={conVariantes} /></div><div className="field"><label htmlFor={`${uid}-stock`}>Cantidad en stock</label><input id={`${uid}-stock`} type="number" min="0" step="1" placeholder="0" value={conVariantes ? variants.reduce((s, v) => s + (Math.floor(Number(v.stockQty)) || 0), 0) : stockQty} onChange={(e) => setStockQty(e.target.value)} disabled={conVariantes} /></div></div>
       {conVariantes && <div className="hint">Los calcula la tabla de opciones de abajo.</div>}
-      <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon">◧</span><div><h3>Opciones del producto</h3><p>Para vender el mismo producto en varias configuraciones, cada una con su precio y su inventario.</p></div></div>
+      <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon"><IconoControles /></span><div><h3>Opciones del producto</h3><p>Para vender el mismo producto en varias configuraciones, cada una con su precio y su inventario.</p></div></div>
       <VariantTable axis={variantAxis} setAxis={setVariantAxis} variants={variants} setVariants={setVariants} currency={settings.currency} />
       <div className="field"><label htmlFor={`${uid}-category`}>Categoría</label><select id={`${uid}-category`} value={category} onChange={(e) => { const v = e.target.value; setCategory(v); setShowNewCat(v === '__new__'); }}><option value="" disabled={!!category}>Selecciona una categoría</option>{categories.map((c) => <option key={c.name} value={c.name}>{c.emoji} {c.name}</option>)}<option value="__new__">+ Crear categoría</option></select>{showNewCat && <div className="new-category-box"><input type="text" aria-label="Nombre de la nueva categoría" placeholder="Nombre de la nueva categoría" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} /><div className="field-row"><input type="text" aria-label="Emoji de la nueva categoría" placeholder="📦" maxLength={4} value={newCatEmoji} onChange={(e) => setNewCatEmoji(e.target.value)} /><div className="hint">Puedes elegir un emoji o dejarlo vacío.</div></div><div className="emoji-picks">{EMOJI_PICKS.map((e) => <button type="button" className="emoji-pick" key={e} onClick={() => setNewCatEmoji(e)}>{e}</button>)}</div><div className="form-actions"><button type="button" className="btn-secondary" onClick={() => { setShowNewCat(false); setCategory(''); setNewCatName(''); setNewCatEmoji(''); }}>Cancelar</button><button type="button" className="btn-primary" onClick={addNewCategory}>Guardar categoría</button></div></div>}</div>
       <div className="field warranty-field"><label htmlFor={`${uid}-warranty`}>Garantía</label><div className="input-with-icon"><span>✓</span><input id={`${uid}-warranty`} type="text" value={warranty} onChange={(e) => setWarranty(e.target.value)} placeholder="Ej. 6 meses, 1 año, Sin garantía" /></div><div className="hint">Esta información aparecerá en la tarjeta del producto.</div></div>
