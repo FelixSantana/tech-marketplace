@@ -353,3 +353,21 @@
 .new-category-box .field-row{align-items:center;gap:12px}
 .new-category-box .field-row input{width:76px;flex:none;text-align:center;font-size:19px;line-height:1}
 .new-category-box .field-row .hint{margin:0}
+
+/* --- Avisos de pedido nuevo --- */
+/*
+   El estado se enseña en una linea y no con un interruptor porque no es un si/no: el permiso
+   lo da cada navegador, asi que lo que importa es "aqui" frente a "en total". Un interruptor
+   dejaria creer que es una preferencia de la cuenta, y el dueño que lo activa en el movil
+   abriria el panel en la computadora esperando que tambien suene ahi.
+*/
+.push-panel .push-estado{display:flex;align-items:center;gap:12px;padding:13px 14px;border:1px solid var(--border);border-radius:13px;background:var(--surface)}
+.push-punto{flex:none;width:9px;height:9px;border-radius:50%;background:var(--text-muted);opacity:.5}
+.push-punto.activo{background:var(--whatsapp);opacity:1;box-shadow:0 0 0 3px color-mix(in srgb,var(--whatsapp) 22%,transparent)}
+.push-texto{flex:1;min-width:0}
+.push-texto strong{display:block;font-size:13px}
+.push-texto small{display:block;margin-top:2px;font-size:11px;color:var(--text-muted);line-height:1.45}
+.push-acciones{display:flex;gap:7px;flex:none}
+.push-acciones button{width:auto;margin:0;padding:0 13px;height:34px;display:inline-flex;align-items:center;border-radius:9px;font-size:12.5px}
+.push-aviso{padding:12px 14px;border:1px dashed var(--border);border-radius:13px;background:var(--surface);color:var(--text-muted);font-size:12px;line-height:1.5}
+@media(max-width:560px){.push-panel .push-estado{flex-wrap:wrap}.push-acciones{width:100%;justify-content:flex-end}}

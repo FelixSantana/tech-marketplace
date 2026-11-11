@@ -82,6 +82,10 @@ export const IconoReloj = (p) => (
 
 // --- Panel ---
 
+export const IconoCampana = (p) => (
+  <Icono {...p}><path d="M18 8.6a6 6 0 1 0-12 0c0 6.1-2.4 7.9-2.4 7.9h16.8S18 14.7 18 8.6Z" /><path d="M13.7 20.3a2 2 0 0 1-3.4 0" /></Icono>
+);
+
 export const IconoLlave = (p) => (
   <Icono {...p}><circle cx="8" cy="15.5" r="4.2" /><path d="m11 12.5 8.2-8.2M16.4 7.1l2.2 2.2M14.2 9.3l2.2 2.2" /></Icono>
 );
