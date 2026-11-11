@@ -391,3 +391,20 @@
     100%{background:color-mix(in srgb,var(--accent) 15%,var(--surface))}
   }
 }
+
+/* --- Los sellos de confianza en Ajustes --- */
+/*
+   Tres filas fijas y no una lista con botones de agregar y quitar: son exactamente tres, caben
+   tres, y no hay nada que decidir. Vaciar el titulo es como se quita uno.
+*/
+.sellos-form{border:1px solid var(--border);border-radius:13px;padding:14px 15px;background:var(--surface)}
+.sello-row{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.1fr) minmax(0,1.6fr);gap:9px;align-items:end;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--border)}
+.sello-row:nth-last-child(2){border-bottom:0;padding-bottom:0;margin-bottom:0}
+.sello-row label{display:flex;flex-direction:column;gap:6px;font-size:10.5px;font-weight:700;min-width:0}
+.sello-row input,.sello-row select{width:100%;border:1px solid var(--border);border-radius:9px;background:var(--bg-elev);color:var(--text);padding:9px 10px;outline:none;font:inherit;font-size:12.5px}
+.sello-row input:focus,.sello-row select:focus{border-color:var(--accent)}
+.sellos-form>.hint{margin-top:12px}
+@media(max-width:720px){
+  .sello-row{grid-template-columns:1fr 1fr}
+  .sello-row label:last-child{grid-column:1/-1}
+}

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { ICONOS_DE_SELLO } from '../lib/negocio';
 
 // Los iconos de los sellos salian torcidos por dos motivos a la vez.
 //
@@ -39,10 +40,25 @@ describe('el marcado de los sellos', () => {
     expect(jsx).toContain('className="sello-texto"');
   });
 
-  it('los tres iconos usan el mismo viewBox', () => {
-    const viewBoxes = jsx.match(/viewBox="[^"]+"/g) || [];
-    expect(viewBoxes.length).toBeGreaterThan(0);
-    expect(new Set(viewBoxes).size).toBe(1);
-    expect(viewBoxes[0]).toBe('viewBox="0 0 24 24"');
+  it('todos los iconos comparten un único viewBox', () => {
+    // Antes los dibujos estaban escritos dentro de este componente y se comprobaba aqui. Ahora
+    // vienen de Iconos.jsx, donde TODOS pasan por el mismo envoltorio: hay un solo viewBox en
+    // el archivo y ninguno puede declarar el suyo. Si alguien añade un icono con otro lienzo,
+    // ese icono saldria de distinto tamaño que los demas y esto lo caza.
+    const iconos = readFileSync(new URL('./Iconos.jsx', import.meta.url), 'utf8');
+    const viewBoxes = iconos.match(/viewBox="[^"]+"/g) || [];
+    expect(viewBoxes).toEqual(['viewBox="0 0 24 24"']);
+  });
+
+  it('cada icono que ofrecen los Ajustes tiene dibujo', () => {
+    // El dueño elige de una lista cerrada. Un nombre en la lista sin dibujo en el componente
+    // dejaria el hueco vacio y nadie se enteraria hasta verlo en la tienda.
+    for (const { valor } of ICONOS_DE_SELLO) {
+      expect(jsx).toMatch(new RegExp(`\\b${valor}:\\s*Icono\\w+`));
+    }
+  });
+
+  it('un icono desconocido no deja el sello sin dibujo', () => {
+    expect(jsx).toContain('ICONOS[s.icono] || ICONOS.probado');
   });
 });
