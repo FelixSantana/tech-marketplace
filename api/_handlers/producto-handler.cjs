@@ -27,10 +27,10 @@ module.exports = async function handler(req, res) {
     // El HTML de la aplicacion lo sirve el propio despliegue, con los nombres de archivo ya
     // resueltos por el build. Pedirlo evita tener que empaquetarlo dentro de la funcion.
     const r = await fetch(`${base}/${ARCHIVO_TIENDA}`, { headers: { 'x-shell-request': '1' } });
-    if (!r.ok) throw new Error(`index.html respondio ${r.status}`);
+    if (!r.ok) throw new Error(`${ARCHIVO_TIENDA} respondio ${r.status}`);
     html = await r.text();
   } catch (e) {
-    console.error('producto: no se pudo leer index.html', e);
+    console.error(`producto: no se pudo leer ${ARCHIVO_TIENDA}`, e);
     res.statusCode = 302;
     res.setHeader('Location', '/');
     return res.end();

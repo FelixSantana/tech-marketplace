@@ -23,10 +23,10 @@ module.exports = async function handler(req, res) {
     // build. Pedirlo evita tener que empaquetarlo dentro de la funcion. Mismo camino que usa la
     // ficha de producto.
     const r = await fetch(`${base}/${ARCHIVO_TIENDA}`, { headers: { 'x-shell-request': '1' } });
-    if (!r.ok) throw new Error(`index.html respondio ${r.status}`);
+    if (!r.ok) throw new Error(`${ARCHIVO_TIENDA} respondio ${r.status}`);
     html = await r.text();
   } catch (e) {
-    console.error('portada: no se pudo leer index.html', e);
+    console.error(`portada: no se pudo leer ${ARCHIVO_TIENDA}`, e);
     // Al archivo estatico, que es exactamente lo que se servia antes de que esto existiera.
     res.statusCode = 302;
     res.setHeader('Location', `/${ARCHIVO_TIENDA}`);
