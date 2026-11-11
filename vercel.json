@@ -24,11 +24,11 @@
     },
     {
       "source": "/sitemap.xml",
-      "destination": "/api/sitemap"
+      "destination": "/api/seo?tipo=sitemap"
     },
     {
       "source": "/robots.txt",
-      "destination": "/api/robots"
+      "destination": "/api/seo?tipo=robots"
     }
   ],
   "headers": [
