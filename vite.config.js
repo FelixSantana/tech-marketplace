@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { writeFileSync, readFileSync, renameSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { resolverOrigen, aplicarOrigen, resolverNombre, aplicarNombre, resolverVerificacion, aplicarVerificacion } from './scripts/dominio.mjs'
+import { resolverOrigen, aplicarOrigen, resolverNombre, aplicarNombre, resolverVerificacion, aplicarVerificacion, esRegistroDns } from './scripts/dominio.mjs'
 import { htmlDelPanel, ARCHIVO as ARCHIVO_PANEL, ARCHIVO_TIENDA } from './scripts/panel.mjs'
 
 // Resuelve al compilar lo que index.html no puede saber de otra forma: el dominio del despliegue
@@ -33,7 +33,15 @@ function origenEnHtml() {
       // tipico es pegar la etiqueta entera en vez de solo el content.
       const verificacion = resolverVerificacion(process.env)
       const codigoCrudo = String(process.env.GOOGLE_SITE_VERIFICATION || '').trim()
-      if (codigoCrudo && !verificacion) {
+      if (codigoCrudo && esRegistroDns(codigoCrudo)) {
+        console.warn(
+          '[origen-en-html] GOOGLE_SITE_VERIFICATION trae el registro DNS del metodo de DOMINIO\n' +
+          '                 (google-site-verification=...). Ese codigo no sirve como etiqueta: el\n' +
+          '                 metodo de dominio y el de etiqueta HTML usan codigos distintos.\n' +
+          '                 El registro va en el DNS del dominio, no aqui. Para la etiqueta,\n' +
+          '                 elige "Etiqueta HTML" en Search Console y pega ESE codigo.',
+        )
+      } else if (codigoCrudo && !verificacion) {
         console.warn(
           '[origen-en-html] GOOGLE_SITE_VERIFICATION no tiene forma de codigo de Google y se\n' +
           '                 descarta. Se espera solo el valor de content="...", no la etiqueta\n' +

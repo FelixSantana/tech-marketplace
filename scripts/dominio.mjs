@@ -146,6 +146,20 @@ const CODIGO = /^[A-Za-z0-9_-]{10,100}$/;
 const ES_LA_ETIQUETA = /<meta\b[^>]*google-site-verification[^>]*>/i;
 const EL_CONTENT = /content=["']([^"']+)["']/i;
 
+// "google-site-verification=<codigo>" es el registro DNS TXT del metodo de DOMINIO, y aqui NO
+// se acepta, aunque sea lo mas facil de pegar por error.
+//
+// El motivo: el codigo del metodo de dominio y el de la etiqueta HTML son codigos DISTINTOS.
+// Sacarle el valor al registro y publicarlo en una etiqueta daria una pagina con aspecto de
+// verificada que Google no valida nunca. Eso es peor que descartarlo: cambia un fallo que se
+// ve en el registro del build por uno que no se ve en ninguna parte.
+//
+// Se reconoce igual, para poder decirlo con nombre y apellido en vez de "no tiene forma de
+// codigo", que es lo que manda a alguien a mirar donde no es.
+export const ES_REGISTRO_DNS = /^google-site-verification\s*=\s*\S+$/i;
+
+export const esRegistroDns = (valor) => ES_REGISTRO_DNS.test(String(valor == null ? '' : valor).trim());
+
 export function resolverVerificacion(env = {}) {
   const crudo = String(env.GOOGLE_SITE_VERIFICATION == null ? '' : env.GOOGLE_SITE_VERIFICATION).trim();
   const etiqueta = crudo.match(ES_LA_ETIQUETA);
