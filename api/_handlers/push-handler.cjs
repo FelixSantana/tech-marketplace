@@ -1,7 +1,6 @@
 const { kvGet, kvSet, kvConfigured } = require('../_lib/kv.cjs');
 const { AUTH_KEY, verifyToken, extractBearer } = require('../_lib/auth.cjs');
 const { SUBS_KEY, configuracion, esSuscripcionValida, conSuscripcion, sinSuscripcion } = require('../_lib/push.cjs');
-const { enviarATodos, sujeto } = require('../_lib/push-envio.cjs');
 
 // Todo lo de aqui pide sesion de administrador, incluida la clave publica. La clave publica no
 // es un secreto —el navegador la enseña igual—, pero nadie que no sea el dueño tiene nada que
@@ -18,6 +17,13 @@ function parseBody(req) {
   if (!req.body) return {};
   if (typeof req.body === 'object') return req.body;
   try { return JSON.parse(req.body); } catch { return {}; }
+}
+
+// Igual que en orders-handler: el modulo de envio se carga cuando se va a usar. Aqui no hay
+// una venta en juego, pero un require que falla en la primera linea devuelve un 500 sin
+// explicacion; cargandolo aqui dentro, el panel puede decir que pasa.
+function cargarEnvio() {
+  return require('../_lib/push-envio.cjs');
 }
 
 module.exports = async function handler(req, res) {
@@ -65,6 +71,7 @@ module.exports = async function handler(req, res) {
     if (body.action === 'probar') {
       const subs = (await kvGet(SUBS_KEY)) || [];
       if (!subs.length) return res.status(400).json({ error: 'NO_DEVICES', message: 'Todavía no hay ningún dispositivo activado.' });
+      const { enviarATodos, sujeto } = cargarEnvio();
       const { entregados, muertas } = await enviarATodos(
         subs,
         { title: 'Prueba de aviso', body: 'Así te va a llegar un pedido nuevo.', url: '/admin', tag: `prueba-${Date.now()}` },

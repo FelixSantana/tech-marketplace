@@ -5,7 +5,6 @@ const { resolverEntrega } = require('../_lib/envio.cjs');
 const { resolverCupon, usosDeCupones } = require('../_lib/cupones.cjs');
 const { vacio: metricasVacias, registrarEvento } = require('../_lib/metricas.cjs');
 const { SUBS_KEY, configuracion: configPush, avisoDePedido } = require('../_lib/push.cjs');
-const { enviarATodos, sujeto } = require('../_lib/push-envio.cjs');
 const { AUTH_KEY, verifyToken, extractBearer } = require('../_lib/auth.cjs');
 const ORDERS_KEY = 'synaptic_orders';
 // Resumen de unidades apartadas por pedidos vigentes. Se guarda aparte para que la tienda lo
@@ -28,6 +27,13 @@ function makeOrder(body, items, source, entrega, cupon) { const subtotal = money
 async function avisarDelPedido(order, catalog, req) {
   const cfg = configPush(process.env);
   if (!cfg.listo) return;
+  // El modulo de envio se carga AQUI y no arriba. Cargado arriba, cualquier problema suyo
+  // —una dependencia que el servidor no sabe cargar, por ejemplo— revienta el archivo entero
+  // y con el la creacion de pedidos, que es lo unico que esta tienda no se puede permitir
+  // perder. Ya paso: web-push publico una version que solo funciona como modulo ESM y el
+  // require de arriba tumbo /api/orders en produccion. Aqui dentro, lo peor que puede pasar
+  // es que no salga el aviso.
+  const { enviarATodos, sujeto } = require('../_lib/push-envio.cjs');
   const subs = (await kvGet(SUBS_KEY)) || [];
   if (!subs.length) return;
   const { muertas } = await enviarATodos(subs, avisoDePedido(order, catalog.settings || {}), cfg, sujeto(cfg, req));
