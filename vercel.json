@@ -3,6 +3,10 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/",
+      "destination": "/api/portada"
+    },
+    {
       "source": "/p/:slug",
       "destination": "/api/producto?slug=:slug"
     },
