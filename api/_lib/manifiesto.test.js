@@ -113,7 +113,7 @@ describe('construirManifiesto', () => {
     const m = construirManifiesto({ storeName: 'Tienda', marca: MARCA_COMPLETA });
     expect(() => JSON.stringify(m)).not.toThrow();
     expect(Object.keys(m).sort()).toEqual([
-      'background_color', 'description', 'dir', 'display', 'icons', 'lang',
+      'background_color', 'description', 'dir', 'display', 'icons', 'id', 'lang',
       'name', 'orientation', 'scope', 'short_name', 'start_url', 'theme_color',
     ]);
   });
@@ -121,5 +121,48 @@ describe('construirManifiesto', () => {
   it('recorta nombres absurdamente largos', () => {
     const m = construirManifiesto({ storeName: 'A'.repeat(500) });
     expect(m.name.length).toBeLessThan(80);
+  });
+});
+
+describe('el manifiesto del panel', () => {
+  const ajustes = { storeName: 'Synaptic Tech', tagline: 'Tecnología al alcance' };
+  const tienda = construirManifiesto(ajustes);
+  const panel = construirManifiesto(ajustes, { panel: true });
+
+  it('arranca en /admin, que es el motivo de que exista', () => {
+    // Con start_url '/', instalar desde /admin daba un icono que abria la TIENDA, y una
+    // aplicacion instalada no tiene barra de direcciones para corregirlo.
+    expect(tienda.start_url).toBe('/');
+    expect(panel.start_url).toBe('/admin');
+  });
+
+  it('se distingue del de la tienda en la pantalla de inicio', () => {
+    expect(panel.name).toBe('Panel · Synaptic Tech');
+    expect(panel.short_name).toBe('Panel');
+    expect(panel.name).not.toBe(tienda.name);
+    expect(panel.short_name).not.toBe(tienda.short_name);
+  });
+
+  it('el sistema los trata como dos aplicaciones distintas', () => {
+    // Con el mismo id, instalar uno reemplazaria al otro y no se podrian tener los dos.
+    expect(panel.id).not.toBe(tienda.id);
+  });
+
+  it('los dos abarcan el sitio entero', () => {
+    // Lo que cae fuera del scope lo abre el navegador en una pestaña aparte. El panel tiene que
+    // poder navegar a la tienda y al reves sin salirse de la aplicacion.
+    expect(tienda.scope).toBe('/');
+    expect(panel.scope).toBe('/');
+  });
+
+  it('comparte iconos y colores, que son la marca del negocio', () => {
+    expect(panel.icons).toEqual(tienda.icons);
+    expect(panel.theme_color).toBe(tienda.theme_color);
+    expect(panel.background_color).toBe(tienda.background_color);
+  });
+
+  it('sin pedirlo, sigue saliendo el de la tienda', () => {
+    expect(construirManifiesto(ajustes, {})).toEqual(tienda);
+    expect(construirManifiesto(ajustes, { panel: false })).toEqual(tienda);
   });
 });

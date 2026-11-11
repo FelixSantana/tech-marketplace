@@ -66,17 +66,40 @@ function iconosDe(settings) {
 // El caso de "sin nombre" ya no se trata aqui: nombreDeTienda() nunca devuelve vacio, asi que no
 // hay forma de llegar al "Catálogo — Catálogo" que habia que esquivar cuando este archivo tenia su
 // propio nombre por defecto.
-function construirManifiesto(settings) {
+// --- la variante del panel ---
+//
+// En un iPhone, los avisos de pedido SOLO llegan si la tienda esta instalada en la pantalla de
+// inicio: en Safari normal no hay push. Y una aplicacion instalada no tiene barra de
+// direcciones, asi que solo se puede llegar a donde la lleve su start_url.
+//
+// Con un unico manifiesto de start_url '/', instalar desde /admin daba un icono que abria la
+// TIENDA. Desde ahi no hay forma de entrar al panel —el engranaje solo se dibuja estando ya en
+// /admin— y el dueño se quedaba encerrado en su propia tienda, sin poder activar los avisos.
+//
+// La salida es un segundo manifiesto, el del panel, que el HTML enlaza cuando la pagina es
+// /admin. Lo que cambia es el start_url y el nombre; los iconos y los colores son los mismos,
+// que es la marca del negocio.
+//
+// `id` distinto en cada uno para que el sistema los trate como dos aplicaciones y se puedan
+// tener las dos instaladas: la tienda para enseñarla, el panel para trabajar.
+//
+// `scope` sigue siendo '/' en los dos. Lo que queda fuera del scope lo abre el navegador en una
+// pestaña aparte, y el panel necesita poder navegar a la tienda y al reves sin salirse.
+function construirManifiesto(settings, opciones = {}) {
   const s = settings || {};
+  const panel = opciones.panel === true;
   const nombre = texto(nombreDeTienda(s), 60);
   const lema = texto(s.tagline, 120);
   return {
-    name: `${nombre} — Catálogo`,
-    short_name: nombreCorto(nombre),
-    description: lema ? `${nombre}: ${lema}` : `Catálogo de ${nombre}: mira los productos y haz tu pedido por WhatsApp.`,
+    id: panel ? '/admin' : '/',
+    name: panel ? `Panel · ${nombre}` : `${nombre} — Catálogo`,
+    short_name: panel ? 'Panel' : nombreCorto(nombre),
+    description: panel
+      ? `Panel de ${nombre}: pedidos, productos y ajustes.`
+      : lema ? `${nombre}: ${lema}` : `Catálogo de ${nombre}: mira los productos y haz tu pedido por WhatsApp.`,
     lang: 'es-DO',
     dir: 'ltr',
-    start_url: '/',
+    start_url: panel ? '/admin' : '/',
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',
