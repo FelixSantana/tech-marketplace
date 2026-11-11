@@ -122,6 +122,10 @@ export const IconoPersona = (p) => (
   <Icono {...p}><circle cx="12" cy="8" r="3.8" /><path d="M4.8 20.5a7.2 7.2 0 0 1 14.4 0" /></Icono>
 );
 
+export const IconoEstrella = (p) => (
+  <Icono {...p}><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.5l6.1-.9L12 3Z" /></Icono>
+);
+
 export const IconoEtiqueta = (p) => (
   <Icono {...p}><path d="M20.5 13.3 13.3 20.5a2 2 0 0 1-2.8 0l-7-7a2 2 0 0 1-.6-1.5l.3-6a2 2 0 0 1 1.9-1.9l6-.3a2 2 0 0 1 1.5.6l7 7a2 2 0 0 1 0 2.8Z" /><circle cx="8.6" cy="8.6" r="1.3" /></Icono>
 );

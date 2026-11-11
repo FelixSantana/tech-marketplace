@@ -1,5 +1,6 @@
 import { getStockQty, getPrimaryImage, hasVariants, getMinPrice, getVariants } from '../hooks/useCatalog';
 import { rutaProducto } from '../lib/rutas';
+import { estadoDeProducto, ofertaDeProducto, textoDePocas } from '../lib/vitrina';
 
 export default function ProductCard({ product, settings, onOpenDetail, onAddCart, onOrderWhatsApp }) {
   const stockQty = getStockQty(product);
@@ -8,6 +9,9 @@ export default function ProductCard({ product, settings, onOpenDetail, onAddCart
   // Con variantes no hay un precio ni un stock unico que la tarjeta pueda usar: el cliente
   // tiene que abrir el detalle y elegir. Sin variantes, la tarjeta se comporta como siempre.
   const conVariantes = hasVariants(product);
+  const estado = estadoDeProducto(product);
+  const oferta = ofertaDeProducto(product);
+  const pocas = textoDePocas(product);
   const openDetail = () => onOpenDetail(product.id);
 
   // El nombre es un enlace de verdad, no un div que escucha clics.
@@ -33,12 +37,30 @@ export default function ProductCard({ product, settings, onOpenDetail, onAddCart
       <div className="img-wrap">
         {img ? <img src={img} alt={product.name} /> : <span className="placeholder">Sin imagen</span>}
         {isOut && <span className="badge-out">Agotado</span>}
+        {/* Agotado y "quedan pocas" nunca juntos: el primero ya lo dice todo. La oferta si
+            convive con la urgencia, porque son dos razones distintas para decidirse. */}
+        {!isOut && oferta && <span className="badge-oferta">−{oferta.porciento}%</span>}
+        {!isOut && pocas && <span className="badge-pocas">{pocas}</span>}
       </div>
       <div className="card-body">
         {product.category && <div className="card-cat">{product.category}</div>}
         <h2 className="card-name"><a href={rutaProducto(product)} onClick={irAlDetalle}>{product.name}</a></h2>
         {product.description && <div className="card-desc">{product.description}</div>}
-        <div className="card-price mono">{conVariantes && <span className="price-from">desde </span>}<span className="currency">{settings.currency}</span>{getMinPrice(product).toLocaleString('es-DO')}</div>
+        <div className="card-price mono">
+          {conVariantes && <span className="price-from">desde </span>}
+          <span className="currency">{settings.currency}</span>{getMinPrice(product).toLocaleString('es-DO')}
+          {/* El tachado va DESPUES del precio real y mas pequeño: lo que tiene que quedarse en
+              la cabeza es lo que cuesta hoy, no lo que costaba. */}
+          {oferta && <span className="precio-antes">{settings.currency} {oferta.antes.toLocaleString('es-DO')}</span>}
+        </div>
+        {/* El estado del equipo, que es la primera pregunta de quien compra usado. En la
+            tarjeta va la version corta; la nota entera se lee en la ficha. */}
+        {estado && (
+          <div className={`card-estado estado-${estado.nivel || 'sin-nivel'}`}>
+            {estado.corto && <strong>{estado.corto}</strong>}
+            {estado.nota && <span>{estado.nota}</span>}
+          </div>
+        )}
         {/* La garantia va debajo del precio, en gris y sin gritar. Es
             la linea que en Data Import ocupa "Impuestos incluidos": una condicion
             de compra, no un adorno. Vendiendo equipos usados, es LA condicion. */}

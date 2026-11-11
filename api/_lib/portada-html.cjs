@@ -23,6 +23,7 @@
 
 const { slugProducto } = require('./rutas.cjs');
 const { nombreDeTienda } = require('./tienda.cjs');
+const { condicionDe, ofertaDe, destacadosPrimero } = require('./vitrina.cjs');
 
 const escapar = (v) => String(v == null ? '' : v)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -55,7 +56,9 @@ function fotoDe(producto) {
 // que descubra el catalogo; del resto ya se encarga el mapa del sitio.
 const MAX_PRODUCTOS = 100;
 
-const publicables = (catalog) => (Array.isArray(catalog && catalog.products) ? catalog.products : [])
+// En el mismo orden que ve el visitante en "Recomendados": con los destacados delante. Si el
+// HTML servido ordenara distinto, el rastreador y la persona verian catalogos diferentes.
+const publicables = (catalog) => destacadosPrimero(catalog && catalog.products)
   .filter((p) => p && p.id && String(p.name || '').trim())
   .slice(0, MAX_PRODUCTOS);
 
@@ -80,6 +83,7 @@ function tarjetasDePortada(catalog) {
     const foto = fotoDe(p);
     const precio = precioDesde(p).toLocaleString('es-DO');
     const desde = tieneVariantes(p) ? '<span class="price-from">desde </span>' : '';
+    const oferta = ofertaDe(p, precioDesde(p));
     return [
       '<article class="card">',
       `<div class="img-wrap">${foto ? `<img src="${escapar(foto)}" alt="${escapar(p.name)}" loading="lazy" />` : '<span class="placeholder">Sin imagen</span>'}</div>`,
@@ -87,7 +91,9 @@ function tarjetasDePortada(catalog) {
       p.category ? `<div class="card-cat">${escapar(p.category)}</div>` : '',
       `<h2 class="card-name"><a href="${escapar(ruta)}">${escapar(p.name)}</a></h2>`,
       p.description ? `<div class="card-desc">${escapar(recortar(p.description, 120))}</div>` : '',
-      `<div class="card-price mono">${desde}<span class="currency">${moneda}</span>${escapar(precio)}</div>`,
+      // El tachado tambien aqui: el HTML servido y el que pinta React tienen que enseñar lo
+      // mismo, o durante el parpadeo el precio parece cambiar solo.
+      `<div class="card-price mono">${desde}<span class="currency">${moneda}</span>${escapar(precio)}${oferta ? `<span class="precio-antes">${moneda} ${escapar(oferta.antes.toLocaleString('es-DO'))}</span>` : ''}</div>`,
       '</div></article>',
     ].join('');
   }).join('');
@@ -111,6 +117,7 @@ function listaEstructurada(catalog, base) {
         name: sinEtiquetas(p.name),
         url: `${base}/p/${slugProducto(p)}`,
         ...(fotoDe(p) ? { image: fotoDe(p) } : {}),
+        ...(condicionDe(p) ? { itemCondition: condicionDe(p) } : {}),
         offers: {
           '@type': 'Offer',
           price: precioDesde(p),

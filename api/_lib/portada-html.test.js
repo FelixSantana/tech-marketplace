@@ -154,3 +154,46 @@ describe('cuando algo no cuadra', () => {
     expect(vacia).toContain('<div id="root"></div>');
   });
 });
+
+describe('el escaparate en el HTML servido', () => {
+  const conVitrina = {
+    settings: { storeName: 'Tienda', currency: 'DOP' },
+    products: [
+      { id: 'p_1_aaaaaa', name: 'Normal', price: 1000, stockQty: 9 },
+      { id: 'p_2_bbbbbb', name: 'Destacado', price: 2000, stockQty: 9, destacado: true },
+      { id: 'p_3_cccccc', name: 'En oferta', price: 5000, precioAntes: 10000, stockQty: 9 },
+      { id: 'p_4_dddddd', name: 'Usado', price: 3000, stockQty: 9, estado: { nivel: 'con-detalles', nota: 'Marca en la tapa' } },
+      { id: 'p_5_eeeeee', name: 'Nuevo de paquete', price: 4000, stockQty: 9, estado: { nivel: 'nuevo', nota: '' } },
+    ],
+  };
+  const servido = inyectarPortada(HTML, { catalog: conVitrina, base: BASE });
+  const lista = listaEstructurada(conVitrina, BASE);
+
+  it('el destacado va primero, igual que en la tienda', () => {
+    // Si el HTML servido ordenara distinto, el rastreador y la persona verian catalogos
+    // diferentes.
+    expect(lista.itemListElement[0].item.name).toBe('Destacado');
+  });
+
+  it('la oferta sale tachada, igual que la pinta React', () => {
+    // Si no, durante el parpadeo el precio parece cambiar solo.
+    expect(servido).toContain('<span class="precio-antes">DOP 10,000</span>');
+  });
+
+  it('un producto sin oferta no lleva tachado', () => {
+    const solo = inyectarPortada(HTML, { catalog: { settings: {}, products: [conVitrina.products[0]] }, base: BASE });
+    expect(solo).not.toContain('precio-antes');
+  });
+
+  it('el estado viaja como itemCondition, que es lo que Google lee', () => {
+    const porNombre = (n) => lista.itemListElement.find((e) => e.item.name === n).item;
+    expect(porNombre('Usado').itemCondition).toBe('https://schema.org/UsedCondition');
+    expect(porNombre('Nuevo de paquete').itemCondition).toBe('https://schema.org/NewCondition');
+  });
+
+  it('sin estado declarado no se afirma ninguna condición', () => {
+    // Suponer "nuevo" por defecto en una tienda de usados seria mentir en los resultados.
+    const porNombre = (n) => lista.itemListElement.find((e) => e.item.name === n).item;
+    expect(porNombre('Normal').itemCondition).toBeUndefined();
+  });
+});

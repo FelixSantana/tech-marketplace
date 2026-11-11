@@ -2,13 +2,19 @@ import { useState } from 'react';
 import ProductCard from './ProductCard';
 import { coincideBusqueda } from '../lib/texto';
 import { getMinPrice } from '../hooks/useCatalog';
+import { destacadosPrimero } from '../lib/vitrina';
 import { IconoRejilla, IconoLupa } from './Iconos';
 
 // Ordenar por precio y decir cuantos resultados hay. Data Import
 // tiene las dos cosas; en un catalogo de 23 productos, donde el cliente compara
 // equipos parecidos, "de menor a mayor" es el filtro que de verdad se usa.
 const ORDENES = {
-  recomendados: { etiqueta: 'Recomendados', aplicar: (l) => l },
+  // "Recomendados" ahora recomienda de verdad: delante va lo que el dueño destaco. Antes era
+  // el orden en que los productos estaban guardados, que no significaba nada para nadie.
+  //
+  // Los demas ordenes NO cuelan los destacados arriba: quien pide "de menor a mayor precio"
+  // quiere eso, y un orden que no obedece se siente roto.
+  recomendados: { etiqueta: 'Recomendados', aplicar: (l) => destacadosPrimero(l) },
   barato: { etiqueta: 'Precio: de menor a mayor', aplicar: (l) => l.slice().sort((a, b) => getMinPrice(a) - getMinPrice(b)) },
   caro: { etiqueta: 'Precio: de mayor a menor', aplicar: (l) => l.slice().sort((a, b) => getMinPrice(b) - getMinPrice(a)) },
   nombre: { etiqueta: 'Nombre (A-Z)', aplicar: (l) => l.slice().sort((a, b) => a.name.localeCompare(b.name, 'es')) },
