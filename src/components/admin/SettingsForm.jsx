@@ -6,6 +6,7 @@ import { normalizarColor, colorDeMarca, tintaSobre, COLOR_POR_DEFECTO } from '..
 import ShippingForm from './ShippingForm';
 import CouponsForm from './CouponsForm';
 import BackupsPanel from './BackupsPanel';
+import PushPanel from './PushPanel';
 import { cuponesDeAjustes } from '../../lib/cupones';
 import { ajustesDeEnvio } from '../../lib/envio';
 import { diasQueLeQuedan } from '../../lib/token';
@@ -177,6 +178,8 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
       <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon"><IconoCupon /></span><div><h3>Cupones de descuento</h3><p>Se aplican al precio de los productos, no al envío.</p></div></div>
       <CouponsForm cupones={cupones} setCupones={setCupones} currency={currency} adminToken={adminToken} />
       <button className="btn-primary full-action" onClick={handleSaveSettings}>Guardar ajustes</button>
+
+      <PushPanel adminToken={adminToken} showToast={showToast} />
 
       <BackupsPanel adminToken={adminToken} refreshCatalog={refreshCatalog} showToast={showToast} />
 
