@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ProductList from './ProductList';
 import ProductForm from './ProductForm';
 import SettingsForm from './SettingsForm';
@@ -7,15 +7,21 @@ import PrintCatalog from './PrintCatalog';
 import MigrateImages from './MigrateImages';
 import MetricsPanel from './MetricsPanel';
 import { mergeProductEdit } from '../../lib/catalogMerge';
+import { ordenDeLaUrl, limpiarUrl } from '../../lib/avisoRuta';
 
 export default function AdminPanel({ products, reservas, categories, setCategories, settings, saveCatalog, refreshCatalog, adminToken, authRequest, setAdminToken, onClose, onLogout, showToast }) {
-  const [tab, setTab] = useState('productos');
+  // Tocar el aviso de un pedido abre el panel con ?orden=<id> en la direccion. Se lee una sola
+  // vez, al montar: el aviso sirve para una visita, no es un estado del panel.
+  const [ordenDelAviso, setOrdenDelAviso] = useState(() => ordenDeLaUrl(window.location.search));
+  const [tab, setTab] = useState(() => (ordenDeLaUrl(window.location.search) ? 'ordenes' : 'productos'));
+  // Y se quita de la direccion enseguida, o recargar volveria a saltar al mismo pedido.
+  useEffect(() => { limpiarUrl(window); }, []);
   const [editingId, setEditingId] = useState(null);
   // null | 'clientes' | 'inventario'. Solo se llega aqui con sesion de admin abierta.
   const [printMode, setPrintMode] = useState(null);
   const editingProduct = editingId ? products.find((p) => p.id === editingId) : null;
 
-  const switchTab = (t) => { if (t !== 'agregar') setEditingId(null); setTab(t); };
+  const switchTab = (t) => { if (t !== 'agregar') setEditingId(null); if (t !== 'ordenes') setOrdenDelAviso(''); setTab(t); };
 
   // original: el producto tal como estaba al abrir el formulario. Con el se distingue el stock que
   // el admin cambio del que solo arrastra el formulario y que el servidor pudo haber descontado.
@@ -75,7 +81,7 @@ export default function AdminPanel({ products, reservas, categories, setCategori
           <ProductForm key={editingId || 'new'} editingProduct={editingProduct} categories={categories} setCategories={setCategories} settings={settings} onSave={handleSaveProduct} onCancel={() => { setEditingId(null); setTab('productos'); }} saveCatalog={saveCatalog} adminToken={adminToken} showToast={showToast} />
         )}
         {tab === 'ordenes' && (
-          <OrdersPanel adminToken={adminToken} products={products} showToast={showToast} onInventoryChanged={refreshCatalog} />
+          <OrdersPanel adminToken={adminToken} products={products} showToast={showToast} onInventoryChanged={refreshCatalog} ordenDestacada={ordenDelAviso} />
         )}
         {tab === 'metricas' && (
           <MetricsPanel adminToken={adminToken} showToast={showToast} />

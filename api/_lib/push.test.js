@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createRequire } from 'node:module';
+import { rutaDeOrden } from '../../src/lib/avisoRuta.js';
 
 const require = createRequire(import.meta.url);
 const { configuracion, esSuscripcionValida, conSuscripcion, sinSuscripcion, estaMuerta, avisoDePedido, MAX_DISPOSITIVOS } = require('./push.cjs');
@@ -106,8 +107,16 @@ describe('el texto del aviso', () => {
     expect(a.body).toBe('Jose — Teclado y 2 más');
   });
 
-  it('lleva al panel al tocarlo', () => {
-    expect(avisoDePedido(pedido, {}).url).toBe('/admin');
+  it('lleva al pedido concreto, no al panel a secas', () => {
+    expect(avisoDePedido(pedido, {}).url).toBe('/admin?orden=ord_1');
+  });
+
+  it('construye la dirección igual que el navegador', () => {
+    // La regla vive en dos sitios porque esto corre en el servidor y avisoRuta.js en el
+    // navegador. Si se separan, el aviso llevaria a una direccion que el panel no entiende.
+    for (const id of ['ord_1794424738526_o36fme', 'ord_1', '', 'con espacio', '../otra']) {
+      expect(avisoDePedido({ ...pedido, id }, {}).url).toBe(rutaDeOrden(id));
+    }
   });
 
   it('cada pedido trae su etiqueta, para que dos seguidos no se tapen', () => {

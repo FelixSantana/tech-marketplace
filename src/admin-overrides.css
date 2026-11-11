@@ -371,3 +371,23 @@
 .push-acciones button{width:auto;margin:0;padding:0 13px;height:34px;display:inline-flex;align-items:center;border-radius:9px;font-size:12.5px}
 .push-aviso{padding:12px 14px;border:1px dashed var(--border);border-radius:13px;background:var(--surface);color:var(--text-muted);font-size:12px;line-height:1.5}
 @media(max-width:560px){.push-panel .push-estado{flex-wrap:wrap}.push-acciones{width:100%;justify-content:flex-end}}
+
+/* --- El pedido al que lleva un aviso --- */
+/*
+   Se llega aqui tocando la notificacion en el telefono, asi que la fila tiene que cantar sin
+   tener que leer: color de marca de fondo y una barra al costado. Se apaga sola a los seis
+   segundos —lo hace el componente— porque pasado el primer vistazo ese pedido no tiene nada
+   distinto de los demas y dejarlo marcado confundiria.
+
+   La animacion la salta quien pidio menos movimiento en su sistema: un parpadeo encima del
+   texto es justo lo que molesta a quien activa ese ajuste.
+*/
+.orders-table tbody tr.orden-destacada{background:color-mix(in srgb,var(--accent) 15%,var(--surface))!important}
+.orders-table tbody tr.orden-destacada td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+@media (prefers-reduced-motion: no-preference){
+  .orders-table tbody tr.orden-destacada{animation:latido-orden 1.1s ease-out 2}
+  @keyframes latido-orden{
+    0%{background:color-mix(in srgb,var(--accent) 34%,var(--surface))}
+    100%{background:color-mix(in srgb,var(--accent) 15%,var(--surface))}
+  }
+}
