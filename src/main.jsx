@@ -4,12 +4,14 @@ import App from './App.jsx'
 
 // En /admin se enlaza el manifiesto del PANEL, que arranca en /admin en vez de en la tienda.
 //
-// Sin esto, instalar desde /admin daba un icono que abria la tienda, y una aplicacion instalada
-// no tiene barra de direcciones: desde la tienda no hay forma de llegar al panel. En un iPhone
-// eso ademas deja sin avisos de pedido, porque iOS solo los entrega a la aplicacion instalada.
+// ESTO NO ES LO QUE HACE QUE FUNCIONE EN PRODUCCION. Ahi /admin lo sirve su propio archivo,
+// dist/admin.html, que ya viene con el manifiesto correcto escrito (scripts/panel.mjs explica
+// por que tuvo que ser asi: Safari ignora el href que cambia JavaScript). Alli estas lineas son
+// un no-op, porque ponen el valor que ya hay.
 //
-// Va aqui y no en un script dentro del HTML porque la politica de contenido del sitio no
-// permite scripts en linea (script-src 'self'): uno ahi quedaria bloqueado.
+// Se quedan por el servidor de desarrollo, que sirve index.html para cualquier ruta y no genera
+// admin.html: sin ellas, /admin en local enlazaria el manifiesto de la tienda y lo que se
+// prueba no se pareceria a lo que se publica.
 if (window.location.pathname.replace(/\/$/, '') === '/admin') {
   const manifiesto = document.querySelector('link[rel="manifest"]');
   if (manifiesto) manifiesto.href = '/manifest.webmanifest?panel=1';

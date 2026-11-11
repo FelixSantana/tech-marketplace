@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { writeFileSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { resolverOrigen, aplicarOrigen, resolverNombre, aplicarNombre, resolverVerificacion, aplicarVerificacion } from './scripts/dominio.mjs'
+import { htmlDelPanel, ARCHIVO as ARCHIVO_PANEL } from './scripts/panel.mjs'
 
 // Resuelve al compilar lo que index.html no puede saber de otra forma: el dominio del despliegue
 // y el nombre de la tienda. El por que de cada uno esta en scripts/dominio.mjs.
@@ -44,6 +47,22 @@ function origenEnHtml() {
   }
 }
 
+// El HTML del panel se escribe DESPUES de que Vite termine el suyo, a partir del resultado
+// final: asi hereda los marcadores ya resueltos y las etiquetas de los paquetes compilados.
+// El por que de que tenga que ser un archivo aparte, y no un cambio desde JavaScript, esta en
+// scripts/panel.mjs.
+function htmlDelPanelEnElBuild() {
+  return {
+    name: 'html-del-panel',
+    apply: 'build',
+    writeBundle(opciones) {
+      const salida = opciones.dir || 'dist'
+      const indice = resolve(salida, 'index.html')
+      writeFileSync(resolve(salida, ARCHIVO_PANEL), htmlDelPanel(readFileSync(indice, 'utf8')))
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), origenEnHtml()],
+  plugins: [react(), origenEnHtml(), htmlDelPanelEnElBuild()],
 })
