@@ -103,9 +103,48 @@
 .checkout-done-hint{margin:12px 0 16px;font-size:11px;color:var(--text-muted);line-height:1.5}
 .checkout-done .btn-secondary{width:100%;margin:0;min-height:42px}
 
+/* --- Las casillas de verificacion del panel --- */
+/*
+   accent-color no basta. Solo pinta la MARCA, y la marca solo existe cuando la casilla esta
+   activada: apagada se queda el cuadro que dibuja el sistema operativo, blanco con borde gris,
+   que sobre el panel oscuro se ve como un parche recortado y nada que ver con el resto de los
+   controles. Era justo lo que se notaba en "Pedir datos de entrega".
+   Asi que con appearance:none se renuncia al dibujo del sistema y se pinta la casilla entera.
+   A cambio hay que devolver tres cosas que venian gratis:
+     - la marca, que aqui es un ::before recortado con clip-path en forma de palomita. Un borde
+       girado 45 grados seria mas corto de escribir, pero el giro descoloca el centro y la
+       palomita acaba pegada a un lado de la casilla.
+     - el anillo de foco, que appearance:none se lleva por delante. Sin el, quien navega con
+       Tab pierde de vista donde esta. Va con :focus-visible y no con :focus para que no salte
+       con el raton, que ya sabe donde hizo clic.
+     - el cursor de mano: el <label> entero lo lleva, pero el input sin appearance vuelve al
+       de texto justo encima de la casilla.
+   Los colores salen de las variables de tema, asi que la casilla sigue al tema claro y al
+   oscuro y se tiñe del color de marca del cliente sin tocar nada mas.
+*/
+.switch-row input[type=checkbox],.cupon-activo input[type=checkbox]{
+  appearance:none;-webkit-appearance:none;
+  display:grid;place-content:center;
+  border:1.5px solid var(--border);border-radius:5px;
+  background:var(--bg-elev);
+  cursor:pointer;
+  transition:background-color .15s ease,border-color .15s ease;
+}
+.switch-row input[type=checkbox]::before,.cupon-activo input[type=checkbox]::before{
+  content:'';width:10px;height:10px;
+  background:var(--accent-ink);
+  clip-path:polygon(14% 44%,0 60%,39% 100%,100% 18%,84% 0,39% 68%);
+  transform:scale(0);
+  transition:transform .13s ease;
+}
+.switch-row input[type=checkbox]:checked,.cupon-activo input[type=checkbox]:checked{background:var(--accent);border-color:var(--accent)}
+.switch-row input[type=checkbox]:checked::before,.cupon-activo input[type=checkbox]:checked::before{transform:scale(1)}
+.switch-row input[type=checkbox]:hover,.cupon-activo input[type=checkbox]:hover{border-color:var(--accent)}
+.switch-row input[type=checkbox]:focus-visible,.cupon-activo input[type=checkbox]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
 /* --- Entrega, envio y privacidad --- */
 .switch-row{display:flex;gap:11px;align-items:flex-start;padding:12px 0;cursor:pointer}
-.switch-row input{width:18px;height:18px;margin:2px 0 0;flex-shrink:0;accent-color:var(--accent)}
+.switch-row input{width:18px;height:18px;margin:2px 0 0;flex-shrink:0}
 .switch-row strong{display:block;font-size:13px}
 .switch-row small{display:block;font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.45}
 .shipping-form{border:1px solid var(--border);border-radius:13px;padding:14px 15px;background:var(--surface)}
@@ -147,7 +186,8 @@
 .cupon-row input:focus,.cupon-row select:focus{border-color:var(--accent)}
 .cupon-acciones{display:flex;align-items:center;gap:8px}
 .cupon-activo{flex-direction:row!important;align-items:center;gap:5px!important;white-space:nowrap}
-.cupon-activo input{width:16px;height:16px;accent-color:var(--accent)}
+.cupon-activo input{width:16px;height:16px}
+.cupon-activo input[type=checkbox]::before{width:9px;height:9px}
 @media (max-width:720px){.cupon-row{grid-template-columns:1fr 1fr}.cupon-row label:first-child{grid-column:1/-1}.cupon-acciones{grid-column:1/-1;justify-content:space-between}}
 
 .cupon-checkout{padding:14px 24px 0}
