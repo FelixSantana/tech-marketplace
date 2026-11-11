@@ -3,6 +3,7 @@
 // que esto tiene que venir resuelto desde el servidor.
 
 const { nombreDeTienda } = require('./tienda.cjs');
+const { condicionDe } = require('./vitrina.cjs');
 
 const escapar = (v) => String(v == null ? '' : v)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -63,6 +64,10 @@ function inyectarMetaProducto(html, { producto, settings, base, ruta }) {
     ...(producto.description ? { description: sinEtiquetas(producto.description) } : {}),
     ...(/^https?:\/\//.test(imagen) ? { image: [imagen] } : {}),
     ...(producto.category ? { category: producto.category } : {}),
+    // El estado del equipo, en el vocabulario que Google entiende. En una tienda de usados es
+    // de lo mas util que se le puede decir, y solo se afirma cuando el dueño lo declaro: dar
+    // "nuevo" por defecto aqui seria mentir donde mas caro sale.
+    ...(condicionDe(producto) ? { itemCondition: condicionDe(producto) } : {}),
     offers: {
       '@type': 'Offer', url,
       priceCurrency: 'DOP',

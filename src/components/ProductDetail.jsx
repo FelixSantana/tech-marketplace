@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { getStockQty, getProductImages, hasVariants, getVariants, getVariant, getMinPrice } from '../hooks/useCatalog';
+import { estadoDeProducto, ofertaDeProducto, textoDePocas } from '../lib/vitrina';
 import { rutaProducto } from '../lib/rutas';
 
 const variantStock = (v) => Math.max(0, Math.floor(Number(v?.stockQty) || 0));
@@ -30,6 +31,9 @@ export default function ProductDetail({ product, settings, onClose, onAddCart, o
   const stockQty = conVariantes ? variantStock(variant) : totalStock;
   const faltaElegir = conVariantes && !variant;
   const unitPrice = conVariantes ? (variant ? Number(variant.price) : getMinPrice(product)) : Number(product.price);
+  const estado = estadoDeProducto(product);
+  const oferta = ofertaDeProducto(product, unitPrice);
+  const pocas = textoDePocas(product);
 
   // La cantidad valida se calcula al renderizar: antes un efecto la corregia despues de
   // pintar, lo que provocaba un render extra y podia mostrar un numero imposible por un instante.
@@ -66,6 +70,14 @@ export default function ProductDetail({ product, settings, onClose, onAddCart, o
           {product.category && <div className="detail-cat">{product.category}</div>}
           <div className="detail-name">{product.name}</div>
           {product.description ? <div className="detail-desc">{product.description}</div> : <div className="detail-desc">Sin descripción.</div>}
+          {/* El estado va pegado a la garantia: las dos responden a la misma duda de quien compra
+              usado, y separarlas obliga a buscar la segunda despues de leer la primera. */}
+          {estado && (
+            <div className={`detail-estado estado-${estado.nivel || 'sin-nivel'}`}>
+              {estado.nombre && <strong>{estado.nombre}</strong>}
+              {estado.nota && <p>{estado.nota}</p>}
+            </div>
+          )}
           {product.warranty && <div className="card-warranty detail-warranty">Garantía: {product.warranty}</div>}
           {conVariantes && (
             <div className="variant-picker">
@@ -91,7 +103,12 @@ export default function ProductDetail({ product, settings, onClose, onAddCart, o
               </div>
             </div>
           )}
-          <div className="detail-price mono">{faltaElegir && <span className="price-from">desde </span>}{settings.currency} {unitPrice.toLocaleString('es-DO')}</div>
+          <div className="detail-price mono">
+            {faltaElegir && <span className="price-from">desde </span>}{settings.currency} {unitPrice.toLocaleString('es-DO')}
+            {oferta && <span className="precio-antes">{settings.currency} {oferta.antes.toLocaleString('es-DO')}</span>}
+            {oferta && <span className="detail-ahorro">Ahorras {settings.currency} {(oferta.antes - oferta.ahora).toLocaleString('es-DO')}</span>}
+          </div>
+          {pocas && <div className="detail-pocas">{pocas} en existencia</div>}
           <div className={`detail-stock ${stockClass}`}>{stockLabel}</div>
           {puedePedir && <div className="qty-row"><span className="qlabel">Cantidad a pedir</span><div className="qty-stepper"><button disabled={cantidad <= 1} onClick={() => setQty(Math.max(1, cantidad - 1))}>−</button><span className="qty-val">{cantidad}</span><button disabled={cantidad >= stockQty} onClick={() => setQty(Math.min(stockQty, cantidad + 1))}>+</button></div></div>}
           {puedePedir && <button className="btn-primary" onClick={() => onAddCart(product.id, cantidad, variantId)}>Agregar {cantidad} al carrito</button>}

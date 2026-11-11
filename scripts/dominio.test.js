@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { resolverOrigen, aplicarOrigen, MARCADOR, resolverNombre, aplicarNombre, MARCADOR_NOMBRE, NOMBRE_POR_DEFECTO, resolverVerificacion, aplicarVerificacion, MARCADOR_VERIFICACION } from './dominio.mjs';
+import { esRegistroDns, resolverOrigen, aplicarOrigen, MARCADOR, resolverNombre, aplicarNombre, MARCADOR_NOMBRE, NOMBRE_POR_DEFECTO, resolverVerificacion, aplicarVerificacion, MARCADOR_VERIFICACION } from './dominio.mjs';
 
 describe('resolverOrigen', () => {
   // El caso que justifica todo esto: dos tiendas distintas compilando del mismo repositorio
@@ -299,5 +299,38 @@ describe('resolverVerificacion: la etiqueta pegada entera', () => {
     ]) {
       expect(resolverVerificacion({ GOOGLE_SITE_VERIFICATION: malo })).toBe('');
     }
+  });
+});
+
+
+describe('el codigo pegado como registro DNS', () => {
+  const CODIGO = 'nD9dbbqJ1Cy5dJ0WqgFTYVl4ibc36v7ZHpWGf0r25pU';
+  const REGISTRO = `google-site-verification=${CODIGO}`;
+  const ETIQUETA = `<meta name="google-site-verification" content="${CODIGO}" />`;
+
+  it('NO se publica como etiqueta', () => {
+    // El codigo del metodo de DOMINIO y el de la etiqueta HTML son codigos distintos. Sacarle
+    // el valor al registro y publicarlo daria una pagina con aspecto de verificada que Google
+    // no valida nunca: un fallo que no se ve en ninguna parte, peor que el que se ve.
+    expect(resolverVerificacion({ GOOGLE_SITE_VERIFICATION: REGISTRO })).toBe('');
+  });
+
+  it('pero se reconoce, para poder avisar de qué es', () => {
+    // Sin esto el aviso del build diria solo "no tiene forma de codigo", que manda a mirar
+    // donde no es. Con esto puede decir que es el registro del metodo de dominio.
+    expect(esRegistroDns(REGISTRO)).toBe(true);
+    expect(esRegistroDns(` Google-Site-Verification = ${CODIGO} `)).toBe(true);
+  });
+
+  it('no confunde con el registro lo que no lo es', () => {
+    expect(esRegistroDns(CODIGO)).toBe(false);
+    expect(esRegistroDns(ETIQUETA)).toBe(false);
+    expect(esRegistroDns('')).toBe(false);
+    expect(esRegistroDns(null)).toBe(false);
+  });
+
+  it('las dos formas que sí valen siguen valiendo', () => {
+    expect(resolverVerificacion({ GOOGLE_SITE_VERIFICATION: CODIGO })).toBe(CODIGO);
+    expect(resolverVerificacion({ GOOGLE_SITE_VERIFICATION: ETIQUETA })).toBe(CODIGO);
   });
 });

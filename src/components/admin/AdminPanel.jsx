@@ -78,7 +78,7 @@ export default function AdminPanel({ products, reservas, categories, setCategori
           </>
         )}
         {tab === 'agregar' && (
-          <ProductForm key={editingId || 'new'} editingProduct={editingProduct} categories={categories} setCategories={setCategories} settings={settings} onSave={handleSaveProduct} onCancel={() => { setEditingId(null); setTab('productos'); }} saveCatalog={saveCatalog} adminToken={adminToken} showToast={showToast} />
+          <ProductForm key={editingId || 'new'} editingProduct={editingProduct} productos={products} categories={categories} setCategories={setCategories} settings={settings} onSave={handleSaveProduct} onCancel={() => { setEditingId(null); setTab('productos'); }} saveCatalog={saveCatalog} adminToken={adminToken} showToast={showToast} />
         )}
         {tab === 'ordenes' && (
           <OrdersPanel adminToken={adminToken} products={products} showToast={showToast} onInventoryChanged={refreshCatalog} ordenDestacada={ordenDelAviso} />

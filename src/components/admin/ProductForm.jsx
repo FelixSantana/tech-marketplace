@@ -2,12 +2,14 @@ import { useId, useState, useEffect } from 'react';
 import { getStockQty, getProductImages, getVariants } from '../../hooks/useCatalog';
 import VariantTable from './VariantTable';
 import { compressImage, EMOJI_GRUPOS } from '../../lib/utils';
+import { limpiarEstado, contarDestacados, esDestacado } from '../../lib/vitrina';
+import VitrinaFields from './VitrinaFields';
 import { uploadImage } from '../../lib/uploadImage';
-import { IconoEtiqueta, IconoControles } from '../Iconos';
+import { IconoEtiqueta, IconoControles, IconoEstrella } from '../Iconos';
 
 const MAX_IMAGES = 6;
 
-export default function ProductForm({ editingProduct, categories, setCategories, settings, onSave, onCancel, saveCatalog, adminToken, showToast }) {
+export default function ProductForm({ editingProduct, productos, categories, setCategories, settings, onSave, onCancel, saveCatalog, adminToken, showToast }) {
   const [images, setImages] = useState(() => (editingProduct ? getProductImages(editingProduct).slice() : []));
   const [primaryIdx, setPrimaryIdx] = useState(() => editingProduct && typeof editingProduct.primaryImage === 'number' ? editingProduct.primaryImage : 0);
   const [name, setName] = useState(editingProduct?.name || '');
@@ -15,6 +17,10 @@ export default function ProductForm({ editingProduct, categories, setCategories,
   const [stockQty, setStockQty] = useState(editingProduct ? getStockQty(editingProduct) : 1);
   const [category, setCategory] = useState(editingProduct?.category || '');
   const [warranty, setWarranty] = useState(editingProduct?.warranty || '');
+  const [estadoNivel, setEstadoNivel] = useState(editingProduct?.estado?.nivel || '');
+  const [estadoNota, setEstadoNota] = useState(editingProduct?.estado?.nota || '');
+  const [precioAntes, setPrecioAntes] = useState(editingProduct?.precioAntes ?? '');
+  const [destacado, setDestacado] = useState(esDestacado(editingProduct));
   const [description, setDescription] = useState(editingProduct?.description || '');
   const [showNewCat, setShowNewCat] = useState(false);
   const [newCatName, setNewCatName] = useState('');
@@ -96,7 +102,7 @@ export default function ProductForm({ editingProduct, categories, setCategories,
     }
     // Con opciones, precio y stock del producto quedan como espejo del minimo y de la suma:
     // asi una version vieja del codigo sigue mostrando algo coherente.
-    const data = { name: name.trim(), price: conVariantes ? Math.min(...limpias.map((v) => v.price)) : Number(price), category, warranty: warranty.trim(), description: description.trim(), stockQty: conVariantes ? limpias.reduce((s, v) => s + v.stockQty, 0) : Math.floor(Number(stockQty)), images: images.slice(), primaryImage: images.length ? Math.min(primaryIdx, images.length - 1) : 0, ...(conVariantes ? { variantAxis: variantAxis.trim(), variants: limpias } : {}) };
+    const data = { name: name.trim(), price: conVariantes ? Math.min(...limpias.map((v) => v.price)) : Number(price), category, warranty: warranty.trim(), description: description.trim(), stockQty: conVariantes ? limpias.reduce((s, v) => s + v.stockQty, 0) : Math.floor(Number(stockQty)), images: images.slice(), primaryImage: images.length ? Math.min(primaryIdx, images.length - 1) : 0, estado: limpiarEstado({ nivel: estadoNivel, nota: estadoNota }), precioAntes: Number(precioAntes) > 0 ? Number(precioAntes) : null, destacado: destacado === true, ...(conVariantes ? { variantAxis: variantAxis.trim(), variants: limpias } : {}) };
     setSaving(true);
     try { await onSave(data, original); } finally { setSaving(false); }
   };
@@ -120,6 +126,20 @@ export default function ProductForm({ editingProduct, categories, setCategories,
       <div className="field"><label htmlFor={`${uid}-category`}>Categoría</label><select id={`${uid}-category`} value={category} onChange={(e) => { const v = e.target.value; setCategory(v); setShowNewCat(v === '__new__'); }}><option value="" disabled={!!category}>Selecciona una categoría</option>{categories.map((c) => <option key={c.name} value={c.name}>{c.emoji} {c.name}</option>)}<option value="__new__">+ Crear categoría</option></select>{showNewCat && <div className="new-category-box"><input type="text" aria-label="Nombre de la nueva categoría" placeholder="Nombre de la nueva categoría" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} /><div className="field-row"><input type="text" aria-label="Emoji de la nueva categoría" placeholder="📦" maxLength={4} value={newCatEmoji} onChange={(e) => setNewCatEmoji(e.target.value)} /><div className="hint">Puedes elegir un emoji o dejarlo vacío.</div></div><div className="emoji-grupos">{EMOJI_GRUPOS.map((g) => <div className="emoji-grupo" key={g.titulo}><span>{g.titulo}</span><div className="emoji-picks">{g.emojis.map((e) => <button type="button" className={`emoji-pick ${newCatEmoji === e ? 'activo' : ''}`} key={e} aria-label={`Usar el emoji ${e}`} aria-pressed={newCatEmoji === e} onClick={() => setNewCatEmoji(e)}>{e}</button>)}</div></div>)}</div><div className="form-actions"><button type="button" className="btn-secondary" onClick={() => { setShowNewCat(false); setCategory(''); setNewCatName(''); setNewCatEmoji(''); }}>Cancelar</button><button type="button" className="btn-primary" onClick={addNewCategory}>Guardar categoría</button></div></div>}</div>
       <div className="field warranty-field"><label htmlFor={`${uid}-warranty`}>Garantía</label><div className="input-with-icon"><span>✓</span><input id={`${uid}-warranty`} type="text" value={warranty} onChange={(e) => setWarranty(e.target.value)} placeholder="Ej. 6 meses, 1 año, Sin garantía" /></div><div className="hint">Esta información aparecerá en la tarjeta del producto.</div></div>
       <div className="field"><label htmlFor={`${uid}-description`}>Descripción detallada</label><textarea id={`${uid}-description`} style={{ minHeight: 90 }} placeholder="Detalles, color, capacidad, especificaciones, etc." value={description} onChange={(e) => setDescription(e.target.value)} /><div className="hint">Se muestra al abrir el detalle del producto.</div></div>
+      {/* Como se presenta en la tienda, separado de lo que describe al producto. Los tres
+          campos pueden quedarse vacios y entonces no se dibuja nada: mejor callar que decir
+          "sin especificar", que suena a que algo se esconde. */}
+      <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon"><IconoEstrella /></span><div><h3>Cómo se ve en la tienda</h3><p>Estado del equipo, oferta y si va primero en la portada.</p></div></div>
+      <VitrinaFields
+        estadoNivel={estadoNivel} setEstadoNivel={setEstadoNivel}
+        estadoNota={estadoNota} setEstadoNota={setEstadoNota}
+        precioAntes={precioAntes} setPrecioAntes={setPrecioAntes}
+        precio={conVariantes ? Math.min(...variants.map((v) => Number(v.price) || 0), Infinity) : price}
+        destacado={destacado} setDestacado={setDestacado}
+        destacadosUsados={contarDestacados((productos || []).filter((p) => p.id !== editingProduct?.id))}
+        moneda={settings.currency}
+      />
+
       <div className="form-actions product-form-actions"><button className="btn-secondary" onClick={onCancel} disabled={saving}>Cancelar</button><button className="btn-primary" onClick={handleSubmit} disabled={saving}>{saving ? 'Guardando…' : editingProduct ? 'Guardar cambios' : 'Agregar al catálogo'}</button></div>
     </div>
   );

@@ -348,3 +348,41 @@ header.hero::before{content:'';position:absolute;inset:0;left:calc(50% - 50vw);w
    color pleno de la marca, no en una version aguada de el. */
 .sello-icono{background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent);display:grid;place-items:center}
 .sello-icono svg{display:block}
+
+/* --- Escaparate: oferta, urgencia y estado del equipo --- */
+/*
+   Tres señales distintas sobre la misma tarjeta. El orden de importancia visual es
+   deliberado: el precio de hoy manda, el descuento lo acompaña, la urgencia avisa, y el
+   estado explica. Si las cuatro gritaran igual, no se leeria ninguna.
+*/
+.badge-oferta,.badge-pocas{position:absolute;top:9px;z-index:1;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.01em;line-height:1}
+/* El descuento a la izquierda, donde empieza la mirada.
+   La tinta cambia con el tema porque --danger cambia: en claro es un rojo oscuro y el blanco
+   se lee (5,2:1), pero en oscuro es un rojo claro y el blanco se queda en 2,8:1, por debajo
+   de lo legible para un texto pequeño. Mismo apaño que usa el boton de WhatsApp. */
+.badge-oferta{left:9px;background:var(--danger);color:#fff}
+:root:not([data-theme="light"]) .badge-oferta{color:#2a0410}
+/* La urgencia a la derecha, para que nunca se solapen aunque esten los dos. */
+.badge-pocas{right:9px;background:var(--surface);color:var(--text);border:1px solid var(--border)}
+
+/* El precio anterior va DESPUES del de hoy y mas pequeño: lo que se tiene que quedar en la
+   cabeza es lo que cuesta, no lo que costaba. */
+.precio-antes{margin-left:8px;font-size:.72em;font-weight:500;color:var(--text-muted);text-decoration:line-through;text-decoration-thickness:1px}
+
+/* El estado: un bloque sobrio, no otra etiqueta de colores. Quien compra usado lo LEE, no lo
+   mira de reojo, y un recuadro chillon le quitaria la credibilidad que es justo lo que aporta. */
+.card-estado{margin-top:7px;padding:7px 9px;border-radius:9px;background:var(--surface-2);border-left:3px solid var(--border);font-size:11.5px;line-height:1.45}
+.card-estado strong{display:block;font-weight:700;font-size:11px;letter-spacing:.02em}
+.card-estado span{display:block;color:var(--text-muted);margin-top:2px}
+.detail-estado{margin:10px 0;padding:10px 12px;border-radius:11px;background:var(--surface-2);border-left:3px solid var(--border)}
+.detail-estado strong{display:block;font-size:13px}
+.detail-estado p{margin:3px 0 0;color:var(--text-muted);font-size:12.5px;line-height:1.5}
+
+/* El color del borde dice el nivel sin necesidad de leerlo. "Con detalles" en ambar y no en
+   rojo: es un equipo honesto, no un problema. */
+.estado-nuevo,.estado-como-nuevo{border-left-color:var(--whatsapp)}
+.estado-muy-bueno{border-left-color:var(--accent)}
+.estado-con-detalles{border-left-color:#c99735}
+
+.detail-ahorro{display:block;margin-top:4px;font-size:12px;font-weight:600;color:var(--whatsapp)}
+.detail-pocas{margin-top:6px;font-size:12px;font-weight:600;color:var(--text)}

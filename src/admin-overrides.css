@@ -408,3 +408,13 @@
   .sello-row{grid-template-columns:1fr 1fr}
   .sello-row label:last-child{grid-column:1/-1}
 }
+
+/* --- Los campos de escaparate en el formulario de producto --- */
+.vitrina-fields{border:1px solid var(--border);border-radius:13px;padding:14px 15px;background:var(--surface)}
+.vitrina-fields .field:last-of-type{margin-bottom:4px}
+.vitrina-fields .switch-row{padding-top:4px}
+/* La vista previa usa la MISMA funcion que la tienda: si aqui dijera -50% y la tienda no lo
+   enseñara, el dueño no tendria forma de entender por que. */
+.vitrina-previa{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border:1px dashed var(--border);border-radius:11px;background:var(--bg-elev)}
+.vitrina-previa-etiqueta{padding:4px 9px;border-radius:999px;background:var(--danger);color:#fff;font-size:11px;font-weight:800;line-height:1}
+.vitrina-previa .mono{font-size:16px;font-weight:700}
