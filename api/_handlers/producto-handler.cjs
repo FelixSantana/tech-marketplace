@@ -1,3 +1,6 @@
+// El HTML de la tienda no se llama index.html: ver scripts/panel.mjs. Una prueba comprueba
+// que este nombre y el del build siguen siendo el mismo.
+const ARCHIVO_TIENDA = 'tienda.html';
 const { kvGet, kvConfigured } = require('../_lib/kv.cjs');
 const { inyectarMetaProducto } = require('../_lib/producto-html.cjs');
 const CATALOG_KEY = 'synaptic_catalog';
@@ -23,7 +26,7 @@ module.exports = async function handler(req, res) {
   try {
     // El HTML de la aplicacion lo sirve el propio despliegue, con los nombres de archivo ya
     // resueltos por el build. Pedirlo evita tener que empaquetarlo dentro de la funcion.
-    const r = await fetch(`${base}/index.html`, { headers: { 'x-shell-request': '1' } });
+    const r = await fetch(`${base}/${ARCHIVO_TIENDA}`, { headers: { 'x-shell-request': '1' } });
     if (!r.ok) throw new Error(`index.html respondio ${r.status}`);
     html = await r.text();
   } catch (e) {

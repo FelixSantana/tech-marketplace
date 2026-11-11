@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
-import { htmlDelPanel, ARCHIVO } from '../scripts/panel.mjs';
+import { htmlDelPanel, ARCHIVO, ARCHIVO_TIENDA } from '../scripts/panel.mjs';
 
 const INDEX = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 
@@ -61,5 +61,29 @@ describe('lo que de verdad se publicó', () => {
     expect(construido).toContain('noindex');
     // Y que el JavaScript sea el mismo que el de la tienda, no uno a medias.
     expect(construido).toMatch(/<script type="module" crossorigin src="\/assets\/index-[\w-]+\.js"/);
+  });
+});
+
+describe('el nombre del HTML de la tienda', () => {
+  it('no es index.html, o la reescritura de / nunca se aplicaría', () => {
+    // Vercel resuelve el sistema de archivos antes que las reescrituras. Con un dist/index.html
+    // la portada la sirve el archivo y la funcion no llega a ejecutarse nunca.
+    expect(ARCHIVO_TIENDA).not.toBe('index.html');
+  });
+
+  it('el build lo deja con ese nombre y sin index.html', () => {
+    const dir = new URL('../dist/', import.meta.url);
+    if (!existsSync(new URL('admin.html', dir))) return; // sin build, nada que comprobar
+    expect(existsSync(new URL(ARCHIVO_TIENDA, dir))).toBe(true);
+    expect(existsSync(new URL('index.html', dir))).toBe(false);
+  });
+
+  it('las funciones que piden el HTML usan el mismo nombre', () => {
+    // El nombre vive en dos sitios: el build (ESM) y los handlers (CJS). Si se separan, la
+    // portada y las fichas se quedan sin HTML que servir.
+    for (const f of ['portada-handler', 'producto-handler']) {
+      const fuente = readFileSync(new URL(`../api/_handlers/${f}.cjs`, import.meta.url), 'utf8');
+      expect(fuente).toContain(`const ARCHIVO_TIENDA = '${ARCHIVO_TIENDA}'`);
+    }
   });
 });

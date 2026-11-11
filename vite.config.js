@@ -1,9 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { writeFileSync, readFileSync } from 'node:fs'
+import { writeFileSync, readFileSync, renameSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { resolverOrigen, aplicarOrigen, resolverNombre, aplicarNombre, resolverVerificacion, aplicarVerificacion } from './scripts/dominio.mjs'
-import { htmlDelPanel, ARCHIVO as ARCHIVO_PANEL } from './scripts/panel.mjs'
+import { htmlDelPanel, ARCHIVO as ARCHIVO_PANEL, ARCHIVO_TIENDA } from './scripts/panel.mjs'
 
 // Resuelve al compilar lo que index.html no puede saber de otra forma: el dominio del despliegue
 // y el nombre de la tienda. El por que de cada uno esta en scripts/dominio.mjs.
@@ -59,6 +59,9 @@ function htmlDelPanelEnElBuild() {
       const salida = opciones.dir || 'dist'
       const indice = resolve(salida, 'index.html')
       writeFileSync(resolve(salida, ARCHIVO_PANEL), htmlDelPanel(readFileSync(indice, 'utf8')))
+      // Y el de la tienda cambia de nombre: con un index.html en la raiz, Vercel lo sirve
+      // antes de mirar las reescrituras y la portada nunca pasaria por su funcion.
+      renameSync(indice, resolve(salida, ARCHIVO_TIENDA))
     },
   }
 }
