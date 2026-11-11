@@ -13,14 +13,13 @@ import { readFileSync } from 'node:fs';
 const FUENTE = readFileSync(new URL('../public/sw.js', import.meta.url), 'utf8');
 const ORIGEN = 'https://synaptic-tech-catalogo.vercel.app';
 
-function cargarWorker(ventanas = []) {
+function cargarWorker() {
   const oyentes = {};
   const self = {
     addEventListener: (tipo, fn) => { oyentes[tipo] = fn; },
     location: { origin: ORIGEN },
     skipWaiting: vi.fn(),
-    registration: { showNotification: vi.fn() },
-    clients: { claim: vi.fn(), matchAll: vi.fn(async () => ventanas), openWindow: vi.fn(async () => null) },
+    clients: { claim: vi.fn() },
   };
   new Function('self', FUENTE)(self);
   return { oyentes, self };
@@ -29,9 +28,9 @@ function cargarWorker(ventanas = []) {
 const eventoFetch = (url) => ({ request: { url }, respondWith: vi.fn(), waitUntil: vi.fn() });
 
 describe('trabajador de servicio', () => {
-  it('registra los cinco eventos que el navegador espera', () => {
+  it('registra los tres eventos que el navegador espera', () => {
     const { oyentes } = cargarWorker();
-    expect(Object.keys(oyentes).sort()).toEqual(['activate', 'fetch', 'install', 'notificationclick', 'push']);
+    expect(Object.keys(oyentes).sort()).toEqual(['activate', 'fetch', 'install']);
   });
 
   it('deja pasar las peticiones a otros dominios sin tocarlas', () => {
@@ -58,81 +57,5 @@ describe('trabajador de servicio', () => {
 
   it('no cachea: no declara ningun almacen', () => {
     expect(FUENTE).not.toMatch(/caches\.|cache\.put|cache\.match/);
-  });
-});
-
-// --- Avisos de pedido nuevo ---
-
-const eventoPush = (datos) => ({
-  data: datos === undefined ? null : { json: () => { if (datos === 'roto') throw new Error('json ilegible'); return datos; } },
-  waitUntil: vi.fn(),
-});
-
-describe('el worker recibiendo un aviso de pedido', () => {
-  it('enseña lo que mandó el servidor', () => {
-    const { oyentes, self } = cargarWorker();
-    oyentes.push(eventoPush({ title: 'Pedido nuevo · RD$ 500', body: 'Jose — Teclado', url: '/admin', tag: 'pedido-1' }));
-    const [titulo, opciones] = self.registration.showNotification.mock.calls[0];
-    expect(titulo).toBe('Pedido nuevo · RD$ 500');
-    expect(opciones.body).toBe('Jose — Teclado');
-    expect(opciones.data.url).toBe('/admin');
-  });
-
-  it('enseña uno genérico si el aviso llega vacío', () => {
-    // Un push que llega y no muestra NADA cuenta como abuso: repetido, Chrome deja de
-    // entregar los siguientes y el dueño se queda sin avisos sin enterarse.
-    const { oyentes, self } = cargarWorker();
-    oyentes.push(eventoPush(undefined));
-    expect(self.registration.showNotification).toHaveBeenCalledTimes(1);
-    expect(self.registration.showNotification.mock.calls[0][0]).toBe('Pedido nuevo');
-  });
-
-  it('enseña uno genérico si los datos no se pueden leer', () => {
-    const { oyentes, self } = cargarWorker();
-    oyentes.push(eventoPush('roto'));
-    expect(self.registration.showNotification).toHaveBeenCalledTimes(1);
-  });
-
-  it('nunca se queda sin mostrar nada', () => {
-    for (const datos of [undefined, 'roto', {}, { title: '' }]) {
-      const { oyentes, self } = cargarWorker();
-      oyentes.push(eventoPush(datos));
-      expect(self.registration.showNotification).toHaveBeenCalledTimes(1);
-      expect(self.registration.showNotification.mock.calls[0][0]).toBeTruthy();
-    }
-  });
-});
-
-describe('el worker cuando se toca el aviso', () => {
-  // El manejador NO devuelve su promesa: se la entrega a waitUntil, que es como el navegador
-  // sabe que no puede dormir al worker todavia. Hay que guardarla y esperarla, o las
-  // comprobaciones corren antes de que el trabajo termine.
-  const evento = (url = '/admin') => {
-    const e = { notification: { close: vi.fn(), data: { url } }, waitUntil: (promesa) => { e.terminado = promesa; } };
-    return e;
-  };
-  const tocar = async (oyentes, e) => { oyentes.notificationclick(e); await e.terminado; };
-
-  it('reutiliza la pestaña de la tienda que ya estaba abierta', async () => {
-    const pestana = { url: `${ORIGEN}/`, focus: vi.fn(async () => {}), navigate: vi.fn(async () => {}) };
-    const { oyentes, self } = cargarWorker([pestana]);
-    await tocar(oyentes, evento());
-    expect(pestana.focus).toHaveBeenCalled();
-    expect(pestana.navigate).toHaveBeenCalledWith(`${ORIGEN}/admin`);
-    expect(self.clients.openWindow).not.toHaveBeenCalled();
-  });
-
-  it('abre una nueva si no hay ninguna', async () => {
-    const { oyentes, self } = cargarWorker([]);
-    await tocar(oyentes, evento());
-    expect(self.clients.openWindow).toHaveBeenCalledWith(`${ORIGEN}/admin`);
-  });
-
-  it('no se cuela en una pestaña de otro dominio', async () => {
-    const ajena = { url: 'https://otra-cosa.com/', focus: vi.fn(), navigate: vi.fn() };
-    const { oyentes, self } = cargarWorker([ajena]);
-    await tocar(oyentes, evento());
-    expect(ajena.focus).not.toHaveBeenCalled();
-    expect(self.clients.openWindow).toHaveBeenCalled();
   });
 });

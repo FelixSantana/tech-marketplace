@@ -21,17 +21,9 @@ module.exports = async function handler(req, res) {
   body = body || {};
   const { action } = body;
   try {
-    // Esta accion es la UNICA que no pide token: la portada la llama al cargar, antes de que
-    // nadie haya iniciado sesion, solo para saber si hay que ofrecer "crear cuenta" o "entrar".
-    //
-    // Por eso devuelve lo minimo. Antes devolvia tambien el correo del administrador, y eso
-    // es la mitad de las credenciales regalada a cualquiera que escriba una linea de curl
-    // contra la tienda: quien quiera forzar la entrada ya no tiene que adivinar el usuario,
-    // solo la contraseña. El panel nunca lo uso —lee `configured` y nada mas—, asi que no
-    // estaba pagando por ello ni siquiera una comodidad.
     if (action === 'status') {
       const admin = await kvGet(AUTH_KEY);
-      return res.status(200).json({ ok: true, configured: !!admin });
+      return res.status(200).json({ ok: true, configured: !!admin, email: admin?.email || null });
     }
 
     if (action === 'setup') {

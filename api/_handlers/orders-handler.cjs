@@ -4,8 +4,6 @@ const { bumpVersion } = require('../_lib/catalog-logic.cjs');
 const { resolverEntrega } = require('../_lib/envio.cjs');
 const { resolverCupon, usosDeCupones } = require('../_lib/cupones.cjs');
 const { vacio: metricasVacias, registrarEvento } = require('../_lib/metricas.cjs');
-const { SUBS_KEY, configuracion: configPush, avisoDePedido } = require('../_lib/push.cjs');
-const { enviarATodos, sujeto } = require('../_lib/push-envio.cjs');
 const { AUTH_KEY, verifyToken, extractBearer } = require('../_lib/auth.cjs');
 const ORDERS_KEY = 'synaptic_orders';
 // Resumen de unidades apartadas por pedidos vigentes. Se guarda aparte para que la tienda lo
@@ -22,23 +20,12 @@ async function rateLimitPublic(req) { const bucket = Math.floor(Date.now() / (RA
 function cleanPhone(value) { return String(value || '').replace(/\D/g, '').slice(0, 20); }
 async function getCatalog() { return (await kvGet(CATALOG_KEY)) || { products: [], settings: {} }; }
 function makeOrder(body, items, source, entrega, cupon) { const subtotal = money(items.reduce((sum, item) => sum + item.subtotal, 0)); const envio = money(entrega && entrega.costo); const descuento = money(cupon && cupon.descuento); const total = money(Math.max(0, subtotal - descuento) + envio); const now = new Date().toISOString(); return { id: `ord_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, customerName: cleanText(body.customerName || body.name, 120), phone: cleanPhone(body.phone || body.customerPhone), products: items, subtotal, shipping: envio, discount: descuento, coupon: cupon || null, delivery: entrega || { modo: 'coordinado', zonaId: null, zonaNombre: '', direccion: '', costo: 0 }, total, status: 'pending', paymentStatus: 'pending', shippingStatus: 'pending', notes: cleanText(body.notes, 1000), source, inventoryDeducted: false, createdAt: now, updatedAt: now }; }
-// Avisar al telefono del dueño. Va al final y en su propio try a proposito: el pedido ya esta
-// guardado y confirmado al cliente, asi que un fallo del servicio de push —o unas claves sin
-// configurar— no puede devolver un error por algo que SI salio bien.
-async function avisarDelPedido(order, catalog, req) {
-  const cfg = configPush(process.env);
-  if (!cfg.listo) return;
-  const subs = (await kvGet(SUBS_KEY)) || [];
-  if (!subs.length) return;
-  const { muertas } = await enviarATodos(subs, avisoDePedido(order, catalog.settings || {}), cfg, sujeto(cfg, req));
-  if (muertas.length) await kvSet(SUBS_KEY, subs.filter((s) => !muertas.includes(s.endpoint)));
-}
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*'); res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS'); res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end(); if (!kvConfigured()) return res.status(503).json({ error: 'DB_NOT_CONNECTED' });
   try {
     const body = parseBody(req); const isPublicCreate = req.method === 'POST' && body.source === 'whatsapp_checkout';
-    if (isPublicCreate) { if (!(await rateLimitPublic(req))) return res.status(429).json({ error: 'RATE_LIMIT', message: 'Demasiados pedidos. Intenta nuevamente en un minuto.' }); const customerName = cleanText(body.customerName || body.name, 120); const phone = cleanPhone(body.phone || body.customerPhone); if (customerName.length < 2 || phone.length < 8) return res.status(400).json({ error: 'INVALID_CUSTOMER', message: 'Nombre y WhatsApp son obligatorios.' }); const catalog = await getCatalog(); const orders = (await kvGet(ORDERS_KEY)) || []; const items = buildPublicItems(body.products, catalog, reservasDeOrdenes(orders)); const subtotal = items.reduce((sum, it) => sum + it.subtotal, 0); const entrega = resolverEntrega(catalog.settings, body, subtotal); const cupon = resolverCupon(catalog.settings, body.cupon, subtotal); const order = makeOrder({ ...body, customerName, phone }, items, 'whatsapp_checkout', entrega, cupon); orders.unshift(order); const guardadas = orders.slice(0, 1000); await kvSet(ORDERS_KEY, guardadas); await kvSet(RESERVED_KEY, reservasDeOrdenes(guardadas)); try { await kvSet(METRICAS_KEY, registrarEvento((await kvGet(METRICAS_KEY)) || metricasVacias(), 'pedido')); } catch (e) { console.error('metricas pedido', e); } try { await avisarDelPedido(order, catalog, req); } catch (e) { console.error('aviso de pedido', e); } return res.status(201).json({ ok: true, order: { id: order.id, total: order.total, status: order.status } }); }
+    if (isPublicCreate) { if (!(await rateLimitPublic(req))) return res.status(429).json({ error: 'RATE_LIMIT', message: 'Demasiados pedidos. Intenta nuevamente en un minuto.' }); const customerName = cleanText(body.customerName || body.name, 120); const phone = cleanPhone(body.phone || body.customerPhone); if (customerName.length < 2 || phone.length < 8) return res.status(400).json({ error: 'INVALID_CUSTOMER', message: 'Nombre y WhatsApp son obligatorios.' }); const catalog = await getCatalog(); const orders = (await kvGet(ORDERS_KEY)) || []; const items = buildPublicItems(body.products, catalog, reservasDeOrdenes(orders)); const subtotal = items.reduce((sum, it) => sum + it.subtotal, 0); const entrega = resolverEntrega(catalog.settings, body, subtotal); const cupon = resolverCupon(catalog.settings, body.cupon, subtotal); const order = makeOrder({ ...body, customerName, phone }, items, 'whatsapp_checkout', entrega, cupon); orders.unshift(order); const guardadas = orders.slice(0, 1000); await kvSet(ORDERS_KEY, guardadas); await kvSet(RESERVED_KEY, reservasDeOrdenes(guardadas)); try { await kvSet(METRICAS_KEY, registrarEvento((await kvGet(METRICAS_KEY)) || metricasVacias(), 'pedido')); } catch (e) { console.error('metricas pedido', e); } return res.status(201).json({ ok: true, order: { id: order.id, total: order.total, status: order.status } }); }
     const auth = await requireAdmin(req); if (!auth.ok) return res.status(auth.status).json({ error: auth.error }); const orders = (await kvGet(ORDERS_KEY)) || [];
     // El panel de Ajustes solo quiere saber cuanto se uso cada cupon: se le manda el conteo, no
     // las mil ordenes enteras.
