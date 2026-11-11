@@ -5,13 +5,14 @@ import { derivarDeLogo, CAMPOS_DE_MARCA } from '../../lib/marca';
 import { normalizarColor, colorDeMarca, tintaSobre, COLOR_POR_DEFECTO } from '../../lib/color';
 import ShippingForm from './ShippingForm';
 import CouponsForm from './CouponsForm';
+import SellosForm from './SellosForm';
 import BackupsPanel from './BackupsPanel';
 import PushPanel from './PushPanel';
 import { cuponesDeAjustes } from '../../lib/cupones';
 import { ajustesDeEnvio } from '../../lib/envio';
 import { diasQueLeQuedan } from '../../lib/token';
-import { datosDeNegocio, limpiarNegocio } from '../../lib/negocio';
-import { IconoEngranaje, IconoLocal, IconoCamion, IconoCupon, IconoSobre, IconoBombilla, IconoLlave } from '../Iconos';
+import { datosDeNegocio, limpiarNegocio, sellosDeAjustes, limpiarSellos } from '../../lib/negocio';
+import { IconoEngranaje, IconoLocal, IconoCamion, IconoCupon, IconoSobre, IconoBombilla, IconoLlave, IconoEscudo } from '../Iconos';
 
 export default function SettingsForm({ settings, onSaveSettings, authRequest, adminToken, setAdminToken, refreshCatalog, onLogout, showToast }) {
   const [storeName, setStoreName] = useState(settings.storeName);
@@ -21,6 +22,7 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
   const [colorMarca, setColorMarca] = useState(() => colorDeMarca(settings));
   const [envio, setEnvio] = useState(() => ajustesDeEnvio(settings));
   const [cupones, setCupones] = useState(() => cuponesDeAjustes(settings));
+  const [sellos, setSellos] = useState(() => sellosDeAjustes(settings));
   // Las formas de pago se editan como una linea separada por comas: son tres palabras que se
   // tocan una vez al año, y no justifican una tabla con botones de agregar y quitar.
   const [negocio, setNegocio] = useState(() => { const n = datosDeNegocio(settings); return { ...n, pagos: n.pagos.join(', ') }; });
@@ -97,7 +99,7 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
     if (new Set(codigos).size !== codigos.length) return showToast('Hay dos cupones con el mismo código');
     if (cupones.some((c) => !(Number(c.valor) > 0))) return showToast('Cada cupón necesita un valor mayor que cero');
     const cuponesLimpios = cupones.map((c) => ({ id: c.id, codigo: String(c.codigo).toUpperCase().trim(), tipo: c.tipo === 'monto' ? 'monto' : 'porcentaje', valor: Math.max(0, Number(c.valor) || 0), vence: c.vence || '', minimo: Math.max(0, Number(c.minimo) || 0), activo: c.activo !== false }));
-    const ok = await onSaveSettings({ negocio: limpiarNegocio(negocio), cupones: cuponesLimpios, storeName: storeName.trim(), tagline: tagline.trim(), whatsapp: whatsapp.trim(), currency: currency.trim() || 'RD$', envio: envioLimpio, colorMarca: normalizarColor(colorMarca), ...(pendingLogo !== undefined ? { logo: pendingLogo || '' } : {}), ...(pendingMarca !== undefined ? { marca: pendingMarca || {} } : {}) });
+    const ok = await onSaveSettings({ negocio: limpiarNegocio(negocio), sellos: limpiarSellos(sellos), cupones: cuponesLimpios, storeName: storeName.trim(), tagline: tagline.trim(), whatsapp: whatsapp.trim(), currency: currency.trim() || 'RD$', envio: envioLimpio, colorMarca: normalizarColor(colorMarca), ...(pendingLogo !== undefined ? { logo: pendingLogo || '' } : {}), ...(pendingMarca !== undefined ? { marca: pendingMarca || {} } : {}) });
     if (ok) { showToast('Ajustes guardados'); setPendingLogo(undefined); setPendingMarca(undefined); }
     else showToast('No se pudieron guardar los ajustes. Verifica tu sesión.');
   };
@@ -172,6 +174,9 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
       <div className="field"><label htmlFor={`${uid}-cobertura`}>Cobertura de entrega</label><input id={`${uid}-cobertura`} type="text" placeholder="Entrega en todo el país" value={negocio.cobertura} onChange={(e) => setNegocio({ ...negocio, cobertura: e.target.value })} /></div>
       <div className="field"><label htmlFor={`${uid}-correo`}>Correo de contacto</label><input id={`${uid}-correo`} type="email" placeholder="ventas@tutienda.com" value={negocio.correo} onChange={(e) => setNegocio({ ...negocio, correo: e.target.value })} /></div>
       <div className="field"><label htmlFor={`${uid}-pagos`}>Formas de pago</label><input id={`${uid}-pagos`} type="text" placeholder="Efectivo, Transferencia, Depósito bancario" value={negocio.pagos} onChange={(e) => setNegocio({ ...negocio, pagos: e.target.value })} /><div className="hint">Sepáralas con comas. Se listan en el pie.</div></div>
+
+      <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon"><IconoEscudo /></span><div><h3>Sellos de confianza</h3><p>La tira que el cliente ve encima de los productos. Es lo que responde a quien llega desconfiando.</p></div></div>
+      <SellosForm sellos={sellos} setSellos={setSellos} />
 
       <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon"><IconoCamion /></span><div><h3>Entrega y envío</h3><p>Qué le pides al cliente al finalizar el pedido y cuánto cobras por llevarlo.</p></div></div>
       <ShippingForm envio={envio} setEnvio={setEnvio} currency={currency} />

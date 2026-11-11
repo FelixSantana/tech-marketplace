@@ -1,32 +1,49 @@
-import { SELLOS } from '../lib/negocio';
+import { sellosDeAjustes } from '../lib/negocio';
+import { IconoVisto, IconoEscudo, IconoCamion, IconoLocal, IconoReloj, IconoCandado, IconoCupon, IconoMapa } from './Iconos';
 
 // Los tres sellos. Ninguna de las tiendas grandes del país comunica el estado de un equipo
 // usado, y es exactamente lo que frena al comprador de segunda mano. Van arriba de la rejilla,
 // donde se leen antes que los precios.
+//
+// El texto lo escribe el dueño desde Ajustes: "Equipos probados" vale para una tienda de usados
+// y es mentira en una de ropa. El ICONO no: se elige de esta lista, porque dibujarlo pide saber
+// hacerlo y un nombre inventado dejaria el hueco vacio.
+//
 // Cada dibujo va centrado en su viewBox de 24x24: el recuadro los centra a ellos, pero si el
-// trazo no esta centrado DENTRO del viewBox, el icono sale torcido igual. Una prueba lo comprueba.
+// trazo no esta centrado DENTRO del viewBox, el icono sale torcido igual.
 const ICONOS = {
-  probado: <path d="m4.5 12.5 5 5 10-11" />,
-  garantia: <path d="M12 3 4.5 6v6c0 4.2 3 7.7 7.5 9 4.5-1.3 7.5-4.8 7.5-9V6L12 3Z" />,
-  entrega: <><path d="M3.5 5.7h10v9h-10zM13.5 8.7h4l3 3v3h-7z" /><circle cx="7.5" cy="16.7" r="1.6" /><circle cx="17.5" cy="16.7" r="1.6" /></>,
+  probado: IconoVisto,
+  garantia: IconoEscudo,
+  entrega: IconoCamion,
+  tienda: IconoLocal,
+  reloj: IconoReloj,
+  pago: IconoCandado,
+  precio: IconoCupon,
+  mapa: IconoMapa,
 };
 
-export default function TrustBadges() {
+export default function TrustBadges({ settings }) {
+  const sellos = sellosDeAjustes(settings);
+  // Sin sellos no se dibuja el contenedor: una tira vacia deja un hueco con bordes entre la
+  // cabecera y los productos, y parece que algo no cargo.
+  if (!sellos.length) return null;
+
   return (
     <div className="sellos">
-      {SELLOS.map((s) => (
-        <div className="sello" key={s.titulo}>
-          <span className="sello-icono" aria-hidden="true">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              {ICONOS[s.icono] || ICONOS.probado}
-            </svg>
-          </span>
-          <div className="sello-texto">
-            <strong>{s.titulo}</strong>
-            <span>{s.nota}</span>
+      {sellos.map((s, i) => {
+        const Icono = ICONOS[s.icono] || ICONOS.probado;
+        return (
+          // La clave lleva el indice porque el dueño puede poner dos sellos con el mismo
+          // titulo, y entonces el titulo solo no identifica a ninguno.
+          <div className="sello" key={`${s.titulo}-${i}`}>
+            <span className="sello-icono" aria-hidden="true"><Icono size={17} /></span>
+            <div className="sello-texto">
+              <strong>{s.titulo}</strong>
+              {s.nota && <span>{s.nota}</span>}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

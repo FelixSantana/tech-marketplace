@@ -16,16 +16,70 @@ const texto = (v, max) => String(v == null ? '' : v).trim().slice(0, max);
 export const COBERTURA_POR_DEFECTO = 'Entrega en todo el país';
 export const PAGOS_POR_DEFECTO = ['Efectivo', 'Transferencia', 'Depósito bancario'];
 
-// Los sellos siguen fijos: son el argumento de venta de una tienda de equipos usados. Cuando
-// haya un cliente que venda otra cosa, se mueven a settings como todo lo demas.
+// --- Los sellos de confianza ---
+//
+// La tira de tres que va encima de la rejilla. Es lo que responde al comprador que llega
+// desconfiando, y por eso iba escrita en este archivo: son el argumento de venta de una tienda
+// de equipos usados. Para un cliente que venda ropa o comida, "Equipos probados" es mentira.
+//
+// Ahora viven en settings, como el envio y los cupones. Los de aqui son solo el punto de
+// partida de una tienda recien montada.
 //
 // El icono se NOMBRA, no se escribe: los glifos unicode los dibuja cada sistema a su manera y en
-// Windows salian como cajas palidas. El dibujo vive en el componente, en SVG.
-export const SELLOS = [
+// Windows salian como cajas palidas. El dibujo vive en el componente, en SVG, y el dueño elige
+// de una lista cerrada —no puede inventarse uno, porque habria que saber dibujarlo.
+export const SELLOS_POR_DEFECTO = [
   { icono: 'probado', titulo: 'Equipos probados', nota: 'Cada equipo se revisa antes de publicarse' },
   { icono: 'garantia', titulo: 'Garantía escrita', nota: 'La garantía de cada producto aparece en su ficha' },
   { icono: 'entrega', titulo: 'Entrega coordinada', nota: 'Acordamos entrega o retiro por WhatsApp' },
 ];
+
+// Los iconos disponibles, con el nombre que ve el dueño en el desplegable. El orden es el del
+// desplegable: primero los tres de siempre, que cubren el caso mas comun.
+export const ICONOS_DE_SELLO = [
+  { valor: 'probado', nombre: 'Revisado' },
+  { valor: 'garantia', nombre: 'Garantía' },
+  { valor: 'entrega', nombre: 'Entrega' },
+  { valor: 'tienda', nombre: 'Tienda física' },
+  { valor: 'reloj', nombre: 'Rapidez' },
+  { valor: 'pago', nombre: 'Pago seguro' },
+  { valor: 'precio', nombre: 'Precio' },
+  { valor: 'mapa', nombre: 'Cobertura' },
+];
+
+const ICONOS_VALIDOS = new Set(ICONOS_DE_SELLO.map((i) => i.valor));
+
+// Tres y no mas: la tira es una linea y en un telefono ya van justos. Un cuarto no cabria sin
+// romper la rejilla, y el dueño no tiene forma de saberlo hasta verlo mal.
+export const MAX_SELLOS = 3;
+
+// Siempre devuelve la misma forma. La diferencia que importa:
+//
+//   - `settings.sellos` que no existe = tienda que nunca los toco → los de siempre. Asi una
+//     tienda ya montada no se queda de golpe sin su tira al desplegar esto.
+//   - `settings.sellos` vacio = el dueño los borro a proposito → no se dibuja nada.
+//
+// Sin esa distincion no habria forma de quitar la tira: cualquier lista vacia volveria a
+// rellenarse con los valores por defecto.
+export function sellosDeAjustes(settings) {
+  const guardados = settings && settings.sellos;
+  if (!Array.isArray(guardados)) return SELLOS_POR_DEFECTO.map((s) => ({ ...s }));
+  return limpiarSellos(guardados);
+}
+
+// Lo que se guarda. Un sello sin titulo no es un sello a medias: es una fila vacia que el dueño
+// dejo en el formulario, y dibujarla deja un hueco con un icono suelto.
+export function limpiarSellos(lista) {
+  if (!Array.isArray(lista)) return [];
+  return lista
+    .map((s) => ({
+      icono: ICONOS_VALIDOS.has(s && s.icono) ? s.icono : 'probado',
+      titulo: texto(s && s.titulo, 40),
+      nota: texto(s && s.nota, 90),
+    }))
+    .filter((s) => s.titulo)
+    .slice(0, MAX_SELLOS);
+}
 
 // Siempre devuelve la misma forma, de modo que un catalogo viejo —sin el campo `negocio`— no
 // rompe nada y simplemente no muestra esas lineas.

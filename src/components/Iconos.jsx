@@ -42,6 +42,15 @@ export const IconoCarrito = (p) => (
   <Icono {...p}><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" /></Icono>
 );
 
+// Los dos de los sellos de confianza. El resto de esa tira reutiliza iconos de aqui.
+export const IconoVisto = (p) => (
+  <Icono {...p}><path d="m4.5 12.5 5 5 10-11" /></Icono>
+);
+
+export const IconoEscudo = (p) => (
+  <Icono {...p}><path d="M12 3 4.5 6v6c0 4.2 3 7.7 7.5 9 4.5-1.3 7.5-4.8 7.5-9V6L12 3Z" /></Icono>
+);
+
 export const IconoRejilla = (p) => (
   <Icono {...p}><rect x="3" y="3" width="7.5" height="7.5" rx="1.6" /><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6" /><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6" /><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6" /></Icono>
 );
