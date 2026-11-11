@@ -66,6 +66,9 @@ const estaMuerta = (status) => MUERTA.has(Number(status));
 
 const ES_MONEDA = /^[A-Za-z$€£¥.\s]{0,8}$/;
 
+// La misma forma que acepta src/lib/avisoRuta.js. Un identificador es ord_<ms>_<azar>.
+const ES_IDENTIFICADOR = /^[A-Za-z0-9_-]{1,80}$/;
+
 // El texto que se ve en la pantalla de bloqueo. Corto a proposito: ahi solo caben dos lineas, y
 // lo que importa es cuanto y de quien, para decidir si se atiende ahora o despues.
 function avisoDePedido(order, settings = {}) {
@@ -89,8 +92,14 @@ function avisoDePedido(order, settings = {}) {
   return {
     title: importe ? `Pedido nuevo · ${importe}` : 'Pedido nuevo',
     body: `${cliente} — ${que}`,
-    // A donde lleva el toque. El panel de ordenes, que es lo que se quiere mirar.
-    url: '/admin',
+    // A donde lleva el toque: al pedido concreto, no al panel a secas. Llevaba a /admin y el
+    // panel abria en Productos, asi que habia que ir a Órdenes y buscar cual de todas era.
+    //
+    // El identificador viaja en la direccion porque es lo unico que sobrevive al camino: el
+    // aviso lo entrega el sistema operativo, abre el navegador y arranca la aplicacion de cero.
+    // La regla de que forma tiene que tener esta duplicada en src/lib/avisoRuta.js —esto corre
+    // en el servidor y aquello en el navegador— y una prueba comprueba que las dos coinciden.
+    url: ES_IDENTIFICADOR.test(String(o.id || '')) ? `/admin?orden=${encodeURIComponent(o.id)}` : '/admin',
     // Con la misma etiqueta, dos pedidos seguidos no apilan dos avisos identicos... pero aqui
     // SI interesa que se apilen, asi que cada pedido lleva la suya.
     tag: `pedido-${String(o.id || Date.now())}`,
