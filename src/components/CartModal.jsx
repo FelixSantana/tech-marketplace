@@ -1,5 +1,6 @@
 import { getPrimaryImage, hasVariants, getVariant, getUnitPrice } from '../hooks/useCatalog';
 import { cartKey } from '../hooks/useCart';
+import { IconoCarrito } from './Iconos';
 
 const variantStock = (v) => Math.max(0, Math.floor(Number(v?.stockQty) || 0));
 
@@ -20,7 +21,7 @@ export default function CartModal({ cart, products, settings, onClose, onUpdateQ
       <div className="panel" style={{ maxWidth: 520 }}>
         <div className="panel-head"><h2>Tu carrito</h2><button className="icon-btn" onClick={onClose}>✕</button></div>
         {items.length === 0 ? (
-          <div className="empty-state" style={{ padding: '36px 10px' }}><div className="glyph">🛒</div><h3>Tu carrito está vacío</h3><p>Agrega productos desde el catálogo para armar tu pedido.</p></div>
+          <div className="empty-state" style={{ padding: '36px 10px' }}><div className="glyph"><IconoCarrito size={34} /></div><h3>Tu carrito está vacío</h3><p>Agrega productos desde el catálogo para armar tu pedido.</p></div>
         ) : (
           <>
             <div className="cart-list">

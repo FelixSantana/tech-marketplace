@@ -10,6 +10,7 @@ import { cuponesDeAjustes } from '../../lib/cupones';
 import { ajustesDeEnvio } from '../../lib/envio';
 import { diasQueLeQuedan } from '../../lib/token';
 import { datosDeNegocio, limpiarNegocio } from '../../lib/negocio';
+import { IconoEngranaje, IconoLocal, IconoCamion, IconoCupon, IconoSobre, IconoBombilla } from '../Iconos';
 
 export default function SettingsForm({ settings, onSaveSettings, authRequest, adminToken, setAdminToken, refreshCatalog, onLogout, showToast }) {
   const [storeName, setStoreName] = useState(settings.storeName);
@@ -130,7 +131,7 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
 
   return (
     <div className="settings-form">
-      <div className="form-section-title"><span className="section-icon">⚙</span><div><h3>Configuración de la tienda</h3><p>Estos datos se muestran en el catálogo y en los pedidos.</p></div></div>
+      <div className="form-section-title"><span className="section-icon"><IconoEngranaje /></span><div><h3>Configuración de la tienda</h3><p>Estos datos se muestran en el catálogo y en los pedidos.</p></div></div>
       <div className="field"><label htmlFor={`${uid}-logo`}>Logo de la tienda</label><div className="img-upload"><div className="img-preview">{currentLogo ? <img src={currentLogo} alt="Logo" /> : 'ST'}</div><label className="upload-btn">{derivando ? 'Procesando…' : 'Subir logo'}<input id={`${uid}-logo`} type="file" accept="image/*" disabled={derivando} style={{ display: 'none' }} onChange={handleLogoUpload} /></label>{currentLogo && <button type="button" className="icon-btn" title="Quitar logo" onClick={quitarLogo}>✕</button>}</div></div>
       {/* La vista previa existe porque lo que se comparte por WhatsApp no se puede comprobar de
           otra forma: la imagen se dibuja en el navegador a partir del logo, y hasta que alguien la
@@ -163,7 +164,7 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
           {normalizarColor(colorMarca) && <> El texto encima saldrá {tintaSobre(normalizarColor(colorMarca)) === '#ffffff' ? 'blanco' : 'oscuro'}, lo que se lea mejor.</>}
         </p>
       </div>
-      <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon">◉</span><div><h3>Datos del negocio</h3><p>Se muestran en la barra superior y en el pie. Lo que dejes vacío no se publica.</p></div></div>
+      <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon"><IconoLocal /></span><div><h3>Datos del negocio</h3><p>Se muestran en la barra superior y en el pie. Lo que dejes vacío no se publica.</p></div></div>
       <div className="field"><label htmlFor={`${uid}-rnc`}>RNC</label><input id={`${uid}-rnc`} type="text" placeholder="1-31-12345-6" value={negocio.rnc} onChange={(e) => setNegocio({ ...negocio, rnc: e.target.value })} /><div className="hint">Aparece en el pie. Déjalo vacío si aún no tienes o si prefieres no publicarlo.</div></div>
       <div className="field"><label htmlFor={`${uid}-direccion`}>Dirección</label><input id={`${uid}-direccion`} type="text" placeholder="Calle, número, sector, ciudad" value={negocio.direccion} onChange={(e) => setNegocio({ ...negocio, direccion: e.target.value })} /></div>
       <div className="field"><label htmlFor={`${uid}-horario`}>Horario de atención</label><input id={`${uid}-horario`} type="text" placeholder="Lun a Sáb · 9:00 AM a 6:00 PM" value={negocio.horario} onChange={(e) => setNegocio({ ...negocio, horario: e.target.value })} /><div className="hint">Se muestra arriba del todo, junto al teléfono.</div></div>
@@ -171,9 +172,9 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
       <div className="field"><label htmlFor={`${uid}-correo`}>Correo de contacto</label><input id={`${uid}-correo`} type="email" placeholder="ventas@tutienda.com" value={negocio.correo} onChange={(e) => setNegocio({ ...negocio, correo: e.target.value })} /></div>
       <div className="field"><label htmlFor={`${uid}-pagos`}>Formas de pago</label><input id={`${uid}-pagos`} type="text" placeholder="Efectivo, Transferencia, Depósito bancario" value={negocio.pagos} onChange={(e) => setNegocio({ ...negocio, pagos: e.target.value })} /><div className="hint">Sepáralas con comas. Se listan en el pie.</div></div>
 
-      <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon">⛟</span><div><h3>Entrega y envío</h3><p>Qué le pides al cliente al finalizar el pedido y cuánto cobras por llevarlo.</p></div></div>
+      <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon"><IconoCamion /></span><div><h3>Entrega y envío</h3><p>Qué le pides al cliente al finalizar el pedido y cuánto cobras por llevarlo.</p></div></div>
       <ShippingForm envio={envio} setEnvio={setEnvio} currency={currency} />
-      <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon">%</span><div><h3>Cupones de descuento</h3><p>Se aplican al precio de los productos, no al envío.</p></div></div>
+      <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon"><IconoCupon /></span><div><h3>Cupones de descuento</h3><p>Se aplican al precio de los productos, no al envío.</p></div></div>
       <CouponsForm cupones={cupones} setCupones={setCupones} currency={currency} adminToken={adminToken} />
       <button className="btn-primary full-action" onClick={handleSaveSettings}>Guardar ajustes</button>
 
@@ -182,10 +183,10 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
       <div className="access-card">
         <div className="access-card-head"><div className="access-icon">♙</div><div><h3>Acceso de administrador</h3><p>Actualiza el correo y/o contraseña. Por seguridad, siempre debes confirmar tu contraseña actual.</p></div></div>
         <div className="field"><label htmlFor={`${uid}-curpass`}>Contraseña actual</label><input id={`${uid}-curpass`} type="password" placeholder="••••••••" autoComplete="current-password" value={curPassword} onChange={(e) => setCurPassword(e.target.value)} /></div>
-        <div className="field email-field"><label htmlFor={`${uid}-newemail`}>Nuevo correo electrónico</label><div className="input-with-icon"><span>✉</span><input id={`${uid}-newemail`} type="email" placeholder="nuevo@correo.com" autoComplete="username" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} /></div><div className="hint">Déjalo vacío si solo quieres cambiar la contraseña.</div></div>
+        <div className="field email-field"><label htmlFor={`${uid}-newemail`}>Nuevo correo electrónico</label><div className="input-with-icon"><span><IconoSobre size={15} /></span><input id={`${uid}-newemail`} type="email" placeholder="nuevo@correo.com" autoComplete="username" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} /></div><div className="hint">Déjalo vacío si solo quieres cambiar la contraseña.</div></div>
         <div className="field"><label htmlFor={`${uid}-newpass`}>Nueva contraseña</label><input id={`${uid}-newpass`} type="password" placeholder="Mínimo 6 caracteres" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} /></div>
         <button className="btn-primary full-action" onClick={handleSaveCreds} disabled={savingAccess}>{savingAccess ? 'Actualizando…' : 'Actualizar acceso'}</button>
-        <div className="access-note">💡 Al cambiar la contraseña se cierran todas las sesiones abiertas; la de este navegador se renueva sola.</div>
+        <div className="access-note"><IconoBombilla size={13} /> Al cambiar la contraseña se cierran todas las sesiones abiertas; la de este navegador se renueva sola.</div>
 
         <div className="token-box">
           <div>

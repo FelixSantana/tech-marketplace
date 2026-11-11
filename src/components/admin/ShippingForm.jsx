@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { IconoMapa } from '../Iconos';
 
 const nuevaZonaId = () => `z_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 
@@ -45,7 +46,7 @@ export default function ShippingForm({ envio, setEnvio, currency }) {
           )}
 
           <div className="zonas-editor">
-            <div className="form-section-title"><span className="section-icon">◎</span><div><h3>Zonas de envío</h3><p>El precio de la zona que elija el cliente se suma al total del pedido.</p></div></div>
+            <div className="form-section-title"><span className="section-icon"><IconoMapa /></span><div><h3>Zonas de envío</h3><p>El precio de la zona que elija el cliente se suma al total del pedido.</p></div></div>
             {zonas.length === 0 ? (
               <div className="empty-state" style={{ padding: 16 }}><p>Sin zonas todavía. Agrega al menos una para poder cobrar envío.</p></div>
             ) : (

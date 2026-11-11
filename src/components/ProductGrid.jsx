@@ -2,6 +2,7 @@ import { useState } from 'react';
 import ProductCard from './ProductCard';
 import { coincideBusqueda } from '../lib/texto';
 import { getMinPrice } from '../hooks/useCatalog';
+import { IconoRejilla, IconoLupa } from './Iconos';
 
 // Ordenar por precio y decir cuantos resultados hay. Data Import
 // tiene las dos cosas; en un catalogo de 23 productos, donde el cliente compara
@@ -22,10 +23,10 @@ export default function ProductGrid({ products, allProducts, settings, activeCat
   list = (ORDENES[orden] || ORDENES.recomendados).aplicar(list);
 
   if (allProducts.length === 0) {
-    return <div className="empty-state"><div className="glyph">🧩</div><h3>Aún no hay productos en el catálogo</h3><p>Muy pronto vas a encontrar aquí los productos disponibles para pedir por WhatsApp.</p></div>;
+    return <div className="empty-state"><div className="glyph"><IconoRejilla size={34} /></div><h3>Aún no hay productos en el catálogo</h3><p>Muy pronto vas a encontrar aquí los productos disponibles para pedir por WhatsApp.</p></div>;
   }
   if (list.length === 0) {
-    return <div className="empty-state"><div className="glyph">🔍</div><h3>Sin resultados</h3><p>Prueba con otra búsqueda o categoría.</p></div>;
+    return <div className="empty-state"><div className="glyph"><IconoLupa size={34} /></div><h3>Sin resultados</h3><p>Prueba con otra búsqueda o categoría.</p></div>;
   }
 
   const cuenta = list.length === 1 ? '1 producto' : `${list.length} productos`;

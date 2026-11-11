@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { IconoRestaurar } from '../Iconos';
 
 // Historial del catalogo. El catalogo vive en una sola clave: antes, un guardado malo —borrar un
 // producto, dejar precios en cero— no tenia vuelta atras. El servidor copia cada guardado; aqui
@@ -46,7 +47,7 @@ export default function BackupsPanel({ adminToken, refreshCatalog, showToast }) 
   return (
     <div className="backups-panel">
       <div className="form-section-title" style={{ marginTop: 18 }}>
-        <span className="section-icon">↺</span>
+        <span className="section-icon"><IconoRestaurar /></span>
         <div><h3>Historial del catálogo</h3><p>Una copia por cada guardado. Se conservan los últimos cinco y uno por día.</p></div>
       </div>
 
