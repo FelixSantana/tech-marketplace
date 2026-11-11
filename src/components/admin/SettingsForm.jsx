@@ -10,7 +10,7 @@ import { cuponesDeAjustes } from '../../lib/cupones';
 import { ajustesDeEnvio } from '../../lib/envio';
 import { diasQueLeQuedan } from '../../lib/token';
 import { datosDeNegocio, limpiarNegocio } from '../../lib/negocio';
-import { IconoEngranaje, IconoLocal, IconoCamion, IconoCupon, IconoSobre, IconoBombilla } from '../Iconos';
+import { IconoEngranaje, IconoLocal, IconoCamion, IconoCupon, IconoSobre, IconoBombilla, IconoLlave } from '../Iconos';
 
 export default function SettingsForm({ settings, onSaveSettings, authRequest, adminToken, setAdminToken, refreshCatalog, onLogout, showToast }) {
   const [storeName, setStoreName] = useState(settings.storeName);
@@ -181,7 +181,7 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
       <BackupsPanel adminToken={adminToken} refreshCatalog={refreshCatalog} showToast={showToast} />
 
       <div className="access-card">
-        <div className="access-card-head"><div className="access-icon">♙</div><div><h3>Acceso de administrador</h3><p>Actualiza el correo y/o contraseña. Por seguridad, siempre debes confirmar tu contraseña actual.</p></div></div>
+        <div className="access-card-head"><div className="access-icon"><IconoLlave size={18} /></div><div><h3>Acceso de administrador</h3><p>Actualiza el correo y/o contraseña. Por seguridad, siempre debes confirmar tu contraseña actual.</p></div></div>
         <div className="field"><label htmlFor={`${uid}-curpass`}>Contraseña actual</label><input id={`${uid}-curpass`} type="password" placeholder="••••••••" autoComplete="current-password" value={curPassword} onChange={(e) => setCurPassword(e.target.value)} /></div>
         <div className="field email-field"><label htmlFor={`${uid}-newemail`}>Nuevo correo electrónico</label><div className="input-with-icon"><span><IconoSobre size={15} /></span><input id={`${uid}-newemail`} type="email" placeholder="nuevo@correo.com" autoComplete="username" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} /></div><div className="hint">Déjalo vacío si solo quieres cambiar la contraseña.</div></div>
         <div className="field"><label htmlFor={`${uid}-newpass`}>Nueva contraseña</label><input id={`${uid}-newpass`} type="password" placeholder="Mínimo 6 caracteres" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} /></div>

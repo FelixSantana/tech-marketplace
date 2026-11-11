@@ -72,7 +72,24 @@ export const IconoSobre = (p) => (
   <Icono {...p}><rect x="2.5" y="5" width="19" height="14" rx="2.2" /><path d="m3.6 7 8.4 6 8.4-6" /></Icono>
 );
 
+export const IconoTelefono = (p) => (
+  <Icono {...p}><path d="M21 16.9v2.6a1.8 1.8 0 0 1-2 1.8 17.6 17.6 0 0 1-7.7-2.7 17.3 17.3 0 0 1-5.3-5.3A17.6 17.6 0 0 1 3.3 5.5a1.8 1.8 0 0 1 1.8-2h2.6a1.8 1.8 0 0 1 1.8 1.6c.1.9.3 1.7.6 2.5a1.8 1.8 0 0 1-.4 1.9l-1.1 1.1a14 14 0 0 0 5.3 5.3l1.1-1.1a1.8 1.8 0 0 1 1.9-.4c.8.3 1.6.5 2.5.6a1.8 1.8 0 0 1 1.6 1.9Z" /></Icono>
+);
+
+export const IconoReloj = (p) => (
+  <Icono {...p}><circle cx="12" cy="12" r="8.8" /><path d="M12 7.2V12l3.2 1.9" /></Icono>
+);
+
 // --- Panel ---
+
+export const IconoLlave = (p) => (
+  <Icono {...p}><circle cx="8" cy="15.5" r="4.2" /><path d="m11 12.5 8.2-8.2M16.4 7.1l2.2 2.2M14.2 9.3l2.2 2.2" /></Icono>
+);
+
+export const IconoRefrescar = (p) => (
+  <Icono {...p}><path d="M20.7 12a8.7 8.7 0 1 1-2.6-6.2" /><path d="M20.7 4.6V10h-5.4" /></Icono>
+);
+
 
 export const IconoGrafico = (p) => (
   <Icono {...p}><path d="M3 3v16a2 2 0 0 0 2 2h16" /><path d="m7 15 4-5 3.5 3L21 6.5" /></Icono>

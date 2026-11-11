@@ -319,3 +319,8 @@
 */
 .access-note svg{vertical-align:-2px;margin-right:2px}
 .checkout-item-img svg{color:var(--text-muted)}
+/* El boton de refrescar llevaba el texto "↻ Actualizar". Con un SVG delante hace falta
+   alinearlo, y de paso quitarle a .btn-secondary el ancho completo y el margen que trae de
+   serie, que dentro de una barra de herramientas lo descuadraban. */
+.refresh-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;width:auto;margin:0;padding:0 15px}
+.topbar-item svg{flex:none}

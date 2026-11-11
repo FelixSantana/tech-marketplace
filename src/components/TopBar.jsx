@@ -1,4 +1,5 @@
 import { datosDeNegocio } from '../lib/negocio';
+import { IconoTelefono, IconoReloj, IconoCamion } from './Iconos';
 
 // Barra superior: telefono, horario y cobertura. Es lo primero que ve quien llega
 // desconfiando, y la linea que dice "esto es un negocio". Las tres tiendas de
@@ -21,12 +22,12 @@ export default function TopBar({ settings }) {
       <div className="topbar-inner">
         {tel && (
           <span className="topbar-item">
-            <span aria-hidden="true">✆</span>
+            <IconoTelefono size={13} />
             <a href={`https://wa.me/${String(settings.whatsapp).replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">{tel}</a>
           </span>
         )}
-        {negocio.horario && <span className="topbar-item"><span aria-hidden="true">◷</span>{negocio.horario}</span>}
-        {negocio.cobertura && <span className="topbar-item topbar-cobertura"><span aria-hidden="true">⛟</span>{negocio.cobertura}</span>}
+        {negocio.horario && <span className="topbar-item"><IconoReloj size={13} />{negocio.horario}</span>}
+        {negocio.cobertura && <span className="topbar-item topbar-cobertura"><IconoCamion size={13} />{negocio.cobertura}</span>}
       </div>
     </div>
   );
