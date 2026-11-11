@@ -52,4 +52,32 @@ export function buildOrderWaLink(items, settings, entrega, cupon) {
   return `https://wa.me/${phone}?text=${encodeURIComponent(lines.join('\n'))}`;
 }
 export function getCategoryEmoji(category, categories) { if (!category) return '📦'; const found = categories.find((c) => c.name.toLowerCase() === category.trim().toLowerCase()); return found ? found.emoji : '📦'; }
-export const EMOJI_PICKS = ['💻', '📱', '🎧', '🛠️', '🖥️', '🖱️', '⌨️', '🔌', '🎮', '⌚', '📶', '🔋', '📷', '🧴', '🛞', '🧰'];
+// Los emojis que se ofrecen al crear una categoria.
+//
+// Eran dieciseis y todos de tecnologia, porque la tienda se escribio para una tienda de
+// tecnologia. Para un cliente que venda ropa, comida o repuestos no habia NADA que elegir, y
+// acababa pegando el emoji a mano o dejandolo en la caja por defecto. Es el mismo problema que
+// los sellos escritos en el codigo: funciona para una tienda y estorba en la siguiente.
+//
+// Van por grupos porque con casi cien sueltos no se encuentra nada. El titulo del grupo es lo
+// unico que se lee para orientarse; los emojis no se buscan por nombre, se buscan por zona.
+//
+// No se usan los emojis mas nuevos de Unicode (destornillador, cepillo de dientes, silla). En
+// un sistema que no los trae salen como un rectangulo vacio, y aunque aqui se ve antes de
+// elegir —asi que nadie escoge un hueco—, el que ya los tuviera guardados los veria rotos.
+export const EMOJI_GRUPOS = [
+  { titulo: 'Tecnología', emojis: ['💻', '🖥️', '📱', '⌨️', '🖱️', '🖨️', '🎧', '🎮', '📷', '📹', '⌚', '📺', '💾', '🔌', '🔋', '📶'] },
+  { titulo: 'Herramientas', emojis: ['🛠️', '🧰', '🔧', '🔩', '🔨', '🔦', '⚙️', '🧲', '⛏️'] },
+  { titulo: 'Hogar y oficina', emojis: ['🛋️', '🛏️', '💡', '🧹', '🍳', '🧊', '🚿', '📚', '✏️', '📎', '🕯️'] },
+  { titulo: 'Ropa y accesorios', emojis: ['👕', '👖', '👗', '👟', '👜', '🧢', '🕶️', '💍', '🧦', '🧥', '👔', '🎒'] },
+  { titulo: 'Belleza y salud', emojis: ['🧴', '💄', '🧼', '💊', '🩹', '✂️', '🌸', '🧽'] },
+  { titulo: 'Comida y bebida', emojis: ['🍔', '🍕', '🥗', '🍰', '☕', '🥤', '🍺', '🍫', '🥖', '🍎', '🧁'] },
+  { titulo: 'Vehículos', emojis: ['🚗', '🏍️', '🚲', '🛵', '🚚', '🛞', '⛽', '🔑'] },
+  { titulo: 'Niños y mascotas', emojis: ['🧸', '🎯', '🐶', '🐱', '🦴', '🍼', '🎈'] },
+  { titulo: 'Deporte y ocio', emojis: ['⚽', '🏀', '🏋️', '🚴', '🎸', '🎨', '📖', '🎲'] },
+  { titulo: 'General', emojis: ['📦', '🎁', '🏷️', '⭐', '🔥', '💎', '🌿', '🛒'] },
+];
+
+// La lista plana. Cada emoji es la clave de React de su boton, asi que uno repetido no solo
+// sobra: haria que React tratara dos botones como el mismo. Una prueba lo comprueba.
+export const EMOJI_PICKS = EMOJI_GRUPOS.flatMap((g) => g.emojis);

@@ -324,3 +324,32 @@
    serie, que dentro de una barra de herramientas lo descuadraban. */
 .refresh-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;width:auto;margin:0;padding:0 15px}
 .topbar-item svg{flex:none}
+
+/* --- El selector de emojis al crear una categoria --- */
+/*
+   Con casi cien no caben a la vista sin empujar fuera de pantalla los botones de Guardar y
+   Cancelar, asi que el bloque tiene altura tope y se desplaza por dentro. Alto suficiente para
+   que se vea mas de un grupo de golpe: si solo asomara uno, nadie sabria que hay mas abajo.
+*/
+.emoji-grupos{display:flex;flex-direction:column;gap:11px;margin-top:6px;max-height:248px;overflow-y:auto;padding-right:5px}
+/* El titulo se queda pegado arriba mientras se desplaza su grupo: con diez grupos, a mitad de
+   la lista ya no se sabe si lo que se esta mirando es cocina o taller. El fondo tiene que ser
+   el mismo de la caja o los emojis se verian pasar por debajo del texto. */
+.emoji-grupo>span{display:block;position:sticky;top:0;z-index:1;padding:1px 0 6px;background:var(--surface-2);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)}
+.emoji-pick{cursor:pointer;transition:border-color .15s ease,background-color .15s ease}
+.emoji-pick.activo{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 18%,var(--surface))}
+/*
+   Los dos campos de la caja de categoria nueva no los vestia ninguna regla: quedaban a lo que
+   el navegador quisiera pintar. En un Chrome con el sistema en oscuro salen oscuros y parecen
+   correctos —por eso nunca se noto—, pero en cualquier otro sitio son dos cajas blancas en
+   medio del panel. Es el mismo descuido que tenia el campo del correo de contacto.
+   El del emoji ademas se llevaba todo el ancho para guardar un solo caracter; con el ancho
+   justo se entiende sin leer que ahi va una cosa y no una frase.
+*/
+.new-category-box input{background:var(--bg-elev);border:1px solid var(--border);border-radius:9px;padding:10px 12px;color:var(--text);font:inherit;font-size:13px;outline:none;transition:border-color .15s ease}
+.new-category-box input:focus{border-color:var(--accent)}
+.new-category-box input::placeholder{color:var(--text-muted)}
+.new-category-box>input{width:100%}
+.new-category-box .field-row{align-items:center;gap:12px}
+.new-category-box .field-row input{width:76px;flex:none;text-align:center;font-size:19px;line-height:1}
+.new-category-box .field-row .hint{margin:0}

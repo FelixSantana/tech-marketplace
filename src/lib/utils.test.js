@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizePhone, buildOrderWaLink } from './utils';
+import { normalizePhone, buildOrderWaLink, EMOJI_GRUPOS, EMOJI_PICKS } from './utils';
 
 const settings = { storeName: 'Synaptic Tech', currency: 'RD$', whatsapp: '+1 857 364 1479' };
 const mouse = { id: 'p1', name: 'Mouse inalámbrico', price: 1200 };
@@ -104,5 +104,25 @@ describe('buildOrderWaLink con cupon', () => {
   it('sin cupon el mensaje no habla de descuentos', () => {
     const msg = mensajeDe(buildOrderWaLink([{ product: mouse, qty: 2 }], settings));
     expect(msg).not.toContain('Descuento');
+  });
+});
+
+describe('EMOJI_GRUPOS', () => {
+  it('no repite ningun emoji', () => {
+    // Cada emoji es la clave de React de su boton. Uno repetido haria que React tratara dos
+    // botones distintos como el mismo, y al pulsar uno se marcaria el otro.
+    const repetidos = EMOJI_PICKS.filter((e, i) => EMOJI_PICKS.indexOf(e) !== i);
+    expect(repetidos).toEqual([]);
+  });
+
+  it('todos los grupos tienen titulo y emojis', () => {
+    for (const g of EMOJI_GRUPOS) {
+      expect(g.titulo.trim()).not.toBe('');
+      expect(g.emojis.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('ofrece bastante mas que la lista de solo tecnologia que habia', () => {
+    expect(EMOJI_PICKS.length).toBeGreaterThan(60);
   });
 });
