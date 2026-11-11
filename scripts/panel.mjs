@@ -17,6 +17,16 @@
 
 export const ARCHIVO = 'admin.html';
 
+// El HTML de la tienda NO puede llamarse index.html en la salida del build.
+//
+// Vercel resuelve el sistema de archivos ANTES que las reescrituras, asi que mientras exista
+// un dist/index.html, la peticion de / lo sirve a el y la regla "/ -> /api/portada" no llega
+// a aplicarse nunca. Es la misma regla que obligo a borrar public/manifest.webmanifest.
+//
+// Con otro nombre, / deja de corresponder a ningun archivo y la reescritura entra. Las
+// funciones que necesitan el HTML lo piden por este nombre.
+export const ARCHIVO_TIENDA = 'tienda.html';
+
 // La etiqueta del manifiesto y la del titulo de iOS, con los atributos en cualquier orden.
 const EL_MANIFIESTO = /<link\b[^>]*\brel=["']manifest["'][^>]*>/i;
 const EL_TITULO_IOS = /<meta\b[^>]*\bname=["']apple-mobile-web-app-title["'][^>]*>/i;
