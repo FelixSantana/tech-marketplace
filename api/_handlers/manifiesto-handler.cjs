@@ -20,10 +20,14 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  // ?panel=1 pide la variante que abre el panel en vez de la tienda. Lo enlaza el propio HTML
+  // cuando la pagina es /admin, que es el unico sitio desde donde tiene sentido instalarlo.
+  const panel = String((req.query && req.query.panel) || '') === '1';
+
   res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
   // El nombre cambia cuando el dueño lo cambia en Ajustes, asi que el cache es corto. Aun asi hay
   // que contar con que el telefono se queda con el manifiesto del momento de instalar: cambiar el
   // nombre despues no renombra un icono ya instalado, hay que reinstalar.
   res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=300');
-  return res.end(JSON.stringify(construirManifiesto(settings)));
+  return res.end(JSON.stringify(construirManifiesto(settings, { panel })));
 };
