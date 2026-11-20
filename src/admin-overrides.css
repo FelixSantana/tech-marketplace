@@ -311,6 +311,13 @@
 .status-completed{--estado:#40c76a}
 .status-cancelled{--estado:var(--danger)}
 
+/* El boton de accion de una cabecera de panel no se estira.
+   .btn-primary nace con width:100% porque donde mas sale es al final de un formulario, y ahi
+   un boton a todo lo ancho es lo correcto. En la fila de un titulo no: "+ Nueva orden" ocupaba
+   media pantalla y parecia una barra, no un boton. Se corrige en la cabecera, no en la regla
+   general, para no tocar los formularios. */
+.panel-head .btn-primary{width:auto;margin-top:0;padding:11px 16px;white-space:nowrap}
+
 /* --- Cotizaciones --- */
 /* Los mismos colores que los estados de una orden y por las mismas razones: ambar mientras se
    espera, verde cuando sale bien, rojo cuando no. Un borrador no lleva color porque todavia no
@@ -322,6 +329,23 @@
 /* "Vencida" no es un estado que se elija, asi que no va dentro del desplegable: va debajo, como
    la nota al margen que es. */
 .cot-vencida{display:block;margin-top:4px;color:var(--danger);font-size:10.5px;font-weight:700}
+/* La vista previa del PDF. Va por encima del panel (z-index 300) y ocupa la pantalla entera:
+   lo que se mira aqui es el papel que va a recibir un cliente, y mirarlo por una rendija no
+   sirve de nada. Fondo gris oscuro detras de la hoja, como cualquier visor de PDF. */
+.pdf-preview{position:fixed;inset:0;z-index:310;display:flex;flex-direction:column;background:#2a2d36}
+.pdf-preview-barra{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 18px;background:#12141b;color:#edeef3;border-bottom:1px solid rgba(255,255,255,.1)}
+.pdf-preview-barra strong{display:block;font-size:14px}
+.pdf-preview-barra span{display:block;color:#a6a9b4;font-size:12px;margin-top:2px}
+.pdf-preview-acciones{display:flex;gap:8px;align-items:center}
+.pdf-preview-acciones .btn-secondary,.pdf-preview-acciones .btn-primary{width:auto;margin-top:0;height:38px;padding:0 14px;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;font-size:13px;text-decoration:none}
+.pdf-preview-acciones .btn-secondary{background:transparent;color:#edeef3;border:1px solid rgba(255,255,255,.22)}
+.pdf-preview-acciones .btn-secondary:hover{border-color:rgba(255,255,255,.45)}
+.pdf-preview-cuerpo{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:14px}
+.pdf-preview-cuerpo iframe{width:100%;height:100%;border:0;border-radius:10px;background:#fff}
+.pdf-preview-aviso{text-align:center;color:#edeef3}
+.pdf-preview-aviso p{margin:0 0 14px;font-size:13.5px}
+@media(max-width:620px){.pdf-preview-barra{padding:10px 12px}.pdf-preview-acciones{width:100%}.pdf-preview-acciones .btn-primary{flex:1}.pdf-preview-cuerpo{padding:0}.pdf-preview-cuerpo iframe{border-radius:0}}
+
 .cotizacion-picker{display:flex;gap:10px;align-items:flex-end}
 .cotizacion-picker label{flex:1;min-width:0}
 .cotizacion-picker .btn-secondary{flex:0 0 auto;width:auto;height:40px;margin:0;padding:0 14px;white-space:nowrap}
