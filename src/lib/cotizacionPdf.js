@@ -346,6 +346,17 @@ export async function pdfDeCotizacion(cotizacionCruda, settings) {
   return { blob: doc.output('blob'), nombre: nombreDeArchivo(cotizacion, papel) };
 }
 
+// Si este navegador sabe pasarle un archivo a otra aplicacion. Se pregunta para poder ETIQUETAR
+// el boton con la verdad —"Compartir" o "Descargar"—, en vez de prometer una cosa y hacer otra.
+export function puedeCompartirArchivos() {
+  try {
+    if (typeof File !== 'function' || typeof navigator === 'undefined' || !navigator.canShare) return false;
+    return navigator.canShare({ files: [new File([new Blob()], 'x.pdf', { type: 'application/pdf' })] });
+  } catch {
+    return false;
+  }
+}
+
 // Entregar el archivo al dueño.
 //
 // Primero se intenta la hoja de compartir del sistema, y no por gusto: desde un iPhone esto se
@@ -354,8 +365,11 @@ export async function pdfDeCotizacion(cotizacionCruda, settings) {
 //
 // Si el navegador no sabe compartir archivos —o la persona cierra la hoja—, se descarga. Las dos
 // vias terminan con un PDF de verdad en la mano.
-export async function entregarCotizacionPdf(cotizacion, settings) {
-  const { blob, nombre } = await pdfDeCotizacion(cotizacion, settings);
+//
+// Recibe el blob ya hecho en vez de la cotizacion: la vista previa YA lo genero para enseñarlo,
+// y volver a dibujarlo al pulsar "Descargar" seria rehacer un trabajo que ya esta hecho —y, peor,
+// dejar que lo descargado pudiera no ser exactamente lo que se acaba de mirar.
+export async function entregarArchivo(blob, nombre) {
   const archivo = typeof File === 'function' ? new File([blob], nombre, { type: 'application/pdf' }) : null;
   if (archivo && navigator.canShare && navigator.canShare({ files: [archivo] })) {
     try {

@@ -4,7 +4,7 @@ import {
   ESTADOS, estadoVisible, nuevaLinea, totalDeLinea, totalDeCotizacion,
   numeroVisible, cotizacionNueva, hoyISO, MAX_LINEAS, MAX_NOTA,
 } from '../../lib/cotizacion';
-import { entregarCotizacionPdf } from '../../lib/cotizacionPdf';
+import CotizacionPreview from './CotizacionPreview';
 
 const RUTA = '/api/orders?recurso=cotizaciones';
 const money = (n, moneda = 'RD$') => `${moneda} ${Number(n || 0).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -87,6 +87,7 @@ export default function CotizacionesPanel({ adminToken, products: catalogo, sett
   const [editando, setEditando] = useState(null);
   const [form, setForm] = useState(null);
   const [ocupado, setOcupado] = useState(false);
+  const [vistaPrevia, setVistaPrevia] = useState(null);
   const uid = useId();
   const moneda = (settings && settings.currency) || 'RD$';
   const headers = useMemo(() => ({ Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' }), [adminToken]);
@@ -143,19 +144,9 @@ export default function CotizacionesPanel({ adminToken, products: catalogo, sett
     } catch (e) { showToast(e.message); return null; } finally { setOcupado(false); }
   };
 
-  const descargar = async (cotizacion) => {
-    setOcupado(true);
-    try {
-      const resultado = await entregarCotizacionPdf(cotizacion, settings);
-      if (resultado === 'descargado') showToast('PDF descargado');
-      if (resultado === 'compartido') showToast('PDF enviado');
-    } catch (e) {
-      console.error('pdf de cotizacion', e);
-      showToast('No se pudo generar el PDF.');
-    } finally { setOcupado(false); }
-  };
-
-  const guardarYDescargar = async () => { const c = await guardar(); if (c) { cerrar(); await descargar(c); } };
+  // Nunca se descarga a ciegas: se abre la vista previa y desde ahi se entrega. Un presupuesto
+  // llega al cliente y no se puede retirar, asi que el ultimo paso es mirarlo.
+  const guardarYVer = async () => { const c = await guardar(); if (c) { cerrar(); setVistaPrevia(c); } };
   const guardarYCerrar = async () => { const c = await guardar(); if (c) cerrar(); };
 
   const cambiarEstado = async (c, estado) => {
@@ -203,7 +194,7 @@ export default function CotizacionesPanel({ adminToken, products: catalogo, sett
         <div className="form-actions">
           <button className="btn-secondary" onClick={cerrar}>Cancelar</button>
           <button className="btn-secondary" disabled={ocupado} onClick={guardarYCerrar}>Guardar</button>
-          <button className="btn-primary" disabled={ocupado} onClick={guardarYDescargar}><IconoDescargar size={14} /> Guardar y descargar PDF</button>
+          <button className="btn-primary" disabled={ocupado} onClick={guardarYVer}><IconoDescargar size={14} /> Guardar y ver PDF</button>
         </div>
       </div>
     );
@@ -269,7 +260,7 @@ export default function CotizacionesPanel({ adminToken, products: catalogo, sett
                   </td>
                   <td className="order-date">{fechaCorta(c.fecha)}</td>
                   <td className="order-actions">
-                    <button className="btn-secondary" disabled={ocupado} title="Descargar el PDF" onClick={() => descargar(c)}><IconoDescargar size={14} /> PDF</button>
+                    <button className="btn-secondary" title="Ver el PDF antes de mandarlo" onClick={() => setVistaPrevia(c)}><IconoDescargar size={14} /> PDF</button>
                     <button className="btn-secondary" onClick={() => editar(c)}>Editar</button>
                     <button className="icon-btn danger-icon" title="Eliminar" aria-label={`Eliminar la cotización ${numeroVisible(c.numero)}`} onClick={() => eliminar(c)}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6" /></svg>
@@ -281,6 +272,7 @@ export default function CotizacionesPanel({ adminToken, products: catalogo, sett
           </table>
         </div>
       )}
+      {vistaPrevia && <CotizacionPreview cotizacion={vistaPrevia} settings={settings} showToast={showToast} onClose={() => setVistaPrevia(null)} />}
     </div>
   );
 }
