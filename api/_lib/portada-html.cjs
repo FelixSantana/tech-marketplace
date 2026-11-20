@@ -23,7 +23,7 @@
 
 const { slugProducto } = require('./rutas.cjs');
 const { nombreDeTienda } = require('./tienda.cjs');
-const { condicionDe, ofertaDe, destacadosPrimero } = require('./vitrina.cjs');
+const { condicionDe, ofertaDe, destacadosPrimero, estadoDe } = require('./vitrina.cjs');
 
 const escapar = (v) => String(v == null ? '' : v)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -84,13 +84,15 @@ function tarjetasDePortada(catalog) {
     const precio = precioDesde(p).toLocaleString('es-DO');
     const desde = tieneVariantes(p) ? '<span class="price-from">desde </span>' : '';
     const oferta = ofertaDe(p, precioDesde(p));
+    const estado = estadoDe(p);
     return [
       '<article class="card">',
-      `<div class="img-wrap">${foto ? `<img src="${escapar(foto)}" alt="${escapar(p.name)}" loading="lazy" />` : '<span class="placeholder">Sin imagen</span>'}</div>`,
+      `<div class="img-wrap">${foto ? `<img src="${escapar(foto)}" alt="${escapar(p.name)}" loading="lazy" />` : '<span class="placeholder">Sin imagen</span>'}${estado && estado.corto ? `<span class="badge-estado estado-${escapar(estado.nivel)}">${escapar(estado.corto)}</span>` : ''}</div>`,
       '<div class="card-body">',
       p.category ? `<div class="card-cat">${escapar(p.category)}</div>` : '',
       `<h2 class="card-name"><a href="${escapar(ruta)}">${escapar(p.name)}</a></h2>`,
       p.description ? `<div class="card-desc">${escapar(recortar(p.description, 120))}</div>` : '',
+      estado && estado.nota ? `<div class="card-estado-nota">${escapar(estado.nota)}</div>` : '',
       // El tachado tambien aqui: el HTML servido y el que pinta React tienen que enseñar lo
       // mismo, o durante el parpadeo el precio parece cambiar solo.
       `<div class="card-price mono">${desde}<span class="currency">${moneda}</span>${escapar(precio)}${oferta ? `<span class="precio-antes">${moneda} ${escapar(oferta.antes.toLocaleString('es-DO'))}</span>` : ''}</div>`,

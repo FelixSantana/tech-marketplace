@@ -198,3 +198,46 @@ describe('la version del servidor dice lo mismo', () => {
     expect(servidor.UMBRAL_POCAS).toBe(UMBRAL_POCAS);
   });
 });
+
+describe('las etiquetas de estado, en los dos lados', () => {
+  const require2 = createRequire(import.meta.url);
+  const servidor = require2('../../api/_lib/vitrina.cjs');
+
+  it('el texto corto es el mismo', () => {
+    // Si se separan, el HTML servido y el que pinta React dirian cosas distintas durante el
+    // parpadeo, y Google indexaria una palabra que el visitante no ve.
+    for (const n of NIVELES_DE_ESTADO) {
+      expect(servidor.CORTO[n.valor]).toBe(n.corto);
+    }
+  });
+
+  it('no sobra ningún nivel en el servidor', () => {
+    expect(Object.keys(servidor.CORTO).sort()).toEqual(NIVELES_DE_ESTADO.map((n) => n.valor).sort());
+  });
+
+  it('los dos deciden igual cuándo hay estado que mostrar', () => {
+    const casos = [
+      {},
+      { estado: {} },
+      { estado: { nivel: 'muy-bueno' } },
+      { estado: { nota: 'Solo nota' } },
+      { estado: { nivel: 'inventado', nota: '' } },
+      { estado: { nivel: 'con-detalles', nota: 'Rayón pequeño' } },
+    ];
+    for (const c of casos) {
+      const aqui = estadoDeProducto(c);
+      const alla = servidor.estadoDe(c);
+      expect(Boolean(alla)).toBe(Boolean(aqui));
+      if (aqui) {
+        expect(alla.nivel).toBe(aqui.nivel);
+        expect(alla.corto).toBe(aqui.corto);
+        expect(alla.nota).toBe(aqui.nota);
+      }
+    }
+  });
+
+  it('los dos recortan la nota igual', () => {
+    const largo = { estado: { nivel: 'nuevo', nota: 'A'.repeat(300) } };
+    expect(servidor.estadoDe(largo).nota).toBe(estadoDeProducto(largo).nota);
+  });
+});
