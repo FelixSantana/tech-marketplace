@@ -10,7 +10,8 @@ export default function ProductCard({ product, settings, onOpenDetail, onAddCart
   // tiene que abrir el detalle y elegir. Sin variantes, la tarjeta se comporta como siempre.
   const conVariantes = hasVariants(product);
   const estado = estadoDeProducto(product);
-  const oferta = ofertaDeProducto(product);
+  // Contra el precio que se enseña: con variantes la tarjeta muestra el minimo.
+  const oferta = ofertaDeProducto(product, getMinPrice(product));
   const pocas = textoDePocas(product);
   const openDetail = () => onOpenDetail(product.id);
 

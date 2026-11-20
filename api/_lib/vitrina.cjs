@@ -19,12 +19,13 @@ const CONDICION = {
 // seria mentir en los resultados de Google, que es donde mas caro sale.
 const condicionDe = (producto) => CONDICION[producto && producto.estado && producto.estado.nivel] || '';
 
-// Mismas reglas que ofertaDeProducto en el navegador: un "antes" que no supera al precio de
+// Mismas reglas que ofertaDeProducto en el navegador. Se compara contra el precio que se
+// enseña —con variantes, el minimo—, no se excluyen los productos con variantes: un "antes" que no supera al precio de
 // hoy, o que no llega al 5%, no es una oferta.
 const MINIMO_DESCUENTO = 5;
 
 function ofertaDe(producto, precioAhora) {
-  if (!producto || (Array.isArray(producto.variants) && producto.variants.length)) return null;
+  if (!producto) return null;
   const antes = Number(producto.precioAntes);
   const ahora = Number(precioAhora != null ? precioAhora : producto.price);
   if (!Number.isFinite(antes) || !Number.isFinite(ahora) || antes <= ahora || ahora < 0) return null;
