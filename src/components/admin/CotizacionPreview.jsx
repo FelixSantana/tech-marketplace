@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { pdfDeCotizacion, entregarArchivo, puedeCompartirArchivos } from '../../lib/cotizacionPdf';
-import { numeroVisible } from '../../lib/cotizacion';
+import { numeroDeCotizacion } from '../../lib/cotizacion';
 import { IconoDescargar } from '../Iconos';
 
 // Ver la cotizacion antes de soltarla.
@@ -65,10 +65,10 @@ export default function CotizacionPreview({ cotizacion, settings, onClose, showT
   };
 
   return createPortal(
-    <div className="pdf-preview" role="dialog" aria-modal="true" aria-label={`Vista previa de la cotización ${numeroVisible(cotizacion.numero)}`}>
+    <div className="pdf-preview" role="dialog" aria-modal="true" aria-label={`Vista previa de la cotización ${numeroDeCotizacion(cotizacion)}`}>
       <div className="pdf-preview-barra">
         <div>
-          <strong>Cotización #{numeroVisible(cotizacion.numero)}</strong>
+          <strong>Cotización {numeroDeCotizacion(cotizacion)}</strong>
           <span>{cotizacion.cliente}</span>
         </div>
         <div className="pdf-preview-acciones">
@@ -86,7 +86,7 @@ export default function CotizacionPreview({ cotizacion, settings, onClose, showT
         ) : !archivo ? (
           <div className="pdf-preview-aviso"><p>Preparando el PDF…</p></div>
         ) : (
-          <iframe title={`Cotización ${numeroVisible(cotizacion.numero)}`} src={archivo.url} />
+          <iframe title={`Cotización ${numeroDeCotizacion(cotizacion)}`} src={archivo.url} />
         )}
       </div>
     </div>,

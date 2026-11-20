@@ -37,7 +37,7 @@ module.exports = async function cotizaciones(req, res, body) {
   }
 
   if (req.method === 'PUT') {
-    const cotizacion = actualizarCotizacion(lista[indice], body);
+    const cotizacion = actualizarCotizacion(lista[indice], body, lista);
     if (!cotizacion.cliente) return res.status(400).json({ error: 'CLIENTE_REQUERIDO', message: 'Escribe a quién va dirigida la cotización.' });
     if (!cotizacion.lineas.length) return res.status(400).json({ error: 'LINEAS_REQUERIDAS', message: 'Agrega al menos un renglón con descripción.' });
     lista[indice] = cotizacion;

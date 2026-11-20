@@ -346,6 +346,17 @@
 .pdf-preview-aviso p{margin:0 0 14px;font-size:13.5px}
 @media(max-width:620px){.pdf-preview-barra{padding:10px 12px}.pdf-preview-acciones{width:100%}.pdf-preview-acciones .btn-primary{flex:1}.pdf-preview-cuerpo{padding:0}.pdf-preview-cuerpo iframe{border-radius:0}}
 
+/* El renglon de una cotizacion lleva dos cosas que una orden no tiene: el detalle que sale en
+   letra pequeña bajo el concepto y la casilla de ITBIS. Van en una segunda fila dentro de la
+   misma tarjeta, no en columnas nuevas: con seis campos en linea no cabe nada legible en un
+   telefono. */
+.order-product-line .linea-detalle{grid-column:1/-1;margin-top:2px}
+.order-product-line .linea-itbis{grid-column:1/-1;flex-direction:row;align-items:center;gap:8px;font-weight:600;color:var(--text-muted)}
+.order-product-line .linea-itbis input{width:16px;height:16px;flex:0 0 auto;accent-color:var(--accent)}
+.cotizacion-cuentas{margin-top:14px;margin-left:auto;max-width:330px;display:grid;gap:8px}
+.cotizacion-cuentas>div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;font-size:13px;color:var(--text-muted)}
+.cotizacion-cuentas-total{padding-top:9px;border-top:1px solid var(--border);font-size:15px!important;color:var(--text)!important}
+.cotizacion-cuentas-total strong{font-size:17px}
 .cotizacion-picker{display:flex;gap:10px;align-items:flex-end}
 .cotizacion-picker label{flex:1;min-width:0}
 .cotizacion-picker .btn-secondary{flex:0 0 auto;width:auto;height:40px;margin:0;padding:0 14px;white-space:nowrap}

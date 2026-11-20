@@ -19,10 +19,17 @@ const entero = (v, min, max, porDefecto) => { const n = Math.floor(Number(v)); r
 
 export const MAX_LINEAS = 25;
 export const MAX_DESCRIPCION = 160;
+export const MAX_DETALLE = 120;
 export const MAX_CANTIDAD = 9999;
 export const MAX_NOTA = 700;
 export const VALIDEZ_POR_DEFECTO = 30;
 export const MAX_VALIDEZ = 365;
+export const MAX_ITBIS = 100;
+// En la Republica Dominicana el ITBIS general es 18%. Se ofrece como atajo, no como valor por
+// defecto: muchas cotizaciones de reventa van exentas, y cobrar un impuesto por descuido es
+// peor que no ponerlo.
+export const ITBIS_RD = 18;
+export const MONEDAS = ['RD$', 'US$', 'EUR'];
 
 // Donde esta cada cotizacion. "Vencida" no esta en la lista porque no se guarda: se calcula de
 // la fecha y los dias de validez, asi que ninguna cotizacion se queda marcada como vigente por
@@ -41,15 +48,20 @@ export const nombreDeEstado = (valor) => (ESTADOS.find((e) => e.valor === valor)
 // --- Lineas ---
 
 export function nuevaLinea(extra) {
-  return { descripcion: '', cantidad: 1, precio: 0, ...(extra || {}) };
+  return { descripcion: '', detalle: '', cantidad: 1, precio: 0, itbis: false, ...(extra || {}) };
 }
 
 export function limpiarLinea(linea) {
   const l = linea || {};
   const limpia = {
     descripcion: texto(l.descripcion, MAX_DESCRIPCION),
+    // La linea pequeña gris debajo del concepto: "Plazo: 1 año (12 meses)", "Incluye
+    // instalacion", "Garantia 6 meses". Es donde cabe la condicion que convierte un precio en
+    // una oferta entendible.
+    detalle: texto(l.detalle, MAX_DETALLE),
     cantidad: entero(l.cantidad, 1, MAX_CANTIDAD, 1),
     precio: dinero(l.precio),
+    itbis: Boolean(l.itbis),
   };
   // De donde salio, cuando salio del catalogo. No se usa para releer el precio —ver arriba—,
   // solo para saber a que producto apuntaba si algun dia esto se convierte en una orden.
@@ -71,29 +83,82 @@ export function lineasValidas(lineas) {
   return (Array.isArray(lineas) ? lineas : []).map(limpiarLinea).filter((l) => l.descripcion).slice(0, MAX_LINEAS);
 }
 
-export function totalDeCotizacion(lineas) {
-  return dinero(lineasValidas(lineas).reduce((suma, l) => suma + l.cantidad * l.precio, 0));
+// --- Los numeros del papel ---
+//
+// Tres columnas distintas y es importante no confundirlas: TOTAL es lo que suman las unidades,
+// ITBIS es el impuesto de ESA linea, y VALOR es lo que se paga por ella. Una linea exenta
+// enseña un guion en la columna del impuesto, no un cero: cero parece un impuesto calculado que
+// dio cero; el guion dice "aqui no aplica".
+export function cuentasDeCotizacion(cotizacion) {
+  const c = cotizacion || {};
+  const tasa = entero(c.itbisPorciento, 0, MAX_ITBIS, 0);
+  const lineas = lineasValidas(c.lineas).map((l) => {
+    const total = dinero(l.cantidad * l.precio);
+    // Un impuesto del 0% no es un impuesto: la linea se trata como exenta aunque este marcada,
+    // para que no salga "0.00" donde deberia haber un guion.
+    const gravada = l.itbis && tasa > 0;
+    const impuesto = gravada ? dinero(total * (tasa / 100)) : 0;
+    return { ...l, gravada, total, impuesto, valor: dinero(total + impuesto) };
+  });
+  const subtotal = dinero(lineas.reduce((s, l) => s + l.total, 0));
+  const itbis = dinero(lineas.reduce((s, l) => s + l.impuesto, 0));
+  return { tasa, lineas, subtotal, itbis, total: dinero(subtotal + itbis) };
+}
+
+export const totalDeCotizacion = (lineas, itbisPorciento) => cuentasDeCotizacion({ lineas, itbisPorciento }).total;
+
+// --- El numero de la cotizacion ---
+//
+// Forma: 20261120-A. La fecha del papel y una letra correlativa dentro de ese dia.
+//
+// La letra SE GUARDA al crear, no se deduce de la lista al imprimir. Si se dedujera, borrar una
+// cotizacion le cambiaria el numero a otra que ya esta en manos de un cliente, y dos papeles
+// distintos con el mismo numero —o el mismo papel con dos numeros— es un lio que no se arregla
+// despues.
+export function letraDeOrden(indice) {
+  let n = Math.max(0, Math.floor(Number(indice) || 0));
+  let letras = '';
+  // Pasadas las 26 del mismo dia sigue por AA, AB... en vez de quedarse sin letras.
+  do {
+    letras = String.fromCharCode(65 + (n % 26)) + letras;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return letras;
+}
+
+export function numeroDeCotizacion(cotizacion) {
+  const c = cotizacion || {};
+  const fecha = fechaValida(c.fecha) ? c.fecha : hoyISO();
+  // Las cotizaciones hechas antes de este formato no tienen letra guardada: se les saca una de
+  // su numero correlativo, que es lo unico que las distingue.
+  const sufijo = texto(c.sufijo, 4).toUpperCase() || letraDeOrden((entero(c.numero, 1, 9999999, 1)) - 1);
+  return `${fecha.replace(/-/g, '')}-${sufijo}`;
 }
 
 // --- La cotizacion ---
 
-export const numeroVisible = (numero) => String(entero(numero, 1, 9999999, 1)).padStart(4, '0');
-
 export function limpiarCotizacion(cotizacion) {
   const c = cotizacion || {};
   const lineas = lineasValidas(c.lineas);
+  const itbisPorciento = entero(c.itbisPorciento, 0, MAX_ITBIS, 0);
   return {
     // La fecha que sale en el papel se puede cambiar: a veces se escribe la cotizacion el lunes
     // de algo que se hablo el viernes, y la fecha que importa es la del acuerdo.
     fecha: fechaValida(c.fecha) ? c.fecha : hoyISO(),
     cliente: texto(c.cliente, 120),
+    // La linea de debajo del nombre del cliente: pais, ciudad o direccion. En el modelo es
+    // "Republica Dominicana".
+    clienteDireccion: texto(c.clienteDireccion, 160),
     clienteTelefono: texto(c.clienteTelefono, 40).replace(/[^\d+\-() ]/g, ''),
     vendedor: texto(c.vendedor, 80),
     validezDias: entero(c.validezDias, 1, MAX_VALIDEZ, VALIDEZ_POR_DEFECTO),
+    condicionPago: texto(c.condicionPago, 120),
+    itbisPorciento,
+    moneda: MONEDAS.includes(c.moneda) ? c.moneda : '',
     nota: texto(c.nota, MAX_NOTA),
     estado: VALORES.has(c.estado) ? c.estado : 'borrador',
     lineas,
-    total: totalDeCotizacion(lineas),
+    total: totalDeCotizacion(lineas, itbisPorciento),
   };
 }
 
@@ -136,15 +201,18 @@ export function estadoVisible(cotizacion, hoy) {
 
 // --- Lo que la tienda pone por defecto en cada cotizacion ---
 //
-// Vive en los ajustes y no en el codigo porque es justo lo que cambia de una tienda a otra: el
-// nombre de quien firma, cuanto aguanta un precio y el parrafo de condiciones que se repite en
-// todas. Una copia de esta tienda vendida a otro cliente se cotiza con SUS datos sin tocar un
-// archivo.
+// Vive en los ajustes y no en el codigo porque es justo lo que cambia de una tienda a otra: la
+// razon social, el nombre de quien firma, cuanto aguanta un precio, como se cobra y si se
+// factura ITBIS. Una copia de esta tienda vendida a otro cliente se cotiza con SUS datos sin
+// tocar un archivo.
 export function ajustesDeCotizacion(settings) {
   const c = (settings && settings.cotizacion) || {};
   return {
+    razonSocial: texto(c.razonSocial, 120),
     vendedor: texto(c.vendedor, 80),
     validezDias: entero(c.validezDias, 1, MAX_VALIDEZ, VALIDEZ_POR_DEFECTO),
+    condicionPago: texto(c.condicionPago, 120),
+    itbisPorciento: entero(c.itbisPorciento, 0, MAX_ITBIS, 0),
     nota: texto(c.nota, MAX_NOTA),
   };
 }
@@ -158,12 +226,18 @@ export function cotizacionNueva(settings) {
   return {
     fecha: hoyISO(),
     cliente: '',
+    clienteDireccion: '',
     clienteTelefono: '',
     vendedor: base.vendedor,
     validezDias: base.validezDias,
+    condicionPago: base.condicionPago,
+    itbisPorciento: base.itbisPorciento,
+    moneda: '',
     nota: base.nota,
     estado: 'borrador',
-    lineas: [nuevaLinea()],
+    // Si la tienda factura ITBIS, el renglon nace marcado: lo normal es que todo lleve impuesto
+    // y la excepcion sea quitarlo, no al reves.
+    lineas: [nuevaLinea({ itbis: base.itbisPorciento > 0 })],
   };
 }
 
@@ -171,16 +245,24 @@ export function cotizacionNueva(settings) {
 //
 // Salen de los ajustes, no del codigo: el logo, el nombre y la direccion son los de la tienda
 // que cotiza. Sin logo se imprime solo el nombre, y sin direccion no se imprime esa linea.
-export function datosDePapel(settings) {
+export function datosDePapel(settings, cotizacion) {
   const s = settings || {};
   const n = s.negocio || {};
+  const base = ajustesDeCotizacion(s);
+  const elegida = cotizacion && MONEDAS.includes(cotizacion.moneda) ? cotizacion.moneda : '';
   return {
     tienda: texto(s.storeName, 80) || 'Tienda',
+    // La razon social es la que firma contratos y no siempre es el nombre comercial: "Synaptic
+    // Tech" en el rotulo, "Synaptic Tech SRL" en el papel. Si no se ha puesto, no se inventa.
+    razonSocial: base.razonSocial,
     logo: texto(s.logo, 600),
     direccion: texto(n.direccion, 160),
     rnc: texto(n.rnc, 30),
     telefono: texto(s.whatsapp, 40),
     correo: texto(n.correo, 120),
-    moneda: texto(s.currency, 8) || 'RD$',
+    // La moneda de la cotizacion manda sobre la de la tienda: se cotizan equipos importados en
+    // dolares aunque la tienda venda en pesos.
+    moneda: elegida || texto(s.currency, 8) || 'RD$',
+    color: texto(s.colorMarca, 20),
   };
 }

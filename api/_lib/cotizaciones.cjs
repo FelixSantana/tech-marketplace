@@ -12,16 +12,20 @@ const COTIZACIONES_KEY = 'synaptic_cotizaciones';
 const MAX_GUARDADAS = 500;
 const MAX_LINEAS = 25;
 const MAX_DESCRIPCION = 160;
+const MAX_DETALLE = 120;
 const MAX_CANTIDAD = 9999;
 const MAX_NOTA = 700;
 const VALIDEZ_POR_DEFECTO = 30;
 const MAX_VALIDEZ = 365;
+const MAX_ITBIS = 100;
+const MONEDAS = ['RD$', 'US$', 'EUR'];
 const ESTADOS = ['borrador', 'enviada', 'aceptada', 'rechazada'];
 
 const texto = (v, max) => String(v == null ? '' : v).trim().slice(0, max);
 const dinero = (v) => { const n = Number(v); return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : 0; };
 const entero = (v, min, max, porDefecto) => { const n = Math.floor(Number(v)); return Number.isFinite(n) && n >= min && n <= max ? n : porDefecto; };
 const hoyISO = () => new Date().toISOString().slice(0, 10);
+
 // Que tenga forma de fecha no basta: `2026-02-30` se traga sin quejarse y sale convertida en el
 // 2 de marzo. Se comprueba que vuelva a escribirse igual. Ver src/lib/cotizacion.js.
 const fechaValida = (v) => {
@@ -35,8 +39,10 @@ function limpiarLinea(linea) {
   const l = linea || {};
   const limpia = {
     descripcion: texto(l.descripcion, MAX_DESCRIPCION),
+    detalle: texto(l.detalle, MAX_DETALLE),
     cantidad: entero(l.cantidad, 1, MAX_CANTIDAD, 1),
     precio: dinero(l.precio),
+    itbis: Boolean(l.itbis),
   };
   const productId = texto(l.productId, 100);
   const variantId = texto(l.variantId, 100);
@@ -47,24 +53,42 @@ function limpiarLinea(linea) {
 
 const lineasValidas = (lineas) => (Array.isArray(lineas) ? lineas : []).map(limpiarLinea).filter((l) => l.descripcion).slice(0, MAX_LINEAS);
 
-const totalDe = (lineas) => dinero(lineasValidas(lineas).reduce((suma, l) => suma + l.cantidad * l.precio, 0));
+// Las mismas tres columnas que en el navegador: TOTAL, ITBIS de la linea y VALOR.
+function cuentasDe(lineas, itbisPorciento) {
+  const tasa = entero(itbisPorciento, 0, MAX_ITBIS, 0);
+  const calculadas = lineasValidas(lineas).map((l) => {
+    const total = dinero(l.cantidad * l.precio);
+    const impuesto = l.itbis && tasa > 0 ? dinero(total * (tasa / 100)) : 0;
+    return { total, impuesto };
+  });
+  const subtotal = dinero(calculadas.reduce((s, l) => s + l.total, 0));
+  const itbis = dinero(calculadas.reduce((s, l) => s + l.impuesto, 0));
+  return { subtotal, itbis, total: dinero(subtotal + itbis) };
+}
 
-// Los campos que el panel puede escribir. Ni `id`, ni `numero`, ni las fechas de creacion: esos
-// los pone el servidor y no se aceptan del cuerpo, porque un numero repetido convierte dos
-// papeles distintos en el mismo documento a ojos del cliente.
+const totalDe = (lineas, itbisPorciento) => cuentasDe(lineas, itbisPorciento).total;
+
+// Los campos que el panel puede escribir. Ni `id`, ni `numero`, ni `sufijo`, ni las fechas de
+// creacion: esos los pone el servidor y no se aceptan del cuerpo, porque un numero repetido
+// convierte dos papeles distintos en el mismo documento a ojos del cliente.
 function camposDelCuerpo(body) {
   const b = body || {};
   const lineas = lineasValidas(b.lineas);
+  const itbisPorciento = entero(b.itbisPorciento, 0, MAX_ITBIS, 0);
   return {
     fecha: fechaValida(b.fecha) ? b.fecha : hoyISO(),
     cliente: texto(b.cliente, 120),
+    clienteDireccion: texto(b.clienteDireccion, 160),
     clienteTelefono: texto(b.clienteTelefono, 40).replace(/[^\d+\-() ]/g, ''),
     vendedor: texto(b.vendedor, 80),
     validezDias: entero(b.validezDias, 1, MAX_VALIDEZ, VALIDEZ_POR_DEFECTO),
+    condicionPago: texto(b.condicionPago, 120),
+    itbisPorciento,
+    moneda: MONEDAS.includes(b.moneda) ? b.moneda : '',
     nota: texto(b.nota, MAX_NOTA),
     estado: ESTADOS.includes(b.estado) ? b.estado : 'borrador',
     lineas,
-    total: totalDe(lineas),
+    total: totalDe(lineas, itbisPorciento),
   };
 }
 
@@ -76,12 +100,35 @@ function siguienteNumero(existentes) {
   return mayor + 1;
 }
 
+function letraDeOrden(indice) {
+  let n = Math.max(0, Math.floor(Number(indice) || 0));
+  let letras = '';
+  do {
+    letras = String.fromCharCode(65 + (n % 26)) + letras;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return letras;
+}
+
+// La letra del numero: 20261120-A, -B, -C segun el orden dentro de ESE dia.
+//
+// Se calcula contando las que YA existen con esa fecha y se GUARDA. No se recalcula al
+// imprimir: si se hiciera, borrar una cotizacion le cambiaria el numero a otra que ya esta en
+// manos de un cliente. Dos letras iguales el mismo dia solo pueden pasar si se borra una y se
+// crea otra despues, y entre esas dos la que importa —la entregada— ya no existe.
+function sufijoDelDia(existentes, fecha, excluyendoId) {
+  const delDia = (Array.isArray(existentes) ? existentes : []).filter((c) => c && c.fecha === fecha && c.id !== excluyendoId);
+  return letraDeOrden(delDia.length);
+}
+
 function crearCotizacion(body, existentes) {
   const ahora = new Date().toISOString();
+  const campos = camposDelCuerpo(body);
   return {
     id: `cot_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     numero: siguienteNumero(existentes),
-    ...camposDelCuerpo(body),
+    sufijo: sufijoDelDia(existentes, campos.fecha),
+    ...campos,
     createdAt: ahora,
     updatedAt: ahora,
   };
@@ -89,17 +136,25 @@ function crearCotizacion(body, existentes) {
 
 // Al editar se conservan id, numero y createdAt de la que ya estaba: lo demas se vuelve a
 // validar desde cero, igual que al crearla.
-function actualizarCotizacion(actual, body) {
+//
+// La letra solo se recalcula si CAMBIO la fecha, porque entonces el numero entero cambia de dia
+// y la letra vieja podria chocar con otra de ese dia nuevo. Si la fecha no se toca, la letra se
+// queda: el papel que ya se mando sigue llamandose igual.
+function actualizarCotizacion(actual, body, existentes) {
+  const campos = camposDelCuerpo(body);
+  const cambioDeDia = campos.fecha !== actual.fecha;
   return {
-    ...camposDelCuerpo(body),
+    ...campos,
     id: actual.id,
     numero: actual.numero,
+    sufijo: cambioDeDia || !actual.sufijo ? sufijoDelDia(existentes, campos.fecha, actual.id) : actual.sufijo,
     createdAt: actual.createdAt,
     updatedAt: new Date().toISOString(),
   };
 }
 
 module.exports = {
-  COTIZACIONES_KEY, MAX_GUARDADAS, MAX_LINEAS, MAX_NOTA, VALIDEZ_POR_DEFECTO, ESTADOS,
-  limpiarLinea, lineasValidas, totalDe, camposDelCuerpo, siguienteNumero, crearCotizacion, actualizarCotizacion,
+  COTIZACIONES_KEY, MAX_GUARDADAS, MAX_LINEAS, MAX_NOTA, MAX_DETALLE, VALIDEZ_POR_DEFECTO, MAX_ITBIS, MONEDAS, ESTADOS,
+  limpiarLinea, lineasValidas, cuentasDe, totalDe, camposDelCuerpo,
+  siguienteNumero, letraDeOrden, sufijoDelDia, crearCotizacion, actualizarCotizacion,
 };
