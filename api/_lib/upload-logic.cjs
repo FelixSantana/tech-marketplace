@@ -28,7 +28,7 @@ function parseDataUrl(dataUrl) {
 // `marca` son las imagenes derivadas del logo —la de compartir y los tres iconos—. Faltaba, y el
 // efecto era mudo: Ajustes las subia con prefijo 'marca', el servidor lo cambiaba por 'productos'
 // sin decir nada, y acababan mezcladas con las fotos de los productos.
-const PREFIJOS = ['productos', 'logo', 'marca'];
+const PREFIJOS = ['productos', 'logo', 'marca', 'pagos'];
 const PREFIJO_POR_DEFECTO = 'productos';
 
 const prefijoValido = (p) => (PREFIJOS.includes(p) ? p : PREFIJO_POR_DEFECTO);

@@ -2,6 +2,7 @@ const { kvGet, kvSet, kvSetEx, kvConfigured } = require('../_lib/kv.cjs');
 const { cleanText, money, buildPublicItems, buildAdminItems, applyInventoryDeduction, reservasDeOrdenes } = require('../_lib/orders-logic.cjs');
 const { bumpVersion } = require('../_lib/catalog-logic.cjs');
 const { resolverEntrega } = require('../_lib/envio.cjs');
+const { limpiarPago } = require('../_lib/pago.cjs');
 const { resolverCupon, usosDeCupones } = require('../_lib/cupones.cjs');
 const { vacio: metricasVacias, registrarEvento } = require('../_lib/metricas.cjs');
 const { SUBS_KEY, configuracion: configPush, avisoDePedido } = require('../_lib/push.cjs');
@@ -50,7 +51,7 @@ module.exports = async function handler(req, res) {
     // las mil ordenes enteras.
     if (req.method === 'GET' && req.query && req.query.cupones) return res.status(200).json({ cupones: usosDeCupones(orders) });
     if (req.method === 'GET') return res.status(200).json({ orders });
-    if (req.method === 'POST') { const catalog = await getCatalog(); const items = buildAdminItems(body.products, catalog); const customerName = cleanText(body.customerName || body.name, 120); const phone = cleanPhone(body.phone || body.customerPhone); if (customerName.length < 2) return res.status(400).json({ error: 'INVALID_CUSTOMER' }); const order = makeOrder({ ...body, customerName, phone }, items, 'manual'); orders.unshift(order); const guardadas = orders.slice(0, 1000); await kvSet(ORDERS_KEY, guardadas); await kvSet(RESERVED_KEY, reservasDeOrdenes(guardadas)); return res.status(201).json({ ok: true, order }); }
+    if (req.method === 'POST') { const catalog = await getCatalog(); const items = buildAdminItems(body.products, catalog); const customerName = cleanText(body.customerName || body.name, 120); const phone = cleanPhone(body.phone || body.customerPhone); if (customerName.length < 2) return res.status(400).json({ error: 'INVALID_CUSTOMER' }); const order = makeOrder({ ...body, customerName, phone }, items, 'manual'); order.pago = limpiarPago(body.pago); orders.unshift(order); const guardadas = orders.slice(0, 1000); await kvSet(ORDERS_KEY, guardadas); await kvSet(RESERVED_KEY, reservasDeOrdenes(guardadas)); return res.status(201).json({ ok: true, order }); }
     const id = cleanText(body.id, 100); if (!id) return res.status(400).json({ error: 'ORDER_ID_REQUIRED' }); const index = orders.findIndex((o) => o.id === id); if (index < 0) return res.status(404).json({ error: 'ORDER_NOT_FOUND' });
     if (req.method === 'DELETE') { orders.splice(index, 1); await kvSet(ORDERS_KEY, orders); await kvSet(RESERVED_KEY, reservasDeOrdenes(orders)); return res.status(200).json({ ok: true }); }
     if (req.method === 'PUT') {
@@ -58,6 +59,9 @@ module.exports = async function handler(req, res) {
       if (body.customerName !== undefined) next.customerName = cleanText(body.customerName, 120);
       if (body.phone !== undefined) next.phone = cleanPhone(body.phone);
       if (body.notes !== undefined) next.notes = cleanText(body.notes, 1000);
+      // El pago lo valida el servidor, no el panel: cualquiera con el token puede mandar un
+      // PUT a mano, y lo que no puede entrar aqui es una captura incrustada —ver pago.cjs.
+      if (body.pago !== undefined) next.pago = limpiarPago(body.pago);
       if (body.status !== undefined && ['pending', 'paid', 'shipped', 'completed', 'cancelled'].includes(body.status)) next.status = body.status;
       if (body.paymentStatus !== undefined && ['pending', 'paid', 'refunded'].includes(body.paymentStatus)) next.paymentStatus = body.paymentStatus;
       if (body.shippingStatus !== undefined && ['pending', 'shipped', 'delivered', 'cancelled'].includes(body.shippingStatus)) next.shippingStatus = body.shippingStatus;
