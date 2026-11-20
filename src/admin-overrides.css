@@ -311,6 +311,22 @@
 .status-completed{--estado:#40c76a}
 .status-cancelled{--estado:var(--danger)}
 
+/* --- Cotizaciones --- */
+/* Los mismos colores que los estados de una orden y por las mismas razones: ambar mientras se
+   espera, verde cuando sale bien, rojo cuando no. Un borrador no lleva color porque todavia no
+   ha pasado nada con el. */
+.status-cot-borrador{--estado:var(--border)}
+.status-cot-enviada{--estado:#c99735}
+.status-cot-aceptada{--estado:#40c76a}
+.status-cot-rechazada{--estado:var(--danger)}
+/* "Vencida" no es un estado que se elija, asi que no va dentro del desplegable: va debajo, como
+   la nota al margen que es. */
+.cot-vencida{display:block;margin-top:4px;color:var(--danger);font-size:10.5px;font-weight:700}
+.cotizacion-picker{display:flex;gap:10px;align-items:flex-end}
+.cotizacion-picker label{flex:1;min-width:0}
+.cotizacion-picker .btn-secondary{flex:0 0 auto;width:auto;height:40px;margin:0;padding:0 14px;white-space:nowrap}
+@media(max-width:620px){.cotizacion-picker{flex-direction:column;align-items:stretch}.cotizacion-picker .btn-secondary{width:100%}}
+
 /* --- Los iconos que sustituyeron a los emojis --- */
 /*
    Un emoji se alineaba solo porque era texto: se sentaba en la linea base como cualquier letra.

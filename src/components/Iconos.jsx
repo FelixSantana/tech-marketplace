@@ -81,6 +81,16 @@ export const IconoSobre = (p) => (
   <Icono {...p}><rect x="2.5" y="5" width="19" height="14" rx="2.2" /><path d="m3.6 7 8.4 6 8.4-6" /></Icono>
 );
 
+// Hoja con la esquina doblada: las cotizaciones. La esquina es lo que la distingue de un
+// rectangulo cualquiera a 16 puntos de tamaño, que es donde de verdad se mira.
+export const IconoDocumento = (p) => (
+  <Icono {...p}><path d="M14 2.8H7a2 2 0 0 0-2 2v14.4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7.8Z" /><path d="M14 2.8v5h5M8.6 13h6.8M8.6 16.6h4.4" /></Icono>
+);
+
+export const IconoDescargar = (p) => (
+  <Icono {...p}><path d="M12 3.6v11M7.6 10.2 12 14.6l4.4-4.4M4.5 17.4v1.8a1.6 1.6 0 0 0 1.6 1.6h11.8a1.6 1.6 0 0 0 1.6-1.6v-1.8" /></Icono>
+);
+
 export const IconoTelefono = (p) => (
   <Icono {...p}><path d="M21 16.9v2.6a1.8 1.8 0 0 1-2 1.8 17.6 17.6 0 0 1-7.7-2.7 17.3 17.3 0 0 1-5.3-5.3A17.6 17.6 0 0 1 3.3 5.5a1.8 1.8 0 0 1 1.8-2h2.6a1.8 1.8 0 0 1 1.8 1.6c.1.9.3 1.7.6 2.5a1.8 1.8 0 0 1-.4 1.9l-1.1 1.1a14 14 0 0 0 5.3 5.3l1.1-1.1a1.8 1.8 0 0 1 1.9-.4c.8.3 1.6.5 2.5.6a1.8 1.8 0 0 1 1.6 1.9Z" /></Icono>
 );

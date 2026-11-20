@@ -1,4 +1,5 @@
 import { datosDeNegocio } from '../lib/negocio';
+import { telefonoVisible } from '../lib/texto';
 import { IconoTelefono, IconoReloj, IconoCamion } from './Iconos';
 
 // Barra superior: telefono, horario y cobertura. Es lo primero que ve quien llega
@@ -6,13 +7,10 @@ import { IconoTelefono, IconoReloj, IconoCamion } from './Iconos';
 // tecnologia del pais que se miraron (Cecomsa, Data Import, Omega) ponen lo mismo.
 //
 // Un dato que no existe no se inventa ni se marca: su trozo no se dibuja.
-const telefonoVisible = (whatsapp) => {
-  const d = String(whatsapp || '').replace(/\D/g, '');
-  if (d.length < 10) return '';
-  const n = d.slice(-10);
-  return `(${n.slice(0, 3)}) ${n.slice(3, 6)}-${n.slice(6)}`;
-};
-
+//
+// El formato del telefono vive en lib/texto porque el membrete de las cotizaciones necesita
+// escribirlo igual: el mismo numero no puede salir "(829) 555-0123" en la tienda y
+// "8295550123" en el papel que se le manda al cliente.
 export default function TopBar({ settings }) {
   const negocio = datosDeNegocio(settings);
   const tel = telefonoVisible(settings.whatsapp);

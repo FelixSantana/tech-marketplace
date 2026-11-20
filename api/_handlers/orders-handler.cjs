@@ -44,9 +44,24 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*'); res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS'); res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end(); if (!kvConfigured()) return res.status(503).json({ error: 'DB_NOT_CONNECTED' });
   try {
-    const body = parseBody(req); const isPublicCreate = req.method === 'POST' && body.source === 'whatsapp_checkout';
+    const body = parseBody(req);
+    // Las cotizaciones cuelgan de esta misma funcion porque el plan de Vercel de esta tienda
+    // permite 12 y ya hay 12. Se reparten ANTES de la via publica de pedidos y solo despues de
+    // comprobar el token: aqui no hay ninguna operacion que pueda hacer un visitante, y dejar
+    // que un POST con source=whatsapp_checkout se colara por este camino abriria justo eso.
+    const esCotizacion = Boolean(req.query && req.query.recurso === 'cotizaciones');
+    const isPublicCreate = !esCotizacion && req.method === 'POST' && body.source === 'whatsapp_checkout';
     if (isPublicCreate) { if (!(await rateLimitPublic(req))) return res.status(429).json({ error: 'RATE_LIMIT', message: 'Demasiados pedidos. Intenta nuevamente en un minuto.' }); const customerName = cleanText(body.customerName || body.name, 120); const phone = cleanPhone(body.phone || body.customerPhone); if (customerName.length < 2 || phone.length < 8) return res.status(400).json({ error: 'INVALID_CUSTOMER', message: 'Nombre y WhatsApp son obligatorios.' }); const catalog = await getCatalog(); const orders = (await kvGet(ORDERS_KEY)) || []; const items = buildPublicItems(body.products, catalog, reservasDeOrdenes(orders)); const subtotal = items.reduce((sum, it) => sum + it.subtotal, 0); const entrega = resolverEntrega(catalog.settings, body, subtotal); const cupon = resolverCupon(catalog.settings, body.cupon, subtotal); const order = makeOrder({ ...body, customerName, phone }, items, 'whatsapp_checkout', entrega, cupon); orders.unshift(order); const guardadas = orders.slice(0, 1000); await kvSet(ORDERS_KEY, guardadas); await kvSet(RESERVED_KEY, reservasDeOrdenes(guardadas)); try { await kvSet(METRICAS_KEY, registrarEvento((await kvGet(METRICAS_KEY)) || metricasVacias(), 'pedido')); } catch (e) { console.error('metricas pedido', e); } try { await avisarDelPedido(order, catalog, req); } catch (e) { console.error('aviso de pedido', e); } return res.status(201).json({ ok: true, order: { id: order.id, total: order.total, status: order.status } }); }
-    const auth = await requireAdmin(req); if (!auth.ok) return res.status(auth.status).json({ error: auth.error }); const orders = (await kvGet(ORDERS_KEY)) || [];
+    const auth = await requireAdmin(req); if (!auth.ok) return res.status(auth.status).json({ error: auth.error });
+    // El modulo de cotizaciones se carga AQUI y no arriba, por la misma razon que push-envio:
+    // cargado arriba, cualquier problema suyo revienta este archivo entero y con el la creacion
+    // de pedidos, que es lo unico que esta tienda no se puede permitir perder. Ya paso una vez.
+    // Su propio try ademas evita que un fallo suyo salga con el mensaje de las ordenes.
+    if (esCotizacion) {
+      try { return await require('./cotizaciones-handler.cjs')(req, res, body); }
+      catch (e) { console.error('cotizaciones error', e); return res.status(500).json({ error: 'SERVER_ERROR', message: 'No se pudo procesar la cotización.' }); }
+    }
+    const orders = (await kvGet(ORDERS_KEY)) || [];
     // El panel de Ajustes solo quiere saber cuanto se uso cada cupon: se le manda el conteo, no
     // las mil ordenes enteras.
     if (req.method === 'GET' && req.query && req.query.cupones) return res.status(200).json({ cupones: usosDeCupones(orders) });
