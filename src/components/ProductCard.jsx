@@ -1,6 +1,7 @@
 import { getStockQty, getPrimaryImage, hasVariants, getMinPrice, getVariants } from '../hooks/useCatalog';
 import { rutaProducto } from '../lib/rutas';
 import { estadoDeProducto, ofertaDeProducto, textoDePocas } from '../lib/vitrina';
+import { cuantos } from '../lib/texto';
 
 export default function ProductCard({ product, settings, onOpenDetail, onAddCart, onOrderWhatsApp }) {
   const stockQty = getStockQty(product);
@@ -69,7 +70,7 @@ export default function ProductCard({ product, settings, onOpenDetail, onAddCart
             la linea que en Data Import ocupa "Impuestos incluidos": una condicion
             de compra, no un adorno. Vendiendo equipos usados, es LA condicion. */}
         {product.warranty && <div className="card-warranty">Garantía: {product.warranty}</div>}
-        {conVariantes && <div className="card-variants-hint">{getVariants(product).length} opciones de {product.variantAxis}</div>}
+        {conVariantes && <div className="card-variants-hint">{cuantos(getVariants(product).length, 'opción', 'opciones')} de {product.variantAxis}</div>}
 
         <div className="card-actions">
           {/* Accion principal en el color de la tienda, con texto y a todo lo ancho:

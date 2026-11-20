@@ -1,4 +1,5 @@
 import { getStockQty, getPrimaryImage, hasVariants, getMinPrice, getVariants } from '../../hooks/useCatalog';
+import { cuantos } from '../../lib/texto';
 import { apartadoDe } from '../../lib/apartados';
 
 // Unidades que ya tienen pedido vigente y no estan realmente disponibles para vender.
@@ -20,7 +21,7 @@ export default function ProductList({ products, reservas, settings, onEdit, onDe
             <div className="thumb">{img && <img src={img} alt="" />}</div>
             <div className="info">
               <div className="n">{p.name}{stockQty <= 0 ? ' · Agotado' : ''}</div>
-              <div className="p mono">{hasVariants(p) ? 'desde ' : ''}{settings.currency} {getMinPrice(p).toLocaleString('es-DO')}{p.category ? ' · ' + p.category : ''} · Stock: {stockQty}{hasVariants(p) ? ` · ${getVariants(p).length} opciones` : ''}{apartadas(p, reservas) ? ` · ${apartadas(p, reservas)} apartadas` : ''}</div>
+              <div className="p mono">{hasVariants(p) ? 'desde ' : ''}{settings.currency} {getMinPrice(p).toLocaleString('es-DO')}{p.category ? ' · ' + p.category : ''} · Stock: {stockQty}{hasVariants(p) ? ` · ${cuantos(getVariants(p).length, 'opción', 'opciones')}` : ''}{apartadas(p, reservas) ? ` · ${apartadas(p, reservas)} apartadas` : ''}</div>
             </div>
             <div className="actions">
               <button title="Editar" onClick={() => onEdit(p.id)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg></button>
