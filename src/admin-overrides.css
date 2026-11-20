@@ -434,3 +434,30 @@
 .order-product-line input[readonly]{background:var(--surface-2);color:var(--text-muted);cursor:default}
 .order-product-line input[readonly]:focus{border-color:var(--border)}
 .order-product-line .icon-btn{margin-bottom:1px}
+
+/* --- El pago de una orden --- */
+/*
+   Metodo y referencia arriba, comprobantes debajo. Las miniaturas se abren en otra pestaña
+   porque una captura de transferencia hay que poder LEERLA: el numero de operacion no se
+   distingue en un recuadro de 64px.
+*/
+.pago-form{border:1px solid var(--border);border-radius:13px;padding:14px 15px;background:var(--surface)}
+.pago-form .field-row{gap:12px}
+.pago-form .field{flex:1;min-width:0;margin-bottom:0}
+.pago-form select,.pago-form input[type=text]{width:100%;border:1px solid var(--border);border-radius:9px;background:var(--bg-elev);color:var(--text);padding:9px 10px;outline:none;font:inherit;font-size:12.5px}
+.pago-form select:focus,.pago-form input[type=text]:focus{border-color:var(--accent)}
+.pago-evidencias{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.pago-evidencias-cab{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px;font-size:12px}
+.pago-evidencias-cab span{color:var(--text-muted);font-size:11px;font-variant-numeric:tabular-nums}
+.pago-miniaturas{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:10px}
+.pago-miniatura{position:relative;width:64px;height:64px;border-radius:9px;overflow:hidden;border:1px solid var(--border);background:var(--bg-elev)}
+.pago-miniatura img{width:100%;height:100%;object-fit:cover;display:block}
+/* El aspa quita el comprobante de la ORDEN, no del almacen: si se pulsa sin querer, el enlace
+   sigue existiendo. Borrar el archivo seria irreversible desde un boton que se toca sin pensar. */
+.pago-quitar{position:absolute;top:3px;right:3px;width:19px;height:19px;border:0;border-radius:50%;display:grid;place-items:center;background:rgba(6,7,11,.82);color:#fff;font-size:10px;line-height:1;cursor:pointer}
+.pago-quitar:hover{background:var(--danger)}
+.pago-adjuntar{display:inline-block;cursor:pointer}
+.pago-adjuntar.ocupado{opacity:.6;pointer-events:none}
+.pago-evidencias .hint{margin-top:8px}
+/* En la tabla, bajo el total: con que se pago y si hay comprobante. */
+.order-pago{display:block;color:var(--text-muted);font-size:10.5px;font-weight:400;margin-top:3px}
