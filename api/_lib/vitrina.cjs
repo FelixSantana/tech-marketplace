@@ -32,6 +32,23 @@ function ofertaDe(producto, precioAhora) {
   return porciento < MINIMO_DESCUENTO ? null : { antes, ahora, porciento };
 }
 
+// El texto corto de cada nivel, el mismo que NIVELES_DE_ESTADO en el navegador. Una prueba
+// cruzada comprueba que no se separan: si lo hicieran, el HTML servido y el que pinta React
+// dirian cosas distintas durante el parpadeo.
+const CORTO = {
+  nuevo: 'Nuevo',
+  'como-nuevo': 'Como nuevo',
+  'muy-bueno': 'Muy bueno',
+  'con-detalles': 'Con detalles',
+};
+
+function estadoDe(producto) {
+  const e = (producto && producto.estado) || {};
+  const nivel = CORTO[e.nivel] ? e.nivel : '';
+  const nota = String(e.nota == null ? '' : e.nota).trim().slice(0, 120);
+  return nivel || nota ? { nivel, corto: CORTO[nivel] || '', nota } : null;
+}
+
 const esDestacado = (producto) => Boolean(producto && producto.destacado);
 
 // El mismo orden que ve el visitante en "Recomendados". Si el HTML servido ordenara distinto,
@@ -43,4 +60,4 @@ function destacadosPrimero(productos) {
 
 const UMBRAL_POCAS = 2;
 
-module.exports = { CONDICION, condicionDe, ofertaDe, esDestacado, destacadosPrimero, UMBRAL_POCAS, MINIMO_DESCUENTO };
+module.exports = { CONDICION, CORTO, estadoDe, condicionDe, ofertaDe, esDestacado, destacadosPrimero, UMBRAL_POCAS, MINIMO_DESCUENTO };

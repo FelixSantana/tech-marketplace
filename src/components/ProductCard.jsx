@@ -38,9 +38,16 @@ export default function ProductCard({ product, settings, onOpenDetail, onAddCart
         {img ? <img src={img} alt={product.name} /> : <span className="placeholder">Sin imagen</span>}
         {isOut && <span className="badge-out">Agotado</span>}
         {/* Agotado y "quedan pocas" nunca juntos: el primero ya lo dice todo. La oferta si
-            convive con la urgencia, porque son dos razones distintas para decidirse. */}
+            convive con la urgencia, porque son dos razones distintas para decidirse.
+            Cada distintivo tiene su esquina y por eso los tres caben sin tocarse: el descuento
+            arriba a la izquierda —donde empieza la mirada—, la urgencia arriba a la derecha y
+            el estado abajo a la izquierda. "Agotado" ocupa el sitio del descuento, pero nunca
+            salen los dos. */}
         {!isOut && oferta && <span className="badge-oferta">−{oferta.porciento}%</span>}
         {!isOut && pocas && <span className="badge-pocas">{pocas}</span>}
+        {/* El estado se enseña tambien en un agotado: saber como esta el equipo sigue
+            importando cuando se pregunta si va a volver a entrar. */}
+        {estado && estado.corto && <span className={`badge-estado estado-${estado.nivel}`}>{estado.corto}</span>}
       </div>
       <div className="card-body">
         {product.category && <div className="card-cat">{product.category}</div>}
@@ -53,14 +60,10 @@ export default function ProductCard({ product, settings, onOpenDetail, onAddCart
               la cabeza es lo que cuesta hoy, no lo que costaba. */}
           {oferta && <span className="precio-antes">{settings.currency} {oferta.antes.toLocaleString('es-DO')}</span>}
         </div>
-        {/* El estado del equipo, que es la primera pregunta de quien compra usado. En la
-            tarjeta va la version corta; la nota entera se lee en la ficha. */}
-        {estado && (
-          <div className={`card-estado estado-${estado.nivel || 'sin-nivel'}`}>
-            {estado.corto && <strong>{estado.corto}</strong>}
-            {estado.nota && <span>{estado.nota}</span>}
-          </div>
-        )}
+        {/* El nivel ya va sobre la foto; aqui queda la nota, que es la que de verdad convence.
+            Sin recuadro: la tarjeta ya lleva precio, tachado, dos distintivos, garantia y
+            opciones, y una caja mas competiria con todo lo demas. */}
+        {estado && estado.nota && <div className="card-estado-nota">{estado.nota}</div>}
         {/* La garantia va debajo del precio, en gris y sin gritar. Es
             la linea que en Data Import ocupa "Impuestos incluidos": una condicion
             de compra, no un adorno. Vendiendo equipos usados, es LA condicion. */}

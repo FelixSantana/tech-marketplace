@@ -418,3 +418,19 @@
 .vitrina-previa{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border:1px dashed var(--border);border-radius:11px;background:var(--bg-elev)}
 .vitrina-previa-etiqueta{padding:4px 9px;border-radius:999px;background:var(--danger);color:#fff;font-size:11px;font-weight:800;line-height:1}
 .vitrina-previa .mono{font-size:16px;font-weight:700}
+
+/* --- La fila de producto dentro de una orden --- */
+/*
+   No la vestia nadie: las etiquetas se quedaban a la izquierda del campo en vez de encima, y
+   los campos salian como los pinte el navegador —cajas blancas en medio del panel oscuro—. Es
+   el mismo descuido que tenian la caja de categoria nueva y el campo del correo.
+   Las reglas son las de .zona-row, que es la fila hermana y ya estaba bien resuelta.
+*/
+.order-product-line label{display:flex;flex-direction:column;gap:6px;font-size:10.5px;font-weight:700;min-width:0}
+.order-product-line input{width:100%;border:1px solid var(--border);border-radius:9px;background:var(--bg-elev);color:var(--text);padding:9px 10px;outline:none;font:inherit;font-size:12.5px;transition:border-color .15s ease}
+.order-product-line input:focus{border-color:var(--accent)}
+/* El nombre y el subtotal se calculan, no se escriben: con el fondo del panel y el cursor por
+   defecto se ve que no hay nada que tocar ahi, sin tener que intentarlo para descubrirlo. */
+.order-product-line input[readonly]{background:var(--surface-2);color:var(--text-muted);cursor:default}
+.order-product-line input[readonly]:focus{border-color:var(--border)}
+.order-product-line .icon-btn{margin-bottom:1px}
