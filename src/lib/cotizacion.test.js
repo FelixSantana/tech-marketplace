@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { createRequire } from 'node:module';
 import {
   limpiarLinea, lineasValidas, totalDeLinea, totalDeCotizacion, limpiarCotizacion,
-  numeroVisible, vencimientoDe, estaVencida, estadoVisible, ESTADOS,
+  cuentasDeCotizacion, numeroDeCotizacion, letraDeOrden,
+  vencimientoDe, estaVencida, estadoVisible, ESTADOS,
   ajustesDeCotizacion, limpiarAjustesDeCotizacion, cotizacionNueva, datosDePapel,
   MAX_LINEAS, MAX_NOTA, VALIDEZ_POR_DEFECTO,
 } from './cotizacion';
@@ -87,11 +88,24 @@ describe('la cotización', () => {
     expect(limpiarCotizacion({ estado: 'aceptada' }).estado).toBe('aceptada');
   });
 
-  it('numera a cuatro cifras', () => {
-    expect(numeroVisible(1)).toBe('0001');
-    expect(numeroVisible(42)).toBe('0042');
-    expect(numeroVisible(12345)).toBe('12345');
-    expect(numeroVisible(undefined)).toBe('0001');
+  it('el número es la fecha del papel y la letra del día', () => {
+    expect(numeroDeCotizacion({ fecha: '2026-10-26', sufijo: 'G' })).toBe('20261026-G');
+    expect(numeroDeCotizacion({ fecha: '2026-11-20', sufijo: 'A' })).toBe('20261120-A');
+  });
+
+  it('a una cotización vieja, sin letra guardada, se le saca una de su correlativo', () => {
+    // Las que se hicieron antes de este formato no tienen `sufijo`. Imprimirlas sin letra
+    // dejaria dos papeles del mismo dia llamandose igual.
+    expect(numeroDeCotizacion({ fecha: '2026-11-20', numero: 1 })).toBe('20261120-A');
+    expect(numeroDeCotizacion({ fecha: '2026-11-20', numero: 3 })).toBe('20261120-C');
+  });
+
+  it('la letra pasa de la Z sin quedarse sin letras', () => {
+    expect(letraDeOrden(0)).toBe('A');
+    expect(letraDeOrden(25)).toBe('Z');
+    expect(letraDeOrden(26)).toBe('AA');
+    expect(letraDeOrden(27)).toBe('AB');
+    expect(letraDeOrden(-5)).toBe('A');
   });
 });
 
@@ -133,8 +147,15 @@ describe('la validez', () => {
 
 describe('lo que pone la tienda por defecto', () => {
   it('una tienda que nunca tocó esto cotiza igual', () => {
-    expect(ajustesDeCotizacion({})).toEqual({ vendedor: '', validezDias: VALIDEZ_POR_DEFECTO, nota: '' });
+    expect(ajustesDeCotizacion({})).toEqual({ razonSocial: '', vendedor: '', validezDias: VALIDEZ_POR_DEFECTO, condicionPago: '', itbisPorciento: 0, nota: '' });
     expect(ajustesDeCotizacion(null).validezDias).toBe(VALIDEZ_POR_DEFECTO);
+  });
+
+  it('sin ITBIS configurado el renglón nace exento, y con ITBIS nace marcado', () => {
+    // Lo normal es que una tienda que factura ITBIS lo cobre en todo y la excepcion sea
+    // quitarlo. Una que no lo factura no puede ver una casilla marcada por defecto.
+    expect(cotizacionNueva({}).lineas[0].itbis).toBe(false);
+    expect(cotizacionNueva({ cotizacion: { itbisPorciento: 18 } }).lineas[0].itbis).toBe(true);
   });
 
   it('una cotización nueva nace con los datos de la tienda puestos', () => {
@@ -153,6 +174,14 @@ describe('lo que pone la tienda por defecto', () => {
 });
 
 describe('la cabecera del papel', () => {
+  it('la moneda de la cotización manda sobre la de la tienda', () => {
+    // Se cotizan equipos importados en dolares aunque la tienda venda en pesos.
+    const tienda = { storeName: 'T', currency: 'RD$' };
+    expect(datosDePapel(tienda, { moneda: 'US$' }).moneda).toBe('US$');
+    expect(datosDePapel(tienda, { moneda: '' }).moneda).toBe('RD$');
+    expect(datosDePapel(tienda, { moneda: 'BITCOIN' }).moneda).toBe('RD$');
+  });
+
   it('sale de los ajustes de la tienda, no del código', () => {
     // Es lo que permite vender una copia de esta tienda: el papel lleva el logo, el nombre y la
     // direccion de quien cotiza, sin tocar un archivo.
@@ -244,5 +273,91 @@ describe('el número de cotización', () => {
     expect(creada.numero).toBe(5);
     expect(creada.id).toMatch(/^cot_/);
     expect(creada.createdAt).toBe(creada.updatedAt);
+  });
+});
+
+describe('el ITBIS', () => {
+  const con = (lineas, tasa) => cuentasDeCotizacion({ lineas, itbisPorciento: tasa });
+  const l = (precio, cantidad, itbis) => ({ descripcion: 'X', precio, cantidad, itbis });
+
+  it('se calcula por renglón y se suma aparte', () => {
+    const c = con([l(5500, 3, true), l(3500, 1, false)], 18);
+    expect(c.lineas[0].impuesto).toBe(2970);
+    expect(c.lineas[0].valor).toBe(19470);
+    expect(c.lineas[1].impuesto).toBe(0);
+    expect(c).toMatchObject({ subtotal: 20000, itbis: 2970, total: 22970 });
+  });
+
+  it('una tasa de 0 deja todo exento aunque el renglón esté marcado', () => {
+    // Si no, saldria "0.00" en la columna del impuesto, que parece un impuesto calculado que
+    // dio cero. Lo que corresponde ahi es un guion.
+    const c = con([l(1000, 1, true)], 0);
+    expect(c.lineas[0].gravada).toBe(false);
+    expect(c.itbis).toBe(0);
+    expect(c.total).toBe(1000);
+  });
+
+  it('redondea el impuesto a centavos', () => {
+    expect(con([l(1568.33, 2, true)], 18).itbis).toBe(564.6);
+  });
+
+  it('el total del modelo cuadra al céntimo', () => {
+    // Los numeros exactos de la cotizacion que se tomó como modelo.
+    const c = con([l(700, 7, false), l(1568.33, 2, false)], 0);
+    expect(c.subtotal).toBe(8036.66);
+    expect(c.total).toBe(8036.66);
+  });
+
+  it('una tasa inventada no se aplica', () => {
+    expect(con([l(1000, 1, true)], 'mucho').tasa).toBe(0);
+    expect(con([l(1000, 1, true)], 500).tasa).toBe(0);
+  });
+});
+
+describe('la letra del número, en el servidor', () => {
+  const require3 = createRequire(import.meta.url);
+  const servidor = require3('../../api/_lib/cotizaciones.cjs');
+
+  it('cuenta las que ya existen de ESE día', () => {
+    const lista = [{ id: 'a', fecha: '2026-11-20' }, { id: 'b', fecha: '2026-11-19' }, { id: 'c', fecha: '2026-11-20' }];
+    expect(servidor.sufijoDelDia(lista, '2026-11-20')).toBe('C');
+    expect(servidor.sufijoDelDia(lista, '2026-11-19')).toBe('B');
+    expect(servidor.sufijoDelDia(lista, '2026-12-01')).toBe('A');
+  });
+
+  it('al editar no se cuenta a sí misma', () => {
+    // Sin excluirla, guardar una cotizacion sin tocar la fecha le correria la letra cada vez.
+    const lista = [{ id: 'a', fecha: '2026-11-20' }];
+    expect(servidor.sufijoDelDia(lista, '2026-11-20', 'a')).toBe('A');
+  });
+
+  it('la letra se queda quieta mientras no cambie la fecha', () => {
+    // El papel que ya se mandó tiene que seguir llamándose igual.
+    const lista = [{ id: 'a', fecha: '2026-11-20', sufijo: 'C' }];
+    const actual = lista[0];
+    const sinTocarFecha = servidor.actualizarCotizacion({ ...actual, createdAt: 'x' }, { fecha: '2026-11-20', cliente: 'A', lineas: [{ descripcion: 'X', cantidad: 1, precio: 1 }] }, lista);
+    expect(sinTocarFecha.sufijo).toBe('C');
+  });
+
+  it('cambiar la fecha reasigna la letra del día nuevo', () => {
+    const lista = [{ id: 'a', fecha: '2026-11-20', sufijo: 'C' }, { id: 'b', fecha: '2026-11-25' }];
+    const movida = servidor.actualizarCotizacion({ id: 'a', numero: 1, fecha: '2026-11-20', sufijo: 'C', createdAt: 'x' }, { fecha: '2026-11-25', cliente: 'A', lineas: [{ descripcion: 'X', cantidad: 1, precio: 1 }] }, lista);
+    expect(movida.sufijo).toBe('B');
+  });
+
+  it('una creada nace con letra', () => {
+    const creada = servidor.crearCotizacion({ fecha: '2026-11-20', cliente: 'A', lineas: [{ descripcion: 'X', cantidad: 1, precio: 1 }] }, []);
+    expect(creada.sufijo).toBe('A');
+  });
+
+  it('las dos versiones calculan el mismo ITBIS', () => {
+    const lineas = [{ descripcion: 'X', cantidad: 3, precio: 5500, itbis: true }, { descripcion: 'Y', cantidad: 1, precio: 3500, itbis: false }];
+    for (const tasa of [0, 18, 16]) {
+      expect(servidor.cuentasDe(lineas, tasa)).toEqual({
+        subtotal: cuentasDeCotizacion({ lineas, itbisPorciento: tasa }).subtotal,
+        itbis: cuentasDeCotizacion({ lineas, itbisPorciento: tasa }).itbis,
+        total: cuentasDeCotizacion({ lineas, itbisPorciento: tasa }).total,
+      });
+    }
   });
 });
