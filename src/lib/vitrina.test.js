@@ -81,9 +81,24 @@ describe('la oferta', () => {
     expect(ofertaDeProducto(producto({ price: 7040, precioAntes: 10000 })).porciento).toBe(29);
   });
 
-  it('con variantes no se anuncia, porque no hay un precio único', () => {
-    const conVariantes = producto({ precioAntes: 20000, variants: [{ id: 'v1', price: 9000, stockQty: 1 }] });
-    expect(ofertaDeProducto(conVariantes)).toBe(null);
+  it('se anuncia también con variantes, contra el precio que se enseña', () => {
+    // La primera version excluia todo producto con variantes —"no hay un precio unico que
+    // tachar"— y era demasiado: la Dell Latitude 3190 tiene UNA variante, el precio es unico,
+    // y su oferta de verdad se quedaba sin mostrar sin que el dueño pudiera entender por que.
+    const unaVariante = producto({ price: 5500, precioAntes: 7500, variants: [{ id: 'v1', label: '8GB', price: 5500, stockQty: 2 }] });
+    expect(ofertaDeProducto(unaVariante, 5500)).toEqual({ antes: 7500, ahora: 5500, porciento: 26 });
+  });
+
+  it('con varias variantes compara contra el mínimo, que es el "desde" de la tarjeta', () => {
+    const varias = producto({ price: 5500, precioAntes: 7500, variants: [{ id: 'v1', price: 5500 }, { id: 'v2', price: 8200 }] });
+    expect(ofertaDeProducto(varias, 5500).porciento).toBe(26);
+  });
+
+  it('si se elige una variante más cara que el "antes", deja de anunciarse', () => {
+    // En la ficha se compara contra la variante elegida: ese "antes" no describe esa opcion,
+    // y tacharlo ahi seria inventar un descuento.
+    const varias = producto({ price: 5500, precioAntes: 7500, variants: [{ id: 'v1', price: 5500 }, { id: 'v2', price: 8200 }] });
+    expect(ofertaDeProducto(varias, 8200)).toBe(null);
   });
 });
 

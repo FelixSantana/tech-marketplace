@@ -3,7 +3,7 @@
 // cierto. Una oferta inventada o un "últimas unidades" permanente se notan, y lo que se gasta
 // es la credibilidad del vendedor, que es lo unico que tiene una tienda de usados.
 
-import { getStockQty, hasVariants } from '../hooks/useCatalog';
+import { getStockQty } from '../hooks/useCatalog';
 
 // --- Estado del equipo ---
 //
@@ -49,9 +49,17 @@ export function limpiarEstado(estado) {
 // menor no es una oferta, es un error de tecleo, y tacharlo igualmente seria enseñarle al
 // cliente un descuento que no existe.
 //
-// Con variantes no hay un precio unico, asi que no hay oferta que mostrar en la tarjeta.
+// SE COMPARA CONTRA EL PRECIO QUE SE ESTA ENSEÑANDO, sea cual sea. La primera version excluia
+// todo producto con variantes —"no hay un precio unico que tachar"—, y era demasiado: con una
+// sola variante el precio es unico, y con varias la tarjeta ya enseña "desde X", que es un
+// precio concreto contra el que comparar. Una oferta de verdad quedaba sin mostrarse y el dueño
+// no tenia forma de entender por que.
+//
+// En la ficha, con una variante elegida, se compara contra ESA: si el cliente escoge una mas
+// cara que el precio anterior, la oferta deja de salir, que es lo correcto —ese "antes" no
+// describe esa opcion.
 export function ofertaDeProducto(producto, precioActual) {
-  if (!producto || hasVariants(producto)) return null;
+  if (!producto) return null;
   const antes = Number(producto.precioAntes);
   const ahora = Number(precioActual != null ? precioActual : producto.price);
   if (!Number.isFinite(antes) || !Number.isFinite(ahora) || antes <= ahora || ahora < 0) return null;
