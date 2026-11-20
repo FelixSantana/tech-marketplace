@@ -19,3 +19,15 @@ export function cuantos(n, singular, plural) {
   const cantidad = Math.trunc(Number(n)) || 0;
   return `${cantidad} ${Math.abs(cantidad) === 1 ? singular : plural}`;
 }
+
+// El telefono de la tienda, escrito como lo escribe la gente aqui. Se guarda en digitos
+// pelados porque wa.me los quiere asi, pero "8295550123" no se lee: ni en la barra de arriba
+// ni en el membrete de una cotizacion.
+//
+// Menos de diez digitos no se formatea: seria inventarle una forma a un numero incompleto.
+export function telefonoVisible(valor) {
+  const d = String(valor || '').replace(/\D/g, '');
+  if (d.length < 10) return '';
+  const n = d.slice(-10);
+  return `(${n.slice(0, 3)}) ${n.slice(3, 6)}-${n.slice(6)}`;
+}

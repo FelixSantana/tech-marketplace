@@ -3,6 +3,7 @@ import ProductList from './ProductList';
 import ProductForm from './ProductForm';
 import SettingsForm from './SettingsForm';
 import OrdersPanel from './OrdersPanel';
+import CotizacionesPanel from './CotizacionesPanel';
 import PrintCatalog from './PrintCatalog';
 import MigrateImages from './MigrateImages';
 import MetricsPanel from './MetricsPanel';
@@ -58,6 +59,7 @@ export default function AdminPanel({ products, reservas, categories, setCategori
           <button className={`tab ${tab === 'productos' ? 'active' : ''}`} onClick={() => switchTab('productos')}>Productos</button>
           <button className={`tab ${tab === 'agregar' ? 'active' : ''}`} onClick={() => switchTab('agregar')}>{editingId ? 'Editar' : 'Agregar'}</button>
           <button className={`tab ${tab === 'ordenes' ? 'active' : ''}`} onClick={() => switchTab('ordenes')}>Órdenes</button>
+          <button className={`tab ${tab === 'cotizaciones' ? 'active' : ''}`} onClick={() => switchTab('cotizaciones')}>Cotizaciones</button>
           <button className={`tab ${tab === 'metricas' ? 'active' : ''}`} onClick={() => switchTab('metricas')}>Métricas</button>
           <button className={`tab ${tab === 'ajustes' ? 'active' : ''}`} onClick={() => switchTab('ajustes')}>Ajustes</button>
         </div>
@@ -82,6 +84,9 @@ export default function AdminPanel({ products, reservas, categories, setCategori
         )}
         {tab === 'ordenes' && (
           <OrdersPanel adminToken={adminToken} products={products} settings={settings} showToast={showToast} onInventoryChanged={refreshCatalog} ordenDestacada={ordenDelAviso} />
+        )}
+        {tab === 'cotizaciones' && (
+          <CotizacionesPanel adminToken={adminToken} products={products} settings={settings} showToast={showToast} />
         )}
         {tab === 'metricas' && (
           <MetricsPanel adminToken={adminToken} showToast={showToast} />

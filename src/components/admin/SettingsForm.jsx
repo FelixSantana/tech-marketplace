@@ -12,7 +12,8 @@ import { cuponesDeAjustes } from '../../lib/cupones';
 import { ajustesDeEnvio } from '../../lib/envio';
 import { diasQueLeQuedan } from '../../lib/token';
 import { datosDeNegocio, limpiarNegocio, sellosDeAjustes, limpiarSellos } from '../../lib/negocio';
-import { IconoEngranaje, IconoLocal, IconoCamion, IconoCupon, IconoSobre, IconoBombilla, IconoLlave, IconoEscudo } from '../Iconos';
+import { ajustesDeCotizacion, limpiarAjustesDeCotizacion, MAX_NOTA } from '../../lib/cotizacion';
+import { IconoEngranaje, IconoLocal, IconoCamion, IconoCupon, IconoSobre, IconoBombilla, IconoLlave, IconoEscudo, IconoDocumento } from '../Iconos';
 
 export default function SettingsForm({ settings, onSaveSettings, authRequest, adminToken, setAdminToken, refreshCatalog, onLogout, showToast }) {
   const [storeName, setStoreName] = useState(settings.storeName);
@@ -26,6 +27,7 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
   // Las formas de pago se editan como una linea separada por comas: son tres palabras que se
   // tocan una vez al año, y no justifican una tabla con botones de agregar y quitar.
   const [negocio, setNegocio] = useState(() => { const n = datosDeNegocio(settings); return { ...n, pagos: n.pagos.join(', ') }; });
+  const [cotizacion, setCotizacion] = useState(() => ajustesDeCotizacion(settings));
   const [pendingLogo, setPendingLogo] = useState(undefined);
   // Las imagenes derivadas del logo viajan aparte del logo, con la misma convencion: `undefined`
   // es "no se toco en esta sesion", `null` es "quitalas".
@@ -99,7 +101,7 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
     if (new Set(codigos).size !== codigos.length) return showToast('Hay dos cupones con el mismo código');
     if (cupones.some((c) => !(Number(c.valor) > 0))) return showToast('Cada cupón necesita un valor mayor que cero');
     const cuponesLimpios = cupones.map((c) => ({ id: c.id, codigo: String(c.codigo).toUpperCase().trim(), tipo: c.tipo === 'monto' ? 'monto' : 'porcentaje', valor: Math.max(0, Number(c.valor) || 0), vence: c.vence || '', minimo: Math.max(0, Number(c.minimo) || 0), activo: c.activo !== false }));
-    const ok = await onSaveSettings({ negocio: limpiarNegocio(negocio), sellos: limpiarSellos(sellos), cupones: cuponesLimpios, storeName: storeName.trim(), tagline: tagline.trim(), whatsapp: whatsapp.trim(), currency: currency.trim() || 'RD$', envio: envioLimpio, colorMarca: normalizarColor(colorMarca), ...(pendingLogo !== undefined ? { logo: pendingLogo || '' } : {}), ...(pendingMarca !== undefined ? { marca: pendingMarca || {} } : {}) });
+    const ok = await onSaveSettings({ negocio: limpiarNegocio(negocio), cotizacion: limpiarAjustesDeCotizacion(cotizacion), sellos: limpiarSellos(sellos), cupones: cuponesLimpios, storeName: storeName.trim(), tagline: tagline.trim(), whatsapp: whatsapp.trim(), currency: currency.trim() || 'RD$', envio: envioLimpio, colorMarca: normalizarColor(colorMarca), ...(pendingLogo !== undefined ? { logo: pendingLogo || '' } : {}), ...(pendingMarca !== undefined ? { marca: pendingMarca || {} } : {}) });
     if (ok) { showToast('Ajustes guardados'); setPendingLogo(undefined); setPendingMarca(undefined); }
     else showToast('No se pudieron guardar los ajustes. Verifica tu sesión.');
   };
@@ -174,6 +176,11 @@ export default function SettingsForm({ settings, onSaveSettings, authRequest, ad
       <div className="field"><label htmlFor={`${uid}-cobertura`}>Cobertura de entrega</label><input id={`${uid}-cobertura`} type="text" placeholder="Entrega en todo el país" value={negocio.cobertura} onChange={(e) => setNegocio({ ...negocio, cobertura: e.target.value })} /></div>
       <div className="field"><label htmlFor={`${uid}-correo`}>Correo de contacto</label><input id={`${uid}-correo`} type="email" placeholder="ventas@tutienda.com" value={negocio.correo} onChange={(e) => setNegocio({ ...negocio, correo: e.target.value })} /></div>
       <div className="field"><label htmlFor={`${uid}-pagos`}>Formas de pago</label><input id={`${uid}-pagos`} type="text" placeholder="Efectivo, Transferencia, Depósito bancario" value={negocio.pagos} onChange={(e) => setNegocio({ ...negocio, pagos: e.target.value })} /><div className="hint">Sepáralas con comas. Se listan en el pie.</div></div>
+
+      <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon"><IconoDocumento /></span><div><h3>Cotizaciones</h3><p>Lo que viene puesto por defecto en cada cotización nueva. Se puede cambiar una por una antes de descargar el PDF.</p></div></div>
+      <div className="field"><label htmlFor={`${uid}-cot-vendedor`}>Vendedor</label><input id={`${uid}-cot-vendedor`} type="text" placeholder="Nombre de quien firma" value={cotizacion.vendedor} onChange={(e) => setCotizacion({ ...cotizacion, vendedor: e.target.value })} /><div className="hint">Sale en la cabecera del PDF y sobre la línea de "Firma de Vendedor".</div></div>
+      <div className="field"><label htmlFor={`${uid}-cot-validez`}>Válida por (días)</label><input id={`${uid}-cot-validez`} type="number" min="1" max="365" value={cotizacion.validezDias} onChange={(e) => setCotizacion({ ...cotizacion, validezDias: Math.max(1, Math.floor(Number(e.target.value) || 1)) })} /><div className="hint">Pasado ese plazo la cotización se marca vencida en la lista. El precio deja de estar prometido.</div></div>
+      <div className="field"><label htmlFor={`${uid}-cot-nota`}>Condiciones</label><textarea id={`${uid}-cot-nota`} rows={3} maxLength={MAX_NOTA} placeholder="Formas de pago, plazos de entrega, qué incluye y qué no." value={cotizacion.nota} onChange={(e) => setCotizacion({ ...cotizacion, nota: e.target.value })} /><div className="hint">Se imprime debajo del total, en letra pequeña.</div></div>
 
       <div className="form-section-title" style={{ marginTop: 18 }}><span className="section-icon"><IconoEscudo /></span><div><h3>Sellos de confianza</h3><p>La tira que el cliente ve encima de los productos. Es lo que responde a quien llega desconfiando.</p></div></div>
       <SellosForm sellos={sellos} setSellos={setSellos} />
