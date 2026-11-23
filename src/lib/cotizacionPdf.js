@@ -278,7 +278,9 @@ function filas(doc, cuentas, y, barra, tintaBarra) {
     doc.setFontSize(TAM_CIFRA);
     doc.setTextColor(...TINTA);
     doc.text(String(linea.cantidad), (X[1] + X[2]) / 2, base, { align: 'center' });
-    cifraEnColumna(doc, linea.precio, X[3], ANCHOS.precio, base);
+    // La base, no el precio que se tecleo: con ITBIS incluido el precio de catalogo es el
+    // final, y lo que tiene que cuadrar en el papel es PRECIO × CANTIDAD = TOTAL.
+    cifraEnColumna(doc, linea.precioBase, X[3], ANCHOS.precio, base);
     cifraEnColumna(doc, linea.total, X[4], ANCHOS.total, base);
     // Guion y no "0.00" cuando la linea va exenta: un cero parece un impuesto que se calculo y
     // dio cero; el guion dice que ahi no aplica.
@@ -335,6 +337,16 @@ function totales(doc, cuentas, papel, y, barra) {
   doc.setCharSpace(0);
   doc.setFontSize(13);
   doc.text(cifra(cuentas.total), DER, actual, { align: 'right' });
+
+  // Decirlo cuando el impuesto va por dentro. Sin esta linea el cliente ve 4,661.02 en la
+  // columna del precio donde la tienda publica 5,500, y lo normal es pensar que hay un error.
+  if (cuentas.tasa > 0 && cuentas.incluido) {
+    actual += 16;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...GRIS);
+    doc.text('Precios con ITBIS incluido.', DER, actual, { align: 'right' });
+  }
   return actual;
 }
 

@@ -85,27 +85,56 @@ export function lineasValidas(lineas) {
 
 // --- Los numeros del papel ---
 //
-// Tres columnas distintas y es importante no confundirlas: TOTAL es lo que suman las unidades,
-// ITBIS es el impuesto de ESA linea, y VALOR es lo que se paga por ella. Una linea exenta
-// enseña un guion en la columna del impuesto, no un cero: cero parece un impuesto calculado que
-// dio cero; el guion dice "aqui no aplica".
+// Tres columnas distintas y es importante no confundirlas: TOTAL es lo que suman las unidades
+// SIN impuesto, ITBIS es el impuesto de ESA linea, y VALOR es lo que se paga por ella. Una
+// linea exenta enseña un guion en la columna del impuesto, no un cero: cero parece un impuesto
+// calculado que dio cero; el guion dice "aqui no aplica".
+//
+// EL ITBIS SE SACA DE DENTRO DEL PRECIO, no se suma encima. Los precios del catalogo son los
+// finales: la Dell Latitude 3190 cuesta 5,500 y el cliente paga 5,500. Sumarle un 18% encima
+// convertiria el papel en una promesa de 6,490 por algo que esta publicado a 5,500, y eso no se
+// puede entregar. Asi que de los 5,500 se saca la base (4,661.02) y el impuesto (838.98), que
+// es como se declara una venta con precio al publico.
+//
+// `itbisIncluido` en false hace lo contrario —sumar por encima—, para una tienda que escriba
+// sus precios sin impuesto.
+//
+// EL ORDEN DE LAS OPERACIONES IMPORTA. Se saca primero el precio base de UNA unidad y despues
+// se multiplica, no al reves: asi PRECIO × CANTIDAD da exactamente TOTAL en el papel. El
+// impuesto se calcula como la diferencia contra el valor final, no multiplicando por la tasa,
+// para que VALOR sea al centimo lo que se prometio. Con 3 unidades eso deja el ITBIS a un
+// centimo de la tasa exacta; preferible a que el total no cuadre con el precio publicado.
+export function cuentasDeLinea(linea, tasa, incluido) {
+  const l = limpiarLinea(linea);
+  // Un impuesto del 0% no es un impuesto: la linea se trata como exenta aunque este marcada,
+  // para que no salga "0.00" donde deberia haber un guion.
+  const gravada = l.itbis && tasa > 0;
+  if (!gravada) {
+    const total = dinero(l.cantidad * l.precio);
+    return { ...l, gravada: false, precioBase: l.precio, total, impuesto: 0, valor: total };
+  }
+  if (incluido) {
+    const precioBase = dinero(l.precio / (1 + tasa / 100));
+    const total = dinero(precioBase * l.cantidad);
+    const valor = dinero(l.cantidad * l.precio);
+    return { ...l, gravada: true, precioBase, total, impuesto: dinero(valor - total), valor };
+  }
+  const total = dinero(l.cantidad * l.precio);
+  const impuesto = dinero(total * (tasa / 100));
+  return { ...l, gravada: true, precioBase: l.precio, total, impuesto, valor: dinero(total + impuesto) };
+}
+
 export function cuentasDeCotizacion(cotizacion) {
   const c = cotizacion || {};
   const tasa = entero(c.itbisPorciento, 0, MAX_ITBIS, 0);
-  const lineas = lineasValidas(c.lineas).map((l) => {
-    const total = dinero(l.cantidad * l.precio);
-    // Un impuesto del 0% no es un impuesto: la linea se trata como exenta aunque este marcada,
-    // para que no salga "0.00" donde deberia haber un guion.
-    const gravada = l.itbis && tasa > 0;
-    const impuesto = gravada ? dinero(total * (tasa / 100)) : 0;
-    return { ...l, gravada, total, impuesto, valor: dinero(total + impuesto) };
-  });
+  const incluido = c.itbisIncluido !== false;
+  const lineas = lineasValidas(c.lineas).map((l) => cuentasDeLinea(l, tasa, incluido));
   const subtotal = dinero(lineas.reduce((s, l) => s + l.total, 0));
   const itbis = dinero(lineas.reduce((s, l) => s + l.impuesto, 0));
-  return { tasa, lineas, subtotal, itbis, total: dinero(subtotal + itbis) };
+  return { tasa, incluido, lineas, subtotal, itbis, total: dinero(subtotal + itbis) };
 }
 
-export const totalDeCotizacion = (lineas, itbisPorciento) => cuentasDeCotizacion({ lineas, itbisPorciento }).total;
+export const totalDeCotizacion = (lineas, itbisPorciento, itbisIncluido) => cuentasDeCotizacion({ lineas, itbisPorciento, itbisIncluido }).total;
 
 // --- El numero de la cotizacion ---
 //
@@ -154,11 +183,14 @@ export function limpiarCotizacion(cotizacion) {
     validezDias: entero(c.validezDias, 1, MAX_VALIDEZ, VALIDEZ_POR_DEFECTO),
     condicionPago: texto(c.condicionPago, 120),
     itbisPorciento,
+    // Por defecto, incluido: los precios del catalogo son los finales. Una tienda que escriba
+    // sus precios sin impuesto lo apaga en Ajustes.
+    itbisIncluido: c.itbisIncluido !== false,
     moneda: MONEDAS.includes(c.moneda) ? c.moneda : '',
     nota: texto(c.nota, MAX_NOTA),
     estado: VALORES.has(c.estado) ? c.estado : 'borrador',
     lineas,
-    total: totalDeCotizacion(lineas, itbisPorciento),
+    total: totalDeCotizacion(lineas, itbisPorciento, c.itbisIncluido !== false),
   };
 }
 
@@ -213,6 +245,7 @@ export function ajustesDeCotizacion(settings) {
     validezDias: entero(c.validezDias, 1, MAX_VALIDEZ, VALIDEZ_POR_DEFECTO),
     condicionPago: texto(c.condicionPago, 120),
     itbisPorciento: entero(c.itbisPorciento, 0, MAX_ITBIS, 0),
+    itbisIncluido: c.itbisIncluido !== false,
     nota: texto(c.nota, MAX_NOTA),
   };
 }
@@ -232,6 +265,7 @@ export function cotizacionNueva(settings) {
     validezDias: base.validezDias,
     condicionPago: base.condicionPago,
     itbisPorciento: base.itbisPorciento,
+    itbisIncluido: base.itbisIncluido,
     moneda: '',
     nota: base.nota,
     estado: 'borrador',

@@ -53,20 +53,30 @@ function limpiarLinea(linea) {
 
 const lineasValidas = (lineas) => (Array.isArray(lineas) ? lineas : []).map(limpiarLinea).filter((l) => l.descripcion).slice(0, MAX_LINEAS);
 
-// Las mismas tres columnas que en el navegador: TOTAL, ITBIS de la linea y VALOR.
-function cuentasDe(lineas, itbisPorciento) {
+// Las mismas tres columnas que en el navegador: TOTAL (sin impuesto), ITBIS de la linea y
+// VALOR. Y la misma regla: el ITBIS SE SACA DE DENTRO del precio, porque los precios del
+// catalogo son los finales. Ver src/lib/cotizacion.js, donde esta el porque entero.
+function cuentasDe(lineas, itbisPorciento, itbisIncluido) {
   const tasa = entero(itbisPorciento, 0, MAX_ITBIS, 0);
+  const incluido = itbisIncluido !== false;
   const calculadas = lineasValidas(lineas).map((l) => {
+    const gravada = l.itbis && tasa > 0;
+    if (!gravada) { const total = dinero(l.cantidad * l.precio); return { total, impuesto: 0, valor: total }; }
+    if (incluido) {
+      const total = dinero(dinero(l.precio / (1 + tasa / 100)) * l.cantidad);
+      const valor = dinero(l.cantidad * l.precio);
+      return { total, impuesto: dinero(valor - total), valor };
+    }
     const total = dinero(l.cantidad * l.precio);
-    const impuesto = l.itbis && tasa > 0 ? dinero(total * (tasa / 100)) : 0;
-    return { total, impuesto };
+    const impuesto = dinero(total * (tasa / 100));
+    return { total, impuesto, valor: dinero(total + impuesto) };
   });
   const subtotal = dinero(calculadas.reduce((s, l) => s + l.total, 0));
   const itbis = dinero(calculadas.reduce((s, l) => s + l.impuesto, 0));
   return { subtotal, itbis, total: dinero(subtotal + itbis) };
 }
 
-const totalDe = (lineas, itbisPorciento) => cuentasDe(lineas, itbisPorciento).total;
+const totalDe = (lineas, itbisPorciento, itbisIncluido) => cuentasDe(lineas, itbisPorciento, itbisIncluido).total;
 
 // Los campos que el panel puede escribir. Ni `id`, ni `numero`, ni `sufijo`, ni las fechas de
 // creacion: esos los pone el servidor y no se aceptan del cuerpo, porque un numero repetido
@@ -84,11 +94,12 @@ function camposDelCuerpo(body) {
     validezDias: entero(b.validezDias, 1, MAX_VALIDEZ, VALIDEZ_POR_DEFECTO),
     condicionPago: texto(b.condicionPago, 120),
     itbisPorciento,
+    itbisIncluido: b.itbisIncluido !== false,
     moneda: MONEDAS.includes(b.moneda) ? b.moneda : '',
     nota: texto(b.nota, MAX_NOTA),
     estado: ESTADOS.includes(b.estado) ? b.estado : 'borrador',
     lineas,
-    total: totalDe(lineas, itbisPorciento),
+    total: totalDe(lineas, itbisPorciento, b.itbisIncluido !== false),
   };
 }
 
