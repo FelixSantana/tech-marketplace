@@ -147,7 +147,7 @@ describe('la validez', () => {
 
 describe('lo que pone la tienda por defecto', () => {
   it('una tienda que nunca tocó esto cotiza igual', () => {
-    expect(ajustesDeCotizacion({})).toEqual({ razonSocial: '', vendedor: '', validezDias: VALIDEZ_POR_DEFECTO, condicionPago: '', itbisPorciento: 0, nota: '' });
+    expect(ajustesDeCotizacion({})).toEqual({ razonSocial: '', vendedor: '', validezDias: VALIDEZ_POR_DEFECTO, condicionPago: '', itbisPorciento: 0, itbisIncluido: true, nota: '' });
     expect(ajustesDeCotizacion(null).validezDias).toBe(VALIDEZ_POR_DEFECTO);
   });
 
@@ -280,12 +280,49 @@ describe('el ITBIS', () => {
   const con = (lineas, tasa) => cuentasDeCotizacion({ lineas, itbisPorciento: tasa });
   const l = (precio, cantidad, itbis) => ({ descripcion: 'X', precio, cantidad, itbis });
 
-  it('se calcula por renglón y se suma aparte', () => {
-    const c = con([l(5500, 3, true), l(3500, 1, false)], 18);
-    expect(c.lineas[0].impuesto).toBe(2970);
-    expect(c.lineas[0].valor).toBe(19470);
-    expect(c.lineas[1].impuesto).toBe(0);
-    expect(c).toMatchObject({ subtotal: 20000, itbis: 2970, total: 22970 });
+  it('SE SACA DE DENTRO del precio, no se suma encima', () => {
+    // La regla que de verdad importa: los precios del catálogo son los finales. La Dell
+    // Latitude 3190 está publicada a 5,500 y el cliente paga 5,500. Si el impuesto se sumara
+    // encima, el papel prometería 6,490 por algo publicado a 5,500 y no se podría entregar.
+    const c = con([l(5500, 1, true)], 18);
+    expect(c.lineas[0].precioBase).toBe(4661.02);
+    expect(c.lineas[0].impuesto).toBe(838.98);
+    expect(c.lineas[0].valor).toBe(5500);
+    expect(c.total).toBe(5500);
+  });
+
+  it('las columnas del papel cuadran entre sí', () => {
+    // PRECIO × CANTIDAD = TOTAL, y TOTAL + ITBIS = VALOR. Un cliente con calculadora lo
+    // comprueba, y si no cuadra deja de fiarse de todo lo demás.
+    for (const [precio, cantidad] of [[5500, 1], [5500, 3], [1568.33, 7], [999.99, 2]]) {
+      const linea = con([l(precio, cantidad, true)], 18).lineas[0];
+      expect(linea.precioBase * cantidad).toBeCloseTo(linea.total, 2);
+      expect(linea.total + linea.impuesto).toBeCloseTo(linea.valor, 2);
+      expect(linea.valor).toBe(Math.round(precio * cantidad * 100) / 100);
+    }
+  });
+
+  it('un renglón exento se queda con su precio tal cual', () => {
+    const c = con([l(3500, 1, false)], 18);
+    expect(c.lineas[0]).toMatchObject({ gravada: false, precioBase: 3500, total: 3500, impuesto: 0, valor: 3500 });
+  });
+
+  it('mezcla gravados y exentos sin perder un céntimo', () => {
+    const c = con([l(5500, 1, true), l(5500, 3, true), l(3500, 1, false)], 18);
+    expect(c.subtotal + c.itbis).toBe(c.total);
+    expect(c.total).toBe(25500);
+  });
+
+  it('apagado el incluido, se suma por encima', () => {
+    // Para una tienda que escriba sus precios sin impuesto.
+    const c = cuentasDeCotizacion({ itbisPorciento: 18, itbisIncluido: false, lineas: [l(5500, 1, true)] });
+    expect(c.lineas[0].total).toBe(5500);
+    expect(c.lineas[0].impuesto).toBe(990);
+    expect(c.total).toBe(6490);
+  });
+
+  it('una cotización vieja, sin el campo, se trata como incluido', () => {
+    expect(cuentasDeCotizacion({ itbisPorciento: 18, lineas: [l(5500, 1, true)] }).incluido).toBe(true);
   });
 
   it('una tasa de 0 deja todo exento aunque el renglón esté marcado', () => {
@@ -297,8 +334,10 @@ describe('el ITBIS', () => {
     expect(c.total).toBe(1000);
   });
 
-  it('redondea el impuesto a centavos', () => {
-    expect(con([l(1568.33, 2, true)], 18).itbis).toBe(564.6);
+  it('redondea a céntimos sin que el total deje de cuadrar', () => {
+    const c = con([l(1568.33, 2, true)], 18);
+    expect(c.total).toBe(3136.66);
+    expect(c.subtotal + c.itbis).toBe(c.total);
   });
 
   it('el total del modelo cuadra al céntimo', () => {
@@ -350,14 +389,13 @@ describe('la letra del número, en el servidor', () => {
     expect(creada.sufijo).toBe('A');
   });
 
-  it('las dos versiones calculan el mismo ITBIS', () => {
+  it('las dos versiones calculan el mismo ITBIS, sacándolo de dentro y sumándolo encima', () => {
     const lineas = [{ descripcion: 'X', cantidad: 3, precio: 5500, itbis: true }, { descripcion: 'Y', cantidad: 1, precio: 3500, itbis: false }];
     for (const tasa of [0, 18, 16]) {
-      expect(servidor.cuentasDe(lineas, tasa)).toEqual({
-        subtotal: cuentasDeCotizacion({ lineas, itbisPorciento: tasa }).subtotal,
-        itbis: cuentasDeCotizacion({ lineas, itbisPorciento: tasa }).itbis,
-        total: cuentasDeCotizacion({ lineas, itbisPorciento: tasa }).total,
-      });
+      for (const incluido of [true, false]) {
+        const aqui = cuentasDeCotizacion({ lineas, itbisPorciento: tasa, itbisIncluido: incluido });
+        expect(servidor.cuentasDe(lineas, tasa, incluido)).toEqual({ subtotal: aqui.subtotal, itbis: aqui.itbis, total: aqui.total });
+      }
     }
   });
 });

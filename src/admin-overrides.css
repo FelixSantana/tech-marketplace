@@ -356,6 +356,11 @@
 .order-product-line .linea-detalle{grid-column:1/-1;margin-top:2px}
 .order-product-line .linea-itbis{grid-column:1/-1;flex-direction:row;align-items:center;gap:8px;font-weight:600;color:var(--text-muted)}
 .order-product-line .linea-itbis input{width:16px;height:16px;flex:0 0 auto;accent-color:var(--accent)}
+/* Una casilla con su texto al lado, dentro de un formulario cuyos campos son etiqueta encima
+   de caja. Sin esto la casilla sale estirada a todo lo ancho como si fuera un campo de texto. */
+.campo-casilla{display:flex!important;flex-direction:row!important;align-items:center;gap:9px;cursor:pointer}
+.campo-casilla input[type=checkbox]{width:16px;height:16px;flex:0 0 auto;margin:0;accent-color:var(--accent)}
+.campo-casilla span{font-weight:600;font-size:13px}
 .cotizacion-cuentas{margin-top:14px;margin-left:auto;max-width:330px;display:grid;gap:8px}
 .cotizacion-cuentas>div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;font-size:13px;color:var(--text-muted)}
 .cotizacion-cuentas-total{padding-top:9px;border-top:1px solid var(--border);font-size:15px!important;color:var(--text)!important}

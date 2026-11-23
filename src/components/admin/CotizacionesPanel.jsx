@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { IconoDocumento, IconoDescargar, IconoVisto, IconoRefrescar } from '../Iconos';
 import {
-  ESTADOS, estadoVisible, nuevaLinea, cuentasDeCotizacion,
+  ESTADOS, estadoVisible, nuevaLinea, cuentasDeCotizacion, cuentasDeLinea,
   numeroDeCotizacion, cotizacionNueva, hoyISO,
   MAX_LINEAS, MAX_NOTA, MAX_ITBIS, MONEDAS,
 } from '../../lib/cotizacion';
@@ -15,7 +15,7 @@ const fechaCorta = (iso) => { const [a, m, d] = String(iso || '').split('-'); re
 // cotizacion de un revendedor son cosas que no estan publicadas —un servicio, un plan mensual,
 // un equipo que todavia hay que ir a comprar—. El desplegable del catalogo es un atajo para
 // rellenar un renglon, no la unica forma de tener uno.
-function Renglones({ lineas, catalogo, moneda, tasaItbis, onChange, showToast }) {
+function Renglones({ lineas, catalogo, moneda, tasaItbis, itbisIncluido, onChange, showToast }) {
   const uid = useId();
   const agregar = (linea) => {
     if (lineas.length >= MAX_LINEAS) return showToast(`Una cotización admite hasta ${MAX_LINEAS} renglones.`);
@@ -75,7 +75,7 @@ function Renglones({ lineas, catalogo, moneda, tasaItbis, onChange, showToast })
               <input id={`${uid}-${i}-precio`} type="number" min="0" step="0.01" value={linea.precio} onChange={(e) => cambiar(i, 'precio', e.target.value)} />
             </label>
             <label htmlFor={`${uid}-${i}-total`}>Total
-              <input id={`${uid}-${i}-total`} value={money(linea.cantidad * linea.precio, moneda)} readOnly />
+              <input id={`${uid}-${i}-total`} value={money(cuentasDeLinea(linea, tasaItbis, itbisIncluido).valor, moneda)} readOnly />
             </label>
             <button type="button" className="icon-btn danger-icon" title="Quitar renglón" aria-label={`Quitar el renglón ${i + 1}`} onClick={() => onChange(lineas.filter((_, j) => j !== i))}>✕</button>
             {/* La linea pequeña que va debajo del concepto en el papel: "Plazo: 1 año",
@@ -138,7 +138,7 @@ export default function CotizacionesPanel({ adminToken, products: catalogo, sett
       fecha: c.fecha || hoy, cliente: c.cliente || '', clienteDireccion: c.clienteDireccion || '',
       clienteTelefono: c.clienteTelefono || '', vendedor: c.vendedor || '',
       validezDias: c.validezDias || 30, condicionPago: c.condicionPago || '',
-      itbisPorciento: Number(c.itbisPorciento) || 0, moneda: c.moneda || '',
+      itbisPorciento: Number(c.itbisPorciento) || 0, itbisIncluido: c.itbisIncluido !== false, moneda: c.moneda || '',
       nota: c.nota || '', estado: c.estado || 'borrador',
       lineas: (c.lineas || []).map((l) => ({ ...l })),
     });
@@ -243,13 +243,21 @@ export default function CotizacionesPanel({ adminToken, products: catalogo, sett
               importados en dolares aunque la tienda venda en pesos. */}
           <label htmlFor={`${uid}-moneda`}>Moneda<select id={`${uid}-moneda`} value={form.moneda} onChange={(e) => setForm({ ...form, moneda: e.target.value })}><option value="">La de la tienda ({monedaTienda})</option>{MONEDAS.map((m) => <option key={m} value={m}>{m}</option>)}</select></label>
           <label htmlFor={`${uid}-itbis`}>ITBIS (%)<input id={`${uid}-itbis`} type="number" min="0" max={MAX_ITBIS} value={form.itbisPorciento} onChange={(e) => setForm({ ...form, itbisPorciento: Math.min(MAX_ITBIS, Math.max(0, Math.floor(Number(e.target.value) || 0))) })} /></label>
+          {/* Con los precios del catalogo, que ya son los finales, el impuesto se saca de
+              dentro. Apagarlo lo suma por encima y sube el total. */}
+          {form.itbisPorciento > 0 && (
+            <label className="campo-casilla" htmlFor={`${uid}-itbisinc`}>
+              <input id={`${uid}-itbisinc`} type="checkbox" checked={form.itbisIncluido !== false} onChange={(e) => setForm({ ...form, itbisIncluido: e.target.checked })} />
+              <span>Los precios ya incluyen el ITBIS</span>
+            </label>
+          )}
           <label htmlFor={`${uid}-nota`}>Condiciones<textarea id={`${uid}-nota`} rows={3} maxLength={MAX_NOTA} value={form.nota} placeholder="Lo que va impreso debajo del total: formas de pago, plazos, qué incluye." onChange={(e) => setForm({ ...form, nota: e.target.value })} /></label>
         </div>
         <h3 className="subsection-title">Renglones</h3>
-        <Renglones lineas={form.lineas} catalogo={catalogo} moneda={monedaForm} tasaItbis={cuentas.tasa} showToast={showToast} onChange={(lineas) => setForm({ ...form, lineas })} />
+        <Renglones lineas={form.lineas} catalogo={catalogo} moneda={monedaForm} tasaItbis={cuentas.tasa} itbisIncluido={cuentas.incluido} showToast={showToast} onChange={(lineas) => setForm({ ...form, lineas })} />
         <div className="cotizacion-cuentas">
           <div><span>Subtotal</span><strong className="mono">{money(cuentas.subtotal, monedaForm)}</strong></div>
-          {cuentas.tasa > 0 && <div><span>ITBIS {cuentas.tasa}%</span><strong className="mono">{money(cuentas.itbis, monedaForm)}</strong></div>}
+          {cuentas.tasa > 0 && <div><span>ITBIS {cuentas.tasa}%{cuentas.incluido ? ' (incluido en los precios)' : ''}</span><strong className="mono">{money(cuentas.itbis, monedaForm)}</strong></div>}
           <div className="cotizacion-cuentas-total"><span>Total</span><strong className="mono">{money(cuentas.total, monedaForm)}</strong></div>
         </div>
         <div className="form-actions">
