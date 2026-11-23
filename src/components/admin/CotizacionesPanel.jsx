@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useId, useMemo, useState } from 'react';
-import { IconoDocumento, IconoDescargar, IconoRefrescar } from '../Iconos';
+import { IconoDocumento, IconoDescargar, IconoVisto, IconoRefrescar } from '../Iconos';
 import {
   ESTADOS, estadoVisible, nuevaLinea, cuentasDeCotizacion,
   numeroDeCotizacion, cotizacionNueva, hoyISO,
   MAX_LINEAS, MAX_NOTA, MAX_ITBIS, MONEDAS,
 } from '../../lib/cotizacion';
-import CotizacionPreview from './CotizacionPreview';
+import { pdfDeCotizacion, descargarArchivo, abrirEnPestana } from '../../lib/cotizacionPdf';
 
 const RUTA = '/api/orders?recurso=cotizaciones';
 const money = (n, moneda = 'RD$') => `${moneda} ${Number(n || 0).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -104,7 +104,6 @@ export default function CotizacionesPanel({ adminToken, products: catalogo, sett
   const [editando, setEditando] = useState(null);
   const [form, setForm] = useState(null);
   const [ocupado, setOcupado] = useState(false);
-  const [vistaPrevia, setVistaPrevia] = useState(null);
   const uid = useId();
   const monedaTienda = (settings && settings.currency) || 'RD$';
   const headers = useMemo(() => ({ Authorization: `Bearer ${adminToken}`, 'Content-Type': 'application/json' }), [adminToken]);
@@ -164,9 +163,40 @@ export default function CotizacionesPanel({ adminToken, products: catalogo, sett
     } catch (e) { showToast(e.message); return null; } finally { setOcupado(false); }
   };
 
-  // Nunca se descarga a ciegas: se abre la vista previa y desde ahi se entrega. Un presupuesto
-  // llega al cliente y no se puede retirar, asi que el ultimo paso es mirarlo.
-  const guardarYVer = async () => { const c = await guardar(); if (c) { cerrar(); setVistaPrevia(c); } };
+  // Ver el papel antes de mandarlo. Se abre en una pestaña aparte, con el visor de PDF del
+  // propio navegador: desde ahi se lee a tamaño real, se imprime y se descarga con los botones
+  // que esa persona ya conoce.
+  //
+  // La pestaña se abre EN EL CLIC y vacia, y se rellena cuando el PDF esta listo. Abrirla
+  // despues de generarlo la convierte en una ventana emergente y el navegador la bloquea.
+  const ver = async (cotizacion) => {
+    const pestana = window.open('', '_blank');
+    setOcupado(true);
+    try {
+      const { abierta } = await abrirEnPestana(pestana, cotizacion, settings);
+      if (!abierta) showToast('Tu navegador bloqueó la pestaña, así que la descargué.');
+    } catch (e) {
+      console.error('pdf de cotizacion', e);
+      if (pestana && !pestana.closed) pestana.close();
+      showToast('No se pudo generar el PDF.');
+    } finally { setOcupado(false); }
+  };
+
+  const descargar = async (cotizacion) => {
+    setOcupado(true);
+    try {
+      const { blob, nombre } = await pdfDeCotizacion(cotizacion, settings);
+      descargarArchivo(blob, nombre);
+      showToast('PDF descargado');
+    } catch (e) {
+      console.error('pdf de cotizacion', e);
+      showToast('No se pudo generar el PDF.');
+    } finally { setOcupado(false); }
+  };
+
+  // Guardar primero: lo que se abre es la cotizacion ya numerada por el servidor, no el
+  // borrador que hay en pantalla.
+  const guardarYVer = async () => { const c = await guardar(); if (c) { cerrar(); await ver(c); } };
   const guardarYCerrar = async () => { const c = await guardar(); if (c) cerrar(); };
 
   const cambiarEstado = async (c, estado) => {
@@ -225,7 +255,7 @@ export default function CotizacionesPanel({ adminToken, products: catalogo, sett
         <div className="form-actions">
           <button className="btn-secondary" onClick={cerrar}>Cancelar</button>
           <button className="btn-secondary" disabled={ocupado} onClick={guardarYCerrar}>Guardar</button>
-          <button className="btn-primary" disabled={ocupado} onClick={guardarYVer}><IconoDescargar size={14} /> Guardar y ver PDF</button>
+          <button className="btn-primary" disabled={ocupado} onClick={guardarYVer}><IconoVisto size={14} /> Guardar y ver PDF</button>
         </div>
       </div>
     );
@@ -291,7 +321,8 @@ export default function CotizacionesPanel({ adminToken, products: catalogo, sett
                   </td>
                   <td className="order-date">{fechaCorta(c.fecha)}</td>
                   <td className="order-actions">
-                    <button className="btn-secondary" title="Ver el PDF antes de mandarlo" onClick={() => setVistaPrevia(c)}><IconoDescargar size={14} /> PDF</button>
+                    <button className="btn-secondary" disabled={ocupado} title="Abrir el PDF en otra pestaña" onClick={() => ver(c)}><IconoVisto size={14} /> Ver</button>
+                    <button className="btn-secondary" disabled={ocupado} title="Descargar el PDF" onClick={() => descargar(c)}><IconoDescargar size={14} /> Descargar</button>
                     <button className="btn-secondary" onClick={() => editar(c)}>Editar</button>
                     <button className="icon-btn danger-icon" title="Eliminar" aria-label={`Eliminar la cotización ${numeroDeCotizacion(c)}`} onClick={() => eliminar(c)}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6" /></svg>
@@ -303,7 +334,6 @@ export default function CotizacionesPanel({ adminToken, products: catalogo, sett
           </table>
         </div>
       )}
-      {vistaPrevia && <CotizacionPreview cotizacion={vistaPrevia} settings={settings} showToast={showToast} onClose={() => setVistaPrevia(null)} />}
     </div>
   );
 }

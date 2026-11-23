@@ -328,6 +328,9 @@
 .status-cot-rechazada{--estado:var(--danger)}
 /* "Vencida" no es un estado que se elija, asi que no va dentro del desplegable: va debajo, como
    la nota al margen que es. */
+/* El numero de una cotizacion (20261120-B) no se parte: cortado en dos lineas deja de
+   leerse como un numero. */
+.orders-table td.order-id{white-space:nowrap}
 .cot-vencida{display:block;margin-top:4px;color:var(--danger);font-size:10.5px;font-weight:700}
 /* La vista previa del PDF. Va por encima del panel (z-index 300) y ocupa la pantalla entera:
    lo que se mira aqui es el papel que va a recibir un cliente, y mirarlo por una rendija no

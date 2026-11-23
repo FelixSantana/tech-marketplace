@@ -400,41 +400,14 @@ export async function pdfDeCotizacion(cotizacionCruda, settings) {
   return { blob: doc.output('blob'), nombre: nombreDeArchivo(cotizacion, papel) };
 }
 
-// Si este navegador sabe pasarle un archivo a otra aplicacion. Se pregunta para poder ETIQUETAR
-// el boton con la verdad —"Compartir" o "Descargar"—, en vez de prometer una cosa y hacer otra.
-export function puedeCompartirArchivos() {
-  try {
-    if (typeof File !== 'function' || typeof navigator === 'undefined' || !navigator.canShare) return false;
-    return navigator.canShare({ files: [new File([new Blob()], 'x.pdf', { type: 'application/pdf' })] });
-  } catch {
-    return false;
-  }
-}
-
-// Entregar el archivo al dueño.
+// Descargar el archivo, sin preguntar nada.
 //
-// Primero se intenta la hoja de compartir del sistema, y no por gusto: desde un iPhone esto se
-// usa para mandarle la cotizacion al cliente por WhatsApp, y compartir el archivo es UN toque.
-// La descarga en Safari de iOS, en cambio, acaba en una carpeta que hay que ir a buscar.
-//
-// Si el navegador no sabe compartir archivos —o la persona cierra la hoja—, se descarga. Las dos
-// vias terminan con un PDF de verdad en la mano.
-//
-// Recibe el blob ya hecho en vez de la cotizacion: la vista previa YA lo genero para enseñarlo,
-// y volver a dibujarlo al pulsar "Descargar" seria rehacer un trabajo que ya esta hecho —y, peor,
-// dejar que lo descargado pudiera no ser exactamente lo que se acaba de mirar.
-export async function entregarArchivo(blob, nombre) {
-  const archivo = typeof File === 'function' ? new File([blob], nombre, { type: 'application/pdf' }) : null;
-  if (archivo && navigator.canShare && navigator.canShare({ files: [archivo] })) {
-    try {
-      await navigator.share({ files: [archivo], title: nombre });
-      return 'compartido';
-    } catch (e) {
-      // Cancelar la hoja de compartir no es un error que haya que contarle a nadie, pero
-      // tampoco hay que descargar el archivo a su espalda: ya dijo que no.
-      if (e && e.name === 'AbortError') return 'cancelado';
-    }
-  }
+// Antes se intentaba primero la hoja de compartir del sistema, pensando en mandarlo por
+// WhatsApp de un toque desde el telefono. En Windows esa hoja es una ventana enorme con Teams,
+// Outlook, OneDrive y una lista de contactos: cuatro clics y un susto para algo que se pedia en
+// uno. Se quito. Quien quiera compartirlo lo comparte desde el archivo ya descargado, que es lo
+// que hace todo el mundo.
+export function descargarArchivo(blob, nombre) {
   const url = URL.createObjectURL(blob);
   const enlace = document.createElement('a');
   enlace.href = url;
@@ -445,5 +418,30 @@ export async function entregarArchivo(blob, nombre) {
   // Se revoca con holgura: revocar en el mismo tiro deja a algunos navegadores sin nada que
   // descargar.
   setTimeout(() => URL.revokeObjectURL(url), 30000);
-  return 'descargado';
+}
+
+// Pintar el PDF en una pestaña que YA esta abierta.
+//
+// La pestaña tiene que abrirla el que llama, dentro del propio clic. Si se abriera aqui —despues
+// del await que genera el PDF— el navegador ya no la ve como consecuencia de un clic y la
+// bloquea como ventana emergente. Por eso esta funcion recibe la pestaña vacia y solo la llena.
+//
+// Devuelve el nombre del archivo por si hay que caer en la descarga.
+export async function abrirEnPestana(pestana, cotizacion, settings) {
+  const { blob, nombre } = await pdfDeCotizacion(cotizacion, settings);
+  const url = URL.createObjectURL(blob);
+  if (!pestana || pestana.closed) {
+    // La pestaña no se pudo abrir (bloqueador de emergentes). Antes que dejar al dueño sin su
+    // cotizacion, se descarga.
+    descargarArchivo(blob, nombre);
+    return { nombre, abierta: false };
+  }
+  pestana.location = url;
+  // Se corta el enlace de vuelta: la pestaña nueva no tiene por que poder tocar el panel.
+  try { pestana.opener = null; } catch { /* algunos navegadores no dejan; no importa */ }
+  // Se suelta a los cinco minutos. Mientras tanto la pestaña funciona —recargar despues de eso
+  // la deja en blanco, y entonces se vuelve a pulsar Ver—, y asi no se acumula un PDF en
+  // memoria por cada vez que se mira uno.
+  setTimeout(() => URL.revokeObjectURL(url), 300000);
+  return { nombre, abierta: true };
 }
