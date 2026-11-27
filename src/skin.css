@@ -88,7 +88,13 @@ header.hero{padding:26px 24px 14px}
 .detail-warranty{color:var(--text-muted)}
 @media(min-width:900px){
   .detail-panel{max-width:940px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
-  .detail-carousel{aspect-ratio:1/1;height:100%}
+  /* La foto manda su ANCHO por la columna, y de ahi sale su alto. Antes era al reves:
+     `height:100%` la estiraba hasta la altura de la fila —que la pone el texto— y
+     `aspect-ratio:1/1` convertia esa altura en ancho. Una ficha con muchas lineas de
+     especificaciones hacia la foto mas ancha que su columna y se montaba encima del texto:
+     medido, 614px de foto en una columna de 469. Pasaba solo con fichas largas, que son
+     justo las de los productos mejor descritos. */
+  .detail-carousel{aspect-ratio:1/1;width:100%;height:auto;align-self:start}
   .detail-body{padding:30px 30px 32px;max-height:80vh;overflow:auto}
   .detail-name{font-size:26px}
 }
